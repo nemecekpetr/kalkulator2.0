@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronUp, Circle, Square, Droplets, Palette, Footprints, Settings, Lightbulb, Thermometer, Home, User } from 'lucide-react'
+import { ChevronUp, Circle, Square, Droplets, Palette, Footprints, Settings, Lightbulb, Thermometer, Home, User, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -27,21 +28,32 @@ interface SummaryItemProps {
   icon: React.ReactNode
   label: string
   value: string | null | undefined
+  highlight?: boolean
 }
 
-function SummaryItem({ icon, label, value }: SummaryItemProps) {
+function SummaryItem({ icon, label, value, highlight }: SummaryItemProps) {
   if (!value) return null
 
   return (
-    <div className="flex items-start gap-3 py-2">
-      <div className="w-8 h-8 rounded-lg bg-[#48A9A6]/10 flex items-center justify-center flex-shrink-0">
-        {icon}
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-start gap-3 py-2.5"
+    >
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
+        highlight
+          ? 'bg-gradient-to-br from-[#FF8621] to-[#ED6663]'
+          : 'bg-gradient-to-br from-[#48A9A6]/20 to-[#01384B]/10'
+      }`}>
+        <div className={highlight ? 'text-white' : 'text-[#48A9A6]'}>
+          {icon}
+        </div>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="text-sm font-medium text-foreground truncate">{value}</p>
+        <p className="text-xs text-slate-500 font-medium">{label}</p>
+        <p className="text-sm font-semibold text-[#01384B] truncate">{value}</p>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -66,11 +78,14 @@ function SummaryContent() {
   if (!hasAnyData) {
     return (
       <div className="text-center py-8">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
-          <Droplets className="w-8 h-8 text-muted-foreground" />
+        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#48A9A6]/10 to-[#01384B]/5 flex items-center justify-center">
+          <Droplets className="w-10 h-10 text-[#48A9A6]" />
         </div>
-        <p className="text-sm text-muted-foreground">
-          Začněte vybírat a zde se zobrazí vaše konfigurace
+        <p className="text-sm text-slate-500 font-medium">
+          Zacnete vybirat a zde se zobrazi vase konfigurace
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
+          Kazdy vas vyber se automaticky ulozi
         </p>
       </div>
     )
@@ -80,37 +95,37 @@ function SummaryContent() {
     <div className="space-y-1">
       {/* Pool basics */}
       <SummaryItem
-        icon={<Circle className="w-4 h-4 text-[#48A9A6]" />}
+        icon={<Circle className="w-4 h-4" />}
         label="Tvar"
         value={shape ? getShapeLabel(shape) : null}
       />
       <SummaryItem
-        icon={<Droplets className="w-4 h-4 text-[#48A9A6]" />}
+        icon={<Droplets className="w-4 h-4" />}
         label="Typ"
         value={type ? getTypeLabel(type) : null}
       />
       <SummaryItem
-        icon={<Square className="w-4 h-4 text-[#48A9A6]" />}
-        label="Rozměry"
+        icon={<Square className="w-4 h-4" />}
+        label="Rozmery"
         value={shape && dimensions ? formatDimensions(shape, dimensions) : null}
       />
       <SummaryItem
-        icon={<Palette className="w-4 h-4 text-[#48A9A6]" />}
+        icon={<Palette className="w-4 h-4" />}
         label="Barva"
         value={color ? getColorLabel(color) : null}
       />
 
       {stairs && stairs !== 'none' && shape !== 'circle' && (
         <SummaryItem
-          icon={<Footprints className="w-4 h-4 text-[#48A9A6]" />}
-          label="Schodiště"
+          icon={<Footprints className="w-4 h-4" />}
+          label="Schodiste"
           value={getStairsLabel(stairs)}
         />
       )}
 
       {technology && (
         <SummaryItem
-          icon={<Settings className="w-4 h-4 text-[#48A9A6]" />}
+          icon={<Settings className="w-4 h-4" />}
           label="Technologie"
           value={getTechnologyLabel(technology)}
         />
@@ -119,29 +134,35 @@ function SummaryContent() {
       {/* Accessories */}
       {(lighting || counterflow || waterTreatment) && (
         <>
-          <Separator className="my-3" />
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-            Příslušenství
-          </p>
+          <Separator className="my-3 bg-gradient-to-r from-transparent via-[#48A9A6]/20 to-transparent" />
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-3 h-3 text-[#FF8621]" />
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Prislusenstvi
+            </p>
+          </div>
           {lighting && lighting !== 'none' && (
             <SummaryItem
-              icon={<Lightbulb className="w-4 h-4 text-[#FF8621]" />}
-              label="Osvětlení"
+              icon={<Lightbulb className="w-4 h-4" />}
+              label="Osvetleni"
               value={getLightingLabel(lighting)}
+              highlight
             />
           )}
           {counterflow && counterflow !== 'none' && (
             <SummaryItem
-              icon={<Droplets className="w-4 h-4 text-[#FF8621]" />}
+              icon={<Droplets className="w-4 h-4" />}
               label="Protiproud"
               value={getCounterflowLabel(counterflow)}
+              highlight
             />
           )}
           {waterTreatment && (
             <SummaryItem
-              icon={<Droplets className="w-4 h-4 text-[#FF8621]" />}
-              label="Úprava vody"
+              icon={<Droplets className="w-4 h-4" />}
+              label="Uprava vody"
               value={getWaterTreatmentLabel(waterTreatment)}
+              highlight
             />
           )}
         </>
@@ -150,18 +171,18 @@ function SummaryContent() {
       {/* Heating & Roofing */}
       {(heating || roofing) && (
         <>
-          <Separator className="my-3" />
+          <Separator className="my-3 bg-gradient-to-r from-transparent via-[#48A9A6]/20 to-transparent" />
           {heating && heating !== 'none' && (
             <SummaryItem
-              icon={<Thermometer className="w-4 h-4 text-[#ED6663]" />}
-              label="Ohřev"
+              icon={<Thermometer className="w-4 h-4" />}
+              label="Ohrev"
               value={getHeatingLabel(heating)}
             />
           )}
           {roofing && roofing !== 'none' && (
             <SummaryItem
-              icon={<Home className="w-4 h-4 text-[#ED6663]" />}
-              label="Zastřešení"
+              icon={<Home className="w-4 h-4" />}
+              label="Zastreseni"
               value={getRoofingLabel(roofing)}
             />
           )}
@@ -171,9 +192,9 @@ function SummaryContent() {
       {/* Contact */}
       {contact?.name && (
         <>
-          <Separator className="my-3" />
+          <Separator className="my-3 bg-gradient-to-r from-transparent via-[#48A9A6]/20 to-transparent" />
           <SummaryItem
-            icon={<User className="w-4 h-4 text-[#01384B]" />}
+            icon={<User className="w-4 h-4" />}
             label="Kontakt"
             value={contact.name}
           />
@@ -197,23 +218,30 @@ export function ConfiguratorSummary({ variant = 'desktop' }: ConfiguratorSummary
         <SheetTrigger asChild>
           <Button
             variant="outline"
-            className="w-full flex items-center justify-between"
+            className="w-full flex items-center justify-between bg-white border-[#48A9A6]/30 hover:bg-[#48A9A6]/5 hover:border-[#48A9A6]/50"
           >
             <span className="flex items-center gap-2">
-              <Droplets className="w-4 h-4 text-[#48A9A6]" />
-              <span>Zobrazit konfigurace</span>
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#48A9A6] to-[#01384B] flex items-center justify-center">
+                <Droplets className="w-3 h-3 text-white" />
+              </div>
+              <span className="font-medium text-[#01384B]">Zobrazit konfiguraci</span>
             </span>
-            <ChevronUp className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronUp className={`w-4 h-4 text-[#48A9A6] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </Button>
         </SheetTrigger>
-        <SheetContent side="bottom" className="h-[70vh]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Droplets className="w-5 h-5 text-[#48A9A6]" />
-              Vaše konfigurace
+        <SheetContent side="bottom" className="h-[75vh] rounded-t-3xl">
+          <SheetHeader className="pb-4 border-b border-[#48A9A6]/10">
+            <SheetTitle className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#48A9A6] to-[#01384B] flex items-center justify-center shadow-lg">
+                <Droplets className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <span className="text-[#01384B]">Vase konfigurace</span>
+                <p className="text-xs text-slate-500 font-normal">Prehled vybranych moznosti</p>
+              </div>
             </SheetTitle>
           </SheetHeader>
-          <div className="mt-4 overflow-auto">
+          <div className="mt-4 overflow-auto pb-20">
             <SummaryContent />
           </div>
         </SheetContent>
@@ -222,13 +250,19 @@ export function ConfiguratorSummary({ variant = 'desktop' }: ConfiguratorSummary
   }
 
   return (
-    <Card className="glass border-[#48A9A6]/20">
+    <Card className="bg-white/90 backdrop-blur-sm border-[#48A9A6]/20 shadow-xl shadow-[#01384B]/5 overflow-hidden">
+      {/* Decorative header gradient */}
+      <div className="h-1 bg-gradient-to-r from-[#48A9A6] via-[#3d9996] to-[#01384B]" />
+
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#48A9A6] to-[#01384B] flex items-center justify-center">
-            <Droplets className="w-4 h-4 text-white" />
+        <CardTitle className="flex items-center gap-3 text-lg">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#48A9A6] to-[#01384B] flex items-center justify-center shadow-lg shadow-[#48A9A6]/20">
+            <Droplets className="w-5 h-5 text-white" />
           </div>
-          Vaše konfigurace
+          <div>
+            <span className="text-[#01384B]">Vase konfigurace</span>
+            <p className="text-xs text-slate-500 font-normal">Automaticky ukladano</p>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -241,16 +275,19 @@ export function ConfiguratorSummary({ variant = 'desktop' }: ConfiguratorSummary
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-6 pt-4 border-t border-border/50"
+              className="mt-6 pt-4 border-t border-[#48A9A6]/10"
             >
-              <p className="text-xs text-muted-foreground mb-2">Cenová kategorie</p>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#48A9A6] to-[#01384B] animate-pulse" />
+                <p className="text-xs text-slate-500 font-medium">Cenova kategorie</p>
+              </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-[#48A9A6]/10 text-[#01384B] border-[#48A9A6]/30">
-                  Individuální kalkulace
+                <Badge className="bg-gradient-to-r from-[#48A9A6]/10 to-[#01384B]/10 text-[#01384B] border-[#48A9A6]/30 hover:bg-[#48A9A6]/20">
+                  Individualni kalkulace
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Přesnou cenu vám spočítáme na míru
+              <p className="text-xs text-slate-400 mt-2">
+                Presnou cenu vam spocitame na miru
               </p>
             </motion.div>
           )}

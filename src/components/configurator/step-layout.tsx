@@ -21,17 +21,20 @@ export function StepLayout({ title, description, children, className }: StepLayo
     >
       {/* Header */}
       <div className="space-y-2">
-        <motion.h2
-          className="text-2xl md:text-3xl font-display font-bold text-[#01384B]"
+        <motion.div
+          className="flex items-center gap-3"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          {title}
-        </motion.h2>
+          <div className="w-1.5 h-8 bg-gradient-to-b from-[#48A9A6] to-[#01384B] rounded-full" />
+          <h2 className="text-2xl md:text-3xl font-bold text-[#01384B]">
+            {title}
+          </h2>
+        </motion.div>
         {description && (
           <motion.p
-            className="text-muted-foreground"
+            className="text-slate-500 ml-[18px] pl-3 border-l-2 border-slate-100"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
@@ -68,14 +71,14 @@ export function OptionCard({ selected, onClick, children, className, disabled }:
       type="button"
       onClick={onClick}
       disabled={disabled}
-      whileHover={{ scale: disabled ? 1 : 1.02 }}
+      whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       className={cn(
-        'relative w-full p-4 rounded-xl border-2 text-left transition-all',
+        'relative w-full p-5 rounded-2xl border-2 text-left transition-all duration-300',
         'focus:outline-none focus:ring-2 focus:ring-[#48A9A6]/50 focus:ring-offset-2',
         selected
-          ? 'border-[#48A9A6] bg-[#48A9A6]/5 shadow-lg shadow-[#48A9A6]/10'
-          : 'border-border bg-card hover:border-[#48A9A6]/50 hover:bg-muted/50',
+          ? 'border-[#48A9A6] bg-gradient-to-br from-[#48A9A6]/5 to-[#01384B]/5 shadow-lg shadow-[#48A9A6]/10'
+          : 'border-slate-200 bg-white hover:border-[#48A9A6]/50 hover:shadow-md hover:shadow-slate-100',
         disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
@@ -83,17 +86,18 @@ export function OptionCard({ selected, onClick, children, className, disabled }:
       {/* Selection indicator */}
       <div
         className={cn(
-          'absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
+          'absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300',
           selected
-            ? 'border-[#48A9A6] bg-[#48A9A6]'
-            : 'border-muted-foreground/30'
+            ? 'border-[#48A9A6] bg-gradient-to-br from-[#48A9A6] to-[#3d9996] shadow-md shadow-[#48A9A6]/30'
+            : 'border-slate-300 bg-white'
         )}
       >
         {selected && (
           <motion.svg
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="w-3 h-3 text-white"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+            className="w-3.5 h-3.5 text-white"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -115,14 +119,14 @@ interface OptionTagProps {
 
 export function OptionTag({ children, variant = 'default' }: OptionTagProps) {
   const variants = {
-    default: 'bg-muted text-muted-foreground',
-    premium: 'bg-gradient-to-r from-[#FF8621] to-[#ED6663] text-white',
-    recommended: 'bg-[#48A9A6] text-white'
+    default: 'bg-slate-100 text-slate-600',
+    premium: 'bg-gradient-to-r from-[#FF8621] to-[#ED6663] text-white shadow-sm shadow-[#FF8621]/20',
+    recommended: 'bg-gradient-to-r from-[#48A9A6] to-[#3d9996] text-white shadow-sm shadow-[#48A9A6]/20'
   }
 
   return (
     <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+      'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold',
       variants[variant]
     )}>
       {children}
