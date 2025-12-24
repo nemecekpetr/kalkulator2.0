@@ -47,7 +47,7 @@ export function AdminSidebar() {
           .from('user_profiles')
           .select('role')
           .eq('id', user.id)
-          .single()
+          .single() as { data: { role: string } | null }
         if (profile) {
           setUserRole(profile.role as UserRole)
         }

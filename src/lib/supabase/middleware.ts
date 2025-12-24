@@ -65,7 +65,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Check admin-only routes
-    if (request.nextUrl.pathname.startsWith('/admin/uzivatele') && profile.role !== 'admin') {
+    if (request.nextUrl.pathname.startsWith('/admin/uzivatele') && profile?.role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/dashboard'
       return NextResponse.redirect(url)
