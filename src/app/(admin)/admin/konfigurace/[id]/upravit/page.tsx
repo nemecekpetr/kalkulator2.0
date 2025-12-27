@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { ConfigurationForm } from '@/components/admin/configuration-form'

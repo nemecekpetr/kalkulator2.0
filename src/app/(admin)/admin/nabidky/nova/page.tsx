@@ -1,4 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
+
 import { QuoteEditor } from '@/components/admin/quote-editor'
 import type { Product, Configuration } from '@/lib/supabase/types'
 

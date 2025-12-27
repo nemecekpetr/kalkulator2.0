@@ -13,7 +13,7 @@ export type ConfigurationSource = 'web' | 'manual' | 'phone'
 export type UserRole = 'admin' | 'user'
 
 // Quote types
-export type ProductCategory = 'bazeny' | 'prislusenstvi' | 'sluzby'
+export type ProductCategory = 'bazeny' | 'prislusenstvi' | 'sluzby' | 'doprava'
 export type QuoteItemCategory = 'bazeny' | 'prislusenstvi' | 'sluzby' | 'prace' | 'doprava' | 'jine'
 
 export type PoolShape = 'circle' | 'rectangle_rounded' | 'rectangle_sharp'
@@ -361,4 +361,176 @@ export interface QuoteWithItems extends Quote {
   items: QuoteItem[]
   configuration?: Configuration | null
   creator?: UserProfile | null
+}
+
+// =============================================================================
+// Product Mapping Types
+// =============================================================================
+
+// Config field types for mapping rules
+export type ConfigField =
+  | 'stairs'
+  | 'technology'
+  | 'lighting'
+  | 'counterflow'
+  | 'waterTreatment'
+  | 'heating'
+  | 'roofing'
+
+// Product mapping rule - maps configurator choices to products
+export interface ProductMappingRule {
+  id: string
+  created_at: string
+  updated_at: string
+  name: string
+  description: string | null
+  product_id: string | null
+  config_field: ConfigField
+  config_value: string
+  pool_shape: PoolShape[] | null
+  pool_type: PoolType[] | null
+  quantity: number
+  sort_order: number
+  active: boolean
+  // Joined data
+  product?: Product | null
+}
+
+export interface ProductMappingRuleInsert {
+  id?: string
+  name: string
+  description?: string | null
+  product_id?: string | null
+  config_field: ConfigField
+  config_value: string
+  pool_shape?: PoolShape[] | null
+  pool_type?: PoolType[] | null
+  quantity?: number
+  sort_order?: number
+  active?: boolean
+}
+
+export interface ProductMappingRuleUpdate {
+  name?: string
+  description?: string | null
+  product_id?: string | null
+  config_field?: ConfigField
+  config_value?: string
+  pool_shape?: PoolShape[] | null
+  pool_type?: PoolType[] | null
+  quantity?: number
+  sort_order?: number
+  active?: boolean
+}
+
+// Pool base price - maps pool dimensions to products
+export interface PoolBasePrice {
+  id: string
+  created_at: string
+  product_id: string | null
+  pool_shape: PoolShape
+  pool_type: PoolType
+  width: number | null
+  length: number | null
+  diameter: number | null
+  depth: number
+  active: boolean
+  // Joined data
+  product?: Product | null
+}
+
+export interface PoolBasePriceInsert {
+  id?: string
+  product_id?: string | null
+  pool_shape: PoolShape
+  pool_type: PoolType
+  width?: number | null
+  length?: number | null
+  diameter?: number | null
+  depth: number
+  active?: boolean
+}
+
+export interface PoolBasePriceUpdate {
+  product_id?: string | null
+  pool_shape?: PoolShape
+  pool_type?: PoolType
+  width?: number | null
+  length?: number | null
+  diameter?: number | null
+  depth?: number
+  active?: boolean
+}
+
+// Generated quote item (before saving to DB)
+export interface GeneratedQuoteItem {
+  product_id: string | null
+  name: string
+  description: string | null
+  category: QuoteItemCategory
+  quantity: number
+  unit: string
+  unit_price: number
+  total_price: number
+  sort_order: number
+  // Metadata for UI
+  source?: 'pool_base_price' | 'mapping_rule'
+  rule_id?: string
+}
+
+// =============================================================================
+// Quote Variant Types
+// =============================================================================
+
+export type QuoteVariantKey = 'ekonomicka' | 'optimalni' | 'premiova'
+
+// Quote variant - represents one pricing option (e.g., Ekonomická, Optimální, Prémiová)
+export interface QuoteVariant {
+  id: string
+  created_at: string
+  quote_id: string
+  variant_key: QuoteVariantKey
+  variant_name: string
+  sort_order: number
+  subtotal: number
+  discount_percent: number
+  discount_amount: number
+  total_price: number
+}
+
+export interface QuoteVariantInsert {
+  id?: string
+  quote_id: string
+  variant_key: QuoteVariantKey
+  variant_name: string
+  sort_order?: number
+  subtotal?: number
+  discount_percent?: number
+  discount_amount?: number
+  total_price?: number
+}
+
+export interface QuoteVariantUpdate {
+  variant_name?: string
+  sort_order?: number
+  subtotal?: number
+  discount_percent?: number
+  discount_amount?: number
+  total_price?: number
+}
+
+// Quote item with variant associations
+export interface QuoteItemWithVariants extends QuoteItem {
+  variant_ids: string[]  // Which variants include this item
+}
+
+// Quote variant with its items
+export interface QuoteVariantWithItems extends QuoteVariant {
+  items: QuoteItem[]
+}
+
+// Full quote with variants and items
+export interface QuoteWithVariants extends Quote {
+  variants: QuoteVariantWithItems[]
+  items: QuoteItemWithVariants[]  // All items with their variant associations
 }

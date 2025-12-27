@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Package, RefreshCw, AlertCircle, CheckCircle, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDistanceToNow } from 'date-fns'
 import { cs } from 'date-fns/locale'
@@ -15,6 +17,7 @@ interface ProductsHeaderProps {
 }
 
 export function ProductsHeader({ totalProducts, lastSync, pipedriveConfigured }: ProductsHeaderProps) {
+  const router = useRouter()
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null)
   const [userRole, setUserRole] = useState<UserRole | null>(null)
@@ -53,8 +56,8 @@ export function ProductsHeader({ totalProducts, lastSync, pipedriveConfigured }:
           success: true,
           message: `Synchronizováno: ${data.stats.created} nových, ${data.stats.updated} aktualizovaných`
         })
-        // Reload page to show new data
-        setTimeout(() => window.location.reload(), 1500)
+        // Refresh data
+        setTimeout(() => router.refresh(), 1500)
       } else {
         setSyncResult({
           success: false,
@@ -91,14 +94,21 @@ export function ProductsHeader({ totalProducts, lastSync, pipedriveConfigured }:
 
         {userRole === 'admin' && (
           <div className="flex items-center gap-2">
+            <Link href="/admin/produkty/mapovani">
+              <Button variant="outline" size="sm">
+                <Settings2 className="w-4 h-4 mr-2" />
+                Mapování produktů
+              </Button>
+            </Link>
             {pipedriveConfigured ? (
               <Button
                 onClick={handleSync}
                 disabled={syncing}
                 variant="outline"
+                size="sm"
               >
                 <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Synchronizuji...' : 'Synchronizovat z Pipedrive'}
+                {syncing ? 'Synchronizuji...' : 'Sync Pipedrive'}
               </Button>
             ) : (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">

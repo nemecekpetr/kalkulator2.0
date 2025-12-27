@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { QuoteEditor } from '@/components/admin/quote-editor'
-import type { Product, Configuration, QuoteItem } from '@/lib/supabase/types'
+import type { Product, Configuration, QuoteItem, QuoteVariant, QuoteVariantKey } from '@/lib/supabase/types'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -31,6 +33,44 @@ async function getQuoteWithDetails(id: string) {
     .eq('quote_id', id)
     .order('sort_order', { ascending: true })
 
+  // Fetch quote variants
+  const { data: variants } = await supabase
+    .from('quote_variants')
+    .select('*')
+    .eq('quote_id', id)
+    .order('sort_order', { ascending: true })
+
+  // Fetch item-variant associations
+  const itemIds = (items || []).map((i) => i.id)
+  let itemVariantAssociations: { quote_item_id: string; quote_variant_id: string }[] = []
+  if (itemIds.length > 0) {
+    const { data: associations } = await supabase
+      .from('quote_item_variants')
+      .select('quote_item_id, quote_variant_id')
+      .in('quote_item_id', itemIds)
+    itemVariantAssociations = associations || []
+  }
+
+  // Build variant ID to key map
+  const variantIdToKey: Record<string, QuoteVariantKey> = {}
+  ;(variants || []).forEach((v: QuoteVariant) => {
+    variantIdToKey[v.id] = v.variant_key
+  })
+
+  // Add variant_keys to items
+  const itemsWithVariantKeys = (items || []).map((item: QuoteItem) => {
+    const variantIds = itemVariantAssociations
+      .filter((a) => a.quote_item_id === item.id)
+      .map((a) => a.quote_variant_id)
+    const variantKeys = variantIds
+      .map((vid) => variantIdToKey[vid])
+      .filter(Boolean)
+    return {
+      ...item,
+      variant_keys: variantKeys,
+    }
+  })
+
   // Fetch configuration if linked
   let configuration: Configuration | null = null
   if (quote.configuration_id) {
@@ -51,7 +91,8 @@ async function getQuoteWithDetails(id: string) {
 
   return {
     quote,
-    items: (items || []) as QuoteItem[],
+    items: itemsWithVariantKeys,
+    variants: (variants || []) as QuoteVariant[],
     configuration,
     products: (products || []) as Product[],
   }
@@ -65,7 +106,7 @@ export default async function EditQuotePage({ params }: PageProps) {
     notFound()
   }
 
-  const { quote, items, configuration, products } = data
+  const { quote, items, variants, configuration, products } = data
 
   return (
     <div className="space-y-6">
@@ -107,6 +148,14 @@ export default async function EditQuotePage({ params }: PageProps) {
             unit: item.unit,
             unit_price: item.unit_price,
             total_price: item.total_price,
+            variant_keys: item.variant_keys || [],
+          })),
+          variants: variants.map((v) => ({
+            id: v.id,
+            variant_key: v.variant_key,
+            variant_name: v.variant_name,
+            discount_percent: v.discount_percent,
+            discount_amount: v.discount_amount,
           })),
         }}
       />

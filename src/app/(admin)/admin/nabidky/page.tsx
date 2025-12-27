@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 import { QuotesTable } from '@/components/admin/quotes-table'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'

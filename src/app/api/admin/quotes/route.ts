@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import type { QuoteVariantKey } from '@/lib/supabase/types'
 
 const QuoteItemSchema = z.object({
+  id: z.string().optional(), // For tracking during edit
   product_id: z.string().nullable(),
   name: z.string().min(1),
   description: z.string().optional(),
@@ -13,6 +15,15 @@ const QuoteItemSchema = z.object({
   unit_price: z.number().min(0),
   total_price: z.number().min(0),
   sort_order: z.number(),
+  variant_keys: z.array(z.enum(['ekonomicka', 'optimalni', 'premiova'])).optional(),
+})
+
+const QuoteVariantSchema = z.object({
+  variant_key: z.enum(['ekonomicka', 'optimalni', 'premiova']),
+  variant_name: z.string(),
+  sort_order: z.number().optional(),
+  discount_percent: z.number().min(0).max(100).optional(),
+  discount_amount: z.number().min(0).optional(),
 })
 
 const QuoteSchema = z.object({
@@ -27,21 +38,53 @@ const QuoteSchema = z.object({
   valid_until: z.string().optional(),
   notes: z.string().optional(),
   items: z.array(QuoteItemSchema),
+  variants: z.array(QuoteVariantSchema).optional(),
 })
 
-// GET - list all quotes
+// GET - list all quotes with variants
 export async function GET() {
   try {
     const supabase = await createAdminClient()
 
     const { data, error } = await supabase
       .from('quotes')
-      .select('*, quote_items(*)')
+      .select(`
+        *,
+        quote_items(*),
+        quote_variants(*)
+      `)
       .order('created_at', { ascending: false })
 
     if (error) throw error
 
-    return NextResponse.json(data)
+    // For each quote, fetch item-variant associations
+    const quotesWithAssociations = await Promise.all(
+      (data || []).map(async (quote) => {
+        // Get item-variant associations
+        const { data: associations } = await supabase
+          .from('quote_item_variants')
+          .select('quote_item_id, quote_variant_id')
+          .in(
+            'quote_item_id',
+            (quote.quote_items || []).map((i: { id: string }) => i.id)
+          )
+
+        // Add variant_ids to each item
+        const itemsWithVariants = (quote.quote_items || []).map((item: { id: string }) => ({
+          ...item,
+          variant_ids: (associations || [])
+            .filter((a) => a.quote_item_id === item.id)
+            .map((a) => a.quote_variant_id),
+        }))
+
+        return {
+          ...quote,
+          quote_items: itemsWithVariants,
+        }
+      })
+    )
+
+    return NextResponse.json(quotesWithAssociations)
   } catch (error) {
     console.error('Error fetching quotes:', error)
     return NextResponse.json(
@@ -51,7 +94,7 @@ export async function GET() {
   }
 }
 
-// POST - create new quote
+// POST - create new quote with variants
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -63,7 +106,7 @@ export async function POST(request: Request) {
 
     const supabase = await createAdminClient()
 
-    // Calculate totals
+    // Calculate total subtotal (all unique items)
     const subtotal = validatedData.items.reduce((sum, item) => sum + item.total_price, 0)
 
     // Create quote
@@ -88,24 +131,101 @@ export async function POST(request: Request) {
 
     if (quoteError) throw quoteError
 
+    // Create variants if provided
+    const variantIdMap: Record<QuoteVariantKey, string> = {} as Record<QuoteVariantKey, string>
+
+    if (validatedData.variants && validatedData.variants.length > 0) {
+      // Calculate subtotal for each variant based on items
+      const variantSubtotals: Record<QuoteVariantKey, number> = {
+        ekonomicka: 0,
+        optimalni: 0,
+        premiova: 0,
+      }
+
+      validatedData.items.forEach((item) => {
+        (item.variant_keys || []).forEach((key) => {
+          variantSubtotals[key] += item.total_price
+        })
+      })
+
+      const variantsToInsert = validatedData.variants.map((v, idx) => {
+        const variantSubtotal = variantSubtotals[v.variant_key]
+        const discountPercent = v.discount_percent || 0
+        const discountAmount = v.discount_amount || 0
+        const totalAfterDiscount = variantSubtotal - (variantSubtotal * discountPercent / 100) - discountAmount
+
+        return {
+          quote_id: quote.id,
+          variant_key: v.variant_key,
+          variant_name: v.variant_name,
+          sort_order: v.sort_order ?? idx,
+          subtotal: variantSubtotal,
+          discount_percent: discountPercent,
+          discount_amount: discountAmount,
+          total_price: Math.max(0, totalAfterDiscount),
+        }
+      })
+
+      const { data: insertedVariants, error: variantsError } = await supabase
+        .from('quote_variants')
+        .insert(variantsToInsert)
+        .select('id, variant_key')
+
+      if (variantsError) throw variantsError
+
+      // Build variant key to ID map
+      insertedVariants?.forEach((v) => {
+        variantIdMap[v.variant_key as QuoteVariantKey] = v.id
+      })
+    }
+
     // Create quote items
     if (validatedData.items.length > 0) {
-      const { error: itemsError } = await supabase.from('quote_items').insert(
-        validatedData.items.map((item) => ({
-          quote_id: quote.id,
-          product_id: item.product_id,
-          name: item.name,
-          description: item.description || null,
-          category: item.category,
-          quantity: item.quantity,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          sort_order: item.sort_order,
-        }))
-      )
+      const { data: insertedItems, error: itemsError } = await supabase
+        .from('quote_items')
+        .insert(
+          validatedData.items.map((item) => ({
+            quote_id: quote.id,
+            product_id: item.product_id,
+            name: item.name,
+            description: item.description || null,
+            category: item.category,
+            quantity: item.quantity,
+            unit: item.unit,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            sort_order: item.sort_order,
+          }))
+        )
+        .select('id')
 
       if (itemsError) throw itemsError
+
+      // Create item-variant associations
+      const itemVariantAssociations: { quote_item_id: string; quote_variant_id: string }[] = []
+
+      validatedData.items.forEach((item, idx) => {
+        const insertedItemId = insertedItems?.[idx]?.id
+        if (insertedItemId && item.variant_keys) {
+          item.variant_keys.forEach((variantKey) => {
+            const variantId = variantIdMap[variantKey]
+            if (variantId) {
+              itemVariantAssociations.push({
+                quote_item_id: insertedItemId,
+                quote_variant_id: variantId,
+              })
+            }
+          })
+        }
+      })
+
+      if (itemVariantAssociations.length > 0) {
+        const { error: assocError } = await supabase
+          .from('quote_item_variants')
+          .insert(itemVariantAssociations)
+
+        if (assocError) throw assocError
+      }
     }
 
     return NextResponse.json({ id: quote.id, success: true })
@@ -126,7 +246,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT - update existing quote
+// PUT - update existing quote with variants
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
@@ -141,10 +261,10 @@ export async function PUT(request: Request) {
 
     const supabase = await createAdminClient()
 
-    // Calculate totals
+    // Calculate total subtotal
     const subtotal = validatedData.items.reduce((sum, item) => sum + item.total_price, 0)
 
-    // Update quote (don't update created_by on edit)
+    // Update quote
     const { error: quoteError } = await supabase
       .from('quotes')
       .update({
@@ -162,26 +282,104 @@ export async function PUT(request: Request) {
 
     if (quoteError) throw quoteError
 
-    // Delete existing items and re-create
+    // Delete existing variants and items (cascade will handle associations)
+    await supabase.from('quote_variants').delete().eq('quote_id', validatedData.id)
     await supabase.from('quote_items').delete().eq('quote_id', validatedData.id)
 
-    if (validatedData.items.length > 0) {
-      const { error: itemsError } = await supabase.from('quote_items').insert(
-        validatedData.items.map((item) => ({
+    // Re-create variants
+    const variantIdMap: Record<QuoteVariantKey, string> = {} as Record<QuoteVariantKey, string>
+
+    if (validatedData.variants && validatedData.variants.length > 0) {
+      // Calculate subtotal for each variant
+      const variantSubtotals: Record<QuoteVariantKey, number> = {
+        ekonomicka: 0,
+        optimalni: 0,
+        premiova: 0,
+      }
+
+      validatedData.items.forEach((item) => {
+        (item.variant_keys || []).forEach((key) => {
+          variantSubtotals[key] += item.total_price
+        })
+      })
+
+      const variantsToInsert = validatedData.variants.map((v, idx) => {
+        const variantSubtotal = variantSubtotals[v.variant_key]
+        const discountPercent = v.discount_percent || 0
+        const discountAmount = v.discount_amount || 0
+        const totalAfterDiscount = variantSubtotal - (variantSubtotal * discountPercent / 100) - discountAmount
+
+        return {
           quote_id: validatedData.id,
-          product_id: item.product_id,
-          name: item.name,
-          description: item.description || null,
-          category: item.category,
-          quantity: item.quantity,
-          unit: item.unit,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          sort_order: item.sort_order,
-        }))
-      )
+          variant_key: v.variant_key,
+          variant_name: v.variant_name,
+          sort_order: v.sort_order ?? idx,
+          subtotal: variantSubtotal,
+          discount_percent: discountPercent,
+          discount_amount: discountAmount,
+          total_price: Math.max(0, totalAfterDiscount),
+        }
+      })
+
+      const { data: insertedVariants, error: variantsError } = await supabase
+        .from('quote_variants')
+        .insert(variantsToInsert)
+        .select('id, variant_key')
+
+      if (variantsError) throw variantsError
+
+      insertedVariants?.forEach((v) => {
+        variantIdMap[v.variant_key as QuoteVariantKey] = v.id
+      })
+    }
+
+    // Re-create items
+    if (validatedData.items.length > 0) {
+      const { data: insertedItems, error: itemsError } = await supabase
+        .from('quote_items')
+        .insert(
+          validatedData.items.map((item) => ({
+            quote_id: validatedData.id,
+            product_id: item.product_id,
+            name: item.name,
+            description: item.description || null,
+            category: item.category,
+            quantity: item.quantity,
+            unit: item.unit,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            sort_order: item.sort_order,
+          }))
+        )
+        .select('id')
 
       if (itemsError) throw itemsError
+
+      // Create item-variant associations
+      const itemVariantAssociations: { quote_item_id: string; quote_variant_id: string }[] = []
+
+      validatedData.items.forEach((item, idx) => {
+        const insertedItemId = insertedItems?.[idx]?.id
+        if (insertedItemId && item.variant_keys) {
+          item.variant_keys.forEach((variantKey) => {
+            const variantId = variantIdMap[variantKey]
+            if (variantId) {
+              itemVariantAssociations.push({
+                quote_item_id: insertedItemId,
+                quote_variant_id: variantId,
+              })
+            }
+          })
+        }
+      })
+
+      if (itemVariantAssociations.length > 0) {
+        const { error: assocError } = await supabase
+          .from('quote_item_variants')
+          .insert(itemVariantAssociations)
+
+        if (assocError) throw assocError
+      }
     }
 
     return NextResponse.json({ id: validatedData.id, success: true })

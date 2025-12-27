@@ -2,6 +2,9 @@
 
 const PIPEDRIVE_API_URL = 'https://api.pipedrive.com/v1'
 
+// Custom field key for "Kategorie produktu" in Pipedrive
+const PIPEDRIVE_CATEGORY_FIELD_KEY = '0bdc4ee4b33bf097f3dd7f3721cccabdad38fb24'
+
 interface PipedriveProduct {
   id: number
   name: string
@@ -20,6 +23,8 @@ interface PipedriveProduct {
   }>
   add_time: string
   update_time: string
+  // Custom fields - accessed by their hash key
+  [key: string]: unknown
 }
 
 interface PipedriveResponse<T> {
@@ -131,4 +136,18 @@ export function mapPipedriveProduct(product: PipedriveProduct): {
   }
 }
 
+// Get product category from custom field "Kategorie produktu"
+export function getProductCategory(product: PipedriveProduct): string | null {
+  const categoryValue = product[PIPEDRIVE_CATEGORY_FIELD_KEY]
+
+  // Custom field can be string or null
+  if (typeof categoryValue === 'string') {
+    return categoryValue
+  }
+
+  // Fallback to standard category field
+  return product.category
+}
+
 export type { PipedriveProduct }
+export { PIPEDRIVE_CATEGORY_FIELD_KEY }

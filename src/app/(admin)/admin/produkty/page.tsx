@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 import { ProductsTable } from '@/components/admin/products-table'
 import { ProductsHeader } from '@/components/admin/products-header'
 import { Skeleton } from '@/components/ui/skeleton'

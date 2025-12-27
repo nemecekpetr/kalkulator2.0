@@ -3,20 +3,26 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createPipedriveClient, mapPipedriveProduct } from '@/lib/pipedrive/client'
 import type { ProductCategory } from '@/lib/supabase/types'
 
-// Map Pipedrive category to our categories
+// Map Pipedrive category ID to our categories
+// Pipedrive uses numeric IDs for categories
+const PIPEDRIVE_CATEGORY_IDS: Record<string, ProductCategory> = {
+  '102': 'bazeny',         // Bazény (skelety)
+  '109': 'sluzby',         // Služby (technologie, montáž)
+  '110': 'doprava',        // Doprava
+  '111': 'prislusenstvi',  // Příslušenství (schodiště, osvětlení, etc.)
+}
+
 function mapCategory(pipedriveCategory: string | null): ProductCategory {
   if (!pipedriveCategory) return 'prislusenstvi'
 
-  const categoryLower = pipedriveCategory.toLowerCase()
+  const categoryId = pipedriveCategory.trim()
 
-  if (categoryLower.includes('bazén') || categoryLower.includes('bazen') || categoryLower.includes('pool')) {
-    return 'bazeny'
+  if (PIPEDRIVE_CATEGORY_IDS[categoryId]) {
+    return PIPEDRIVE_CATEGORY_IDS[categoryId]
   }
 
-  if (categoryLower.includes('služ') || categoryLower.includes('sluz') || categoryLower.includes('práce') || categoryLower.includes('prace') || categoryLower.includes('montáž') || categoryLower.includes('montaz')) {
-    return 'sluzby'
-  }
-
+  // Fallback for any new/unknown categories
+  console.log('Unknown Pipedrive category ID:', categoryId)
   return 'prislusenstvi'
 }
 

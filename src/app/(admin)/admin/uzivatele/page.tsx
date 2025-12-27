@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import { getUsers } from '@/app/actions/user-actions'
+
+export const dynamic = 'force-dynamic'
 import { requireAdmin } from '@/lib/auth/require-role'
 import { UsersTable } from '@/components/admin/users-table'
 import { Skeleton } from '@/components/ui/skeleton'

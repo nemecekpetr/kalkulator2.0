@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
 import { subDays } from 'date-fns'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const dynamic = 'force-dynamic'
 import { RecentConfigurations } from '@/components/admin/recent-configurations'
 import { DashboardCharts } from '@/components/admin/dashboard-charts'
 import { Skeleton } from '@/components/ui/skeleton'

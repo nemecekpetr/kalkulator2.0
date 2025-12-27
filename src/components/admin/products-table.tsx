@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -10,7 +11,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -18,7 +21,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Search, Package, Wrench, Settings } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Search,
+  Waves,
+  Wrench,
+  Settings,
+  Truck,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Loader2,
+  Trash2,
+} from 'lucide-react'
 import type { Product, ProductCategory } from '@/lib/supabase/types'
 
 interface ProductsTableProps {
@@ -29,35 +50,212 @@ const CATEGORY_LABELS: Record<ProductCategory, string> = {
   bazeny: 'Bazény',
   prislusenstvi: 'Příslušenství',
   sluzby: 'Služby',
+  doprava: 'Doprava',
 }
 
-const CATEGORY_ICONS: Record<ProductCategory, typeof Package> = {
-  bazeny: Package,
+const CATEGORY_ICONS: Record<ProductCategory, typeof Waves> = {
+  bazeny: Waves,
   prislusenstvi: Settings,
   sluzby: Wrench,
+  doprava: Truck,
 }
 
 const CATEGORY_COLORS: Record<ProductCategory, string> = {
   bazeny: 'bg-blue-100 text-blue-800',
   prislusenstvi: 'bg-purple-100 text-purple-800',
   sluzby: 'bg-orange-100 text-orange-800',
+  doprava: 'bg-green-100 text-green-800',
 }
 
+type SortField = 'name' | 'code' | 'category' | 'unit_price' | 'active'
+type SortDirection = 'asc' | 'desc'
+
 export function ProductsTable({ products }: ProductsTableProps) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkUpdating, setBulkUpdating] = useState(false)
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.code?.toLowerCase().includes(search.toLowerCase()) ||
-      product.description?.toLowerCase().includes(search.toLowerCase())
+  // Handle sort toggle
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
-    const matchesCategory =
-      categoryFilter === 'all' || product.category === categoryFilter
+  // Get sort icon
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp className="w-4 h-4 ml-1" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1" />
+    )
+  }
 
-    return matchesSearch && matchesCategory
-  })
+  // Filter and sort products
+  const filteredAndSortedProducts = useMemo(() => {
+    let result = products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.code?.toLowerCase().includes(search.toLowerCase()) ||
+        product.description?.toLowerCase().includes(search.toLowerCase())
+
+      const matchesCategory =
+        categoryFilter === 'all' || product.category === categoryFilter
+
+      return matchesSearch && matchesCategory
+    })
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let comparison = 0
+
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name, 'cs')
+          break
+        case 'code':
+          comparison = (a.code || '').localeCompare(b.code || '', 'cs')
+          break
+        case 'category':
+          comparison = CATEGORY_LABELS[a.category].localeCompare(
+            CATEGORY_LABELS[b.category],
+            'cs'
+          )
+          break
+        case 'unit_price':
+          comparison = a.unit_price - b.unit_price
+          break
+        case 'active':
+          comparison = (a.active ? 1 : 0) - (b.active ? 1 : 0)
+          break
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+
+    return result
+  }, [products, search, categoryFilter, sortField, sortDirection])
+
+  // Selection handlers
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredAndSortedProducts.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredAndSortedProducts.map((p) => p.id)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  // Bulk actions
+  const handleBulkCategoryChange = async (newCategory: ProductCategory) => {
+    if (selectedIds.size === 0) return
+
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/products/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          updates: { category: newCategory },
+        }),
+      })
+
+      if (response.ok) {
+        setSelectedIds(new Set())
+        router.refresh()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Chyba při hromadné úpravě')
+      }
+    } catch (err) {
+      console.error('Bulk update error:', err)
+      alert('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const handleBulkActiveChange = async (active: boolean) => {
+    if (selectedIds.size === 0) return
+
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/products/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          updates: { active },
+        }),
+      })
+
+      if (response.ok) {
+        setSelectedIds(new Set())
+        router.refresh()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Chyba při hromadné úpravě')
+      }
+    } catch (err) {
+      console.error('Bulk update error:', err)
+      alert('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+
+    const confirmed = window.confirm(
+      `Opravdu chcete smazat ${selectedIds.size} produktů? Tato akce je nevratná.`
+    )
+    if (!confirmed) return
+
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/products/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+        }),
+      })
+
+      if (response.ok) {
+        setSelectedIds(new Set())
+        router.refresh()
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Chyba při mazání produktů')
+      }
+    } catch (err) {
+      console.error('Bulk delete error:', err)
+      alert('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('cs-CZ', {
@@ -66,6 +264,10 @@ export function ProductsTable({ products }: ProductsTableProps) {
       maximumFractionDigits: 0,
     }).format(price)
   }
+
+  const isAllSelected =
+    filteredAndSortedProducts.length > 0 &&
+    selectedIds.size === filteredAndSortedProducts.length
 
   return (
     <div className="space-y-4">
@@ -89,38 +291,164 @@ export function ProductsTable({ products }: ProductsTableProps) {
             <SelectItem value="bazeny">Bazény</SelectItem>
             <SelectItem value="prislusenstvi">Příslušenství</SelectItem>
             <SelectItem value="sluzby">Služby</SelectItem>
+            <SelectItem value="doprava">Doprava</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {/* Bulk actions bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+          <span className="text-sm font-medium">
+            Vybráno: {selectedIds.size} produktů
+          </span>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={bulkUpdating}>
+                  {bulkUpdating ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : null}
+                  Změnit kategorii
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleBulkCategoryChange('bazeny')}>
+                  Bazény
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkCategoryChange('prislusenstvi')}>
+                  Příslušenství
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkCategoryChange('sluzby')}>
+                  Služby
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkCategoryChange('doprava')}>
+                  Doprava
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={bulkUpdating}>
+                  Změnit stav
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleBulkActiveChange(true)}>
+                  Aktivovat
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkActiveChange(false)}>
+                  Deaktivovat
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Zrušit výběr
+            </Button>
+
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={bulkUpdating}
+              onClick={handleBulkDelete}
+            >
+              {bulkUpdating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Smazat
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Název</TableHead>
-              <TableHead>Kód</TableHead>
-              <TableHead>Kategorie</TableHead>
-              <TableHead className="text-right">Cena</TableHead>
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={toggleSelectAll}
+                />
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('name')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Název
+                  {getSortIcon('name')}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('code')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Kód
+                  {getSortIcon('code')}
+                </button>
+              </TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('category')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Kategorie
+                  {getSortIcon('category')}
+                </button>
+              </TableHead>
+              <TableHead className="text-right">
+                <button
+                  onClick={() => handleSort('unit_price')}
+                  className="flex items-center justify-end w-full hover:text-foreground transition-colors"
+                >
+                  Cena
+                  {getSortIcon('unit_price')}
+                </button>
+              </TableHead>
               <TableHead>Jednotka</TableHead>
-              <TableHead>Stav</TableHead>
+              <TableHead>
+                <button
+                  onClick={() => handleSort('active')}
+                  className="flex items-center hover:text-foreground transition-colors"
+                >
+                  Stav
+                  {getSortIcon('active')}
+                </button>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.length === 0 ? (
+            {filteredAndSortedProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   {search || categoryFilter !== 'all'
                     ? 'Žádné produkty nenalezeny'
                     : 'Žádné produkty. Synchronizujte z Pipedrive.'}
                 </TableCell>
               </TableRow>
             ) : (
-              filteredProducts.map((product) => {
+              filteredAndSortedProducts.map((product) => {
                 const CategoryIcon = CATEGORY_ICONS[product.category]
 
                 return (
                   <TableRow key={product.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(product.id)}
+                        onCheckedChange={() => toggleSelect(product.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
@@ -165,7 +493,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
 
       {/* Count */}
       <p className="text-sm text-muted-foreground">
-        Zobrazeno {filteredProducts.length} z {products.length} produktů
+        Zobrazeno {filteredAndSortedProducts.length} z {products.length} produktů
       </p>
     </div>
   )

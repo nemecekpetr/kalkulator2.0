@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import { getMyProfile } from '@/app/actions/profile-actions'
+
+export const dynamic = 'force-dynamic'
 import { ProfileForm } from '@/components/admin/profile-form'
 import { ChangePasswordForm } from '@/components/admin/change-password-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
