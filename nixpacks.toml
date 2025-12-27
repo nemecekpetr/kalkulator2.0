@@ -1,4 +1,5 @@
 [phases.setup]
+nixPkgs = ["nodejs_20"]
 aptPkgs = ["chromium", "fonts-liberation", "libnss3", "libatk-bridge2.0-0", "libxkbcommon0", "libgbm1"]
 
 [variables]
