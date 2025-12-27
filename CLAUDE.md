@@ -36,9 +36,22 @@ This is a pool configurator application for Rentmil (Czech pool manufacturer) bu
 **Quotes System**
 - Creates formal quotes from configurations with line items
 - Version tracking for quote history
-- PDF generation via `@react-pdf/renderer` (`src/lib/pdf/quote-template.tsx`)
+- PDF generation via Puppeteer (HTML-to-PDF) at `/api/admin/quotes/[id]/pdf`
 - Auto-generation of quote items from configuration via `src/lib/quote-generator.ts`
 - Quote variants: Support for multiple pricing tiers (`ekonomicka`, `optimalni`, `premiova`)
+- Quote statuses: `draft`, `sent`, `accepted`, `rejected`, `expired`, `converted`
+
+**Orders System** (`/admin/objednavky`)
+- Created from accepted quotes via status conversion
+- Manages customer orders with status tracking
+- Order statuses: `new`, `confirmed`, `in_production`, `ready`, `shipped`, `delivered`, `cancelled`
+
+**Production System** (`/admin/vyroba`)
+- Tracks pool manufacturing process
+- Created from orders, one production per order
+- Production statuses: `scheduled`, `in_progress`, `quality_check`, `completed`, `on_hold`
+- Includes production checklist items for tracking build progress
+- PDF print view for production sheets at `/production/[id]/print`
 
 **Product Mapping System**
 - Maps configurator choices to products for automatic quote generation
@@ -65,10 +78,16 @@ Located in `src/app/actions/`:
 ### API Routes
 
 Located in `src/app/api/`:
-- `/api/admin/quotes/[id]/pdf`: PDF generation for quotes
+- `/api/admin/quotes/[id]/pdf`: PDF generation for quotes (Puppeteer-based)
 - `/api/admin/quotes/[id]/versions`: Quote version history
 - `/api/admin/quotes/[id]/versions/[versionId]/restore`: Restore quote from version
+- `/api/admin/quotes/[id]/status`: Update quote status
+- `/api/admin/quotes/[id]/convert`: Convert accepted quote to order
 - `/api/admin/quotes/generate-items`: Auto-generate quote items from configuration
+- `/api/admin/orders`: Orders CRUD
+- `/api/admin/orders/[id]`: Single order operations
+- `/api/admin/production`: Production orders CRUD
+- `/api/admin/production/[id]`: Single production order operations
 - `/api/admin/products/sync`: Pipedrive product sync
 - `/api/admin/products/bulk-update`: Bulk product updates
 - `/api/admin/products/bulk-delete`: Bulk product deletion
@@ -76,6 +95,14 @@ Located in `src/app/api/`:
 - `/api/admin/mapping-rules/auto-assign`: Auto-assign products to mapping rules
 - `/api/admin/export`: Data export
 - `/api/webhook/pipedrive-callback`: Pipedrive webhook handler
+- `/api/health`: Health check endpoint for Railway deployment
+
+### Deployment
+
+Deployed on Railway using Nixpacks:
+- `railway.json`: Build and deploy configuration
+- `nixpacks.toml`: System dependencies (Node.js 20, Chromium for Puppeteer)
+- Puppeteer uses system Chromium (`PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium`)
 
 ### Key Integrations
 
@@ -91,13 +118,14 @@ Located in `src/app/api/`:
 
 All database types defined in `src/lib/supabase/types.ts`:
 - `Configuration`: Pool configurations from customers
-- `Quote`, `QuoteItem`, `QuoteVersion`: Quote management
+- `Quote`, `QuoteItem`, `QuoteVersion`, `QuoteVariant`: Quote management
+- `Order`: Customer orders (created from accepted quotes)
+- `ProductionOrder`, `ProductionChecklist`: Manufacturing tracking
 - `Product`: Product catalog synced with Pipedrive (categories: `bazeny`, `prislusenstvi`, `sluzby`, `doprava`)
 - `UserProfile`: User profiles with roles
 - `SyncLog`: Pipedrive sync tracking
 - `ProductMappingRule`: Maps configurator choices to products
 - `GeneratedQuoteItem`: Generated items before saving to DB
-- `QuoteVariant`: Quote pricing tiers (ekonomická/optimální/prémiová)
 
 ### Form Validation
 

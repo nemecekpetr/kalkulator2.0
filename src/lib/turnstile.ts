@@ -1,9 +1,14 @@
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY
 
 export async function verifyTurnstile(token: string): Promise<boolean> {
-  // Skip verification in development if no secret key is configured
+  // Fail-closed: In production, require Turnstile to be configured
   if (!TURNSTILE_SECRET_KEY) {
-    console.warn('Turnstile secret key not configured, skipping verification')
+    if (process.env.NODE_ENV === 'production') {
+      console.error('CRITICAL: TURNSTILE_SECRET_KEY not configured in production')
+      throw new Error('Turnstile verification unavailable')
+    }
+    // Allow in development for testing
+    console.warn('DEV: Turnstile secret key not configured, skipping verification')
     return true
   }
 

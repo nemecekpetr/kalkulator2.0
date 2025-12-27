@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       formatDimensions(config.pool_shape, config.dimensions),
       getColorLabel(config.color),
       getStairsLabel(config.stairs),
-      config.technology?.map(getTechnologyLabel).join(', ') || '',
+      Array.isArray(config.technology) ? config.technology.map(getTechnologyLabel).join(', ') : (config.technology ? getTechnologyLabel(config.technology) : ''),
       config.accessories?.map(getAccessoryLabel).join(', ') || '',
       getHeatingLabel(config.heating),
       getRoofingLabel(config.roofing),

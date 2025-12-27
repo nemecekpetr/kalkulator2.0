@@ -29,6 +29,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Search,
   Waves,
   Wrench,
@@ -78,6 +88,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   // Handle sort toggle
   const handleSort = (field: SortField) => {
@@ -227,11 +238,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return
 
-    const confirmed = window.confirm(
-      `Opravdu chcete smazat ${selectedIds.size} produktů? Tato akce je nevratná.`
-    )
-    if (!confirmed) return
-
     setBulkUpdating(true)
     try {
       const response = await fetch('/api/admin/products/bulk-delete', {
@@ -244,6 +250,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
 
       if (response.ok) {
         setSelectedIds(new Set())
+        setDeleteDialogOpen(false)
         router.refresh()
       } else {
         const error = await response.json()
@@ -356,13 +363,9 @@ export function ProductsTable({ products }: ProductsTableProps) {
               variant="destructive"
               size="sm"
               disabled={bulkUpdating}
-              onClick={handleBulkDelete}
+              onClick={() => setDeleteDialogOpen(true)}
             >
-              {bulkUpdating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
+              <Trash2 className="w-4 h-4 mr-2" />
               Smazat
             </Button>
           </div>
@@ -495,6 +498,31 @@ export function ProductsTable({ products }: ProductsTableProps) {
       <p className="text-sm text-muted-foreground">
         Zobrazeno {filteredAndSortedProducts.length} z {products.length} produktů
       </p>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Smazat produkty</AlertDialogTitle>
+            <AlertDialogDescription>
+              Opravdu chcete smazat {selectedIds.size} produktů? Tato akce je nevratná.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkUpdating}>Zrušit</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkUpdating}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkUpdating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              Smazat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

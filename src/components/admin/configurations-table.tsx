@@ -13,6 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ClickableTableRow } from '@/components/admin/clickable-table-row'
+import { StopPropagationCell } from '@/components/admin/stop-propagation-cell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -51,7 +53,8 @@ import {
   ChevronRight,
   FileText,
 } from 'lucide-react'
-import type { Configuration, UserRole } from '@/lib/supabase/types'
+import type { Configuration, UserRole, ConfigurationStatus } from '@/lib/supabase/types'
+import { CONFIGURATION_STATUS_LABELS } from '@/lib/supabase/types'
 import { getShapeLabel, formatDimensions } from '@/lib/constants/configurator'
 import { deleteConfiguration, retryPipedriveSync } from '@/app/actions/admin-actions'
 import { createClient } from '@/lib/supabase/client'
@@ -174,6 +177,7 @@ export function ConfigurationsTable({
               <TableHead>Datum</TableHead>
               <TableHead>Kontakt</TableHead>
               <TableHead>Konfigurace</TableHead>
+              <TableHead className="w-28">Stav</TableHead>
               <TableHead className="w-24">Pipedrive</TableHead>
               <TableHead className="w-40">Akce</TableHead>
             </TableRow>
@@ -181,7 +185,7 @@ export function ConfigurationsTable({
           <TableBody>
             {configurations.length > 0 ? (
               configurations.map((config) => (
-                <TableRow key={config.id}>
+                <ClickableTableRow key={config.id} href={`/admin/konfigurace/${config.id}`}>
                   <TableCell className="text-muted-foreground">
                     <div>
                       <p>{format(new Date(config.created_at), 'd.M.yyyy', { locale: cs })}</p>
@@ -208,9 +212,26 @@ export function ConfigurationsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(config.pipedrive_status)}
+                    {(() => {
+                      const status = (config.status as ConfigurationStatus) || 'new'
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={
+                            status === 'processed'
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }
+                        >
+                          {CONFIGURATION_STATUS_LABELS[status]}
+                        </Badge>
+                      )
+                    })()}
                   </TableCell>
                   <TableCell>
+                    {getStatusBadge(config.pipedrive_status)}
+                  </TableCell>
+                  <StopPropagationCell>
                     <TooltipProvider>
                       <div className="flex items-center gap-1">
                         <Tooltip>
@@ -276,12 +297,12 @@ export function ConfigurationsTable({
                         )}
                       </div>
                     </TooltipProvider>
-                  </TableCell>
-                </TableRow>
+                  </StopPropagationCell>
+                </ClickableTableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                   Žádné konfigurace nenalezeny
                 </TableCell>
               </TableRow>
@@ -290,12 +311,14 @@ export function ConfigurationsTable({
         </Table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Strana {currentPage} z {totalPages} ({total} celkem)
-          </p>
+      {/* Count and Pagination */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {totalPages > 1
+            ? `Strana ${currentPage} z ${totalPages} (${total} celkem)`
+            : `${total} konfigurací`}
+        </p>
+        {totalPages > 1 && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -316,8 +339,8 @@ export function ConfigurationsTable({
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

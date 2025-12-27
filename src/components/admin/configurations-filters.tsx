@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { Search, X, Download } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 export function ConfigurationsFilters() {
@@ -59,16 +59,6 @@ export function ConfigurationsFilters() {
     router.push('/admin/konfigurace')
   }
 
-  const handleExportCSV = async () => {
-    // Build query string with current filters
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    if (status !== 'all') params.set('status', status)
-
-    // Open download in new tab
-    window.open(`/api/admin/export?${params.toString()}`, '_blank')
-  }
-
   const hasActiveFilters = search || status !== 'all'
 
   return (
@@ -101,18 +91,12 @@ export function ConfigurationsFilters() {
       </Select>
 
       {/* Actions */}
-      <div className="flex gap-2">
-        {hasActiveFilters && (
-          <Button variant="outline" onClick={clearFilters}>
-            <X className="w-4 h-4 mr-2" />
-            Zrušit filtry
-          </Button>
-        )}
-        <Button variant="outline" onClick={handleExportCSV}>
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
+      {hasActiveFilters && (
+        <Button variant="outline" onClick={clearFilters}>
+          <X className="w-4 h-4 mr-2" />
+          Zrušit filtry
         </Button>
-      </div>
+      )}
     </div>
   )
 }

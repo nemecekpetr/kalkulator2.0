@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { ConfigurationSchema } from '@/lib/validations/configuration'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { sanitizeText, sanitizeEmail, sanitizePhone } from '@/lib/sanitize'
 import { z } from 'zod'
 
 // Response type
@@ -121,14 +122,27 @@ export async function submitConfiguration(
       }
     }
 
-    // 5. Insert configuration into database
+    // 5. Sanitize user inputs
+    const sanitizedName = sanitizeText(validatedData.contact.name)
+    const sanitizedEmail = sanitizeEmail(validatedData.contact.email)
+    const sanitizedPhone = sanitizePhone(validatedData.contact.phone)
+    const sanitizedAddress = sanitizeText(validatedData.contact.address)
+
+    if (!sanitizedName || !sanitizedEmail || !sanitizedPhone) {
+      return {
+        success: false,
+        message: 'Neplatné kontaktní údaje.',
+      }
+    }
+
+    // 6. Insert configuration into database
     const { data: configuration, error: insertError } = await supabase
       .from('configurations')
       .insert({
-        contact_name: validatedData.contact.name,
-        contact_email: validatedData.contact.email,
-        contact_phone: validatedData.contact.phone,
-        contact_address: validatedData.contact.address || null,
+        contact_name: sanitizedName,
+        contact_email: sanitizedEmail,
+        contact_phone: sanitizedPhone,
+        contact_address: sanitizedAddress,
         pool_shape: validatedData.shape,
         pool_type: validatedData.type,
         dimensions: validatedData.dimensions,
@@ -154,10 +168,10 @@ export async function submitConfiguration(
       }
     }
 
-    // 6. Send to Make.com webhook
+    // 7. Send to Make.com webhook
     const webhookSuccess = await sendToMake(validatedData, configuration.id)
 
-    // 7. Log the sync attempt
+    // 8. Log the sync attempt
     await supabase.from('sync_log').insert({
       configuration_id: configuration.id,
       action: 'pipedrive_create',
@@ -165,7 +179,7 @@ export async function submitConfiguration(
       error_message: webhookSuccess ? null : 'Webhook call failed',
     })
 
-    // 8. Update configuration status if webhook failed
+    // 9. Update configuration status if webhook failed
     if (!webhookSuccess) {
       await supabase
         .from('configurations')

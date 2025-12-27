@@ -32,7 +32,8 @@ import {
   X,
 } from 'lucide-react'
 import { QuoteVersions } from '@/components/admin/quote-versions'
-import type { Quote, QuoteItem, QuoteItemCategory, PoolDimensions, QuoteVariant, QuoteVariantKey } from '@/lib/supabase/types'
+import { QuoteStatusBadge } from '@/components/admin/quote-status-badge'
+import type { Quote, QuoteItem, QuoteItemCategory, PoolDimensions, QuoteVariant, QuoteVariantKey, QuoteStatus } from '@/lib/supabase/types'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -106,6 +107,13 @@ async function getQuote(id: string) {
     .eq('quote_id', id)
     .order('sort_order', { ascending: true })
 
+  // Fetch existing order for this quote
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('id, order_number')
+    .eq('quote_id', id)
+    .single()
+
   // Fetch item-variant associations
   const itemIds = (items || []).map((i) => i.id)
   let associations: { quote_item_id: string; quote_variant_id: string }[] = []
@@ -130,7 +138,8 @@ async function getQuote(id: string) {
     ...quote,
     items: itemsWithVariants,
     variants: variants || [],
-  } as Quote & { items: QuoteItemWithVariants[]; variants: QuoteVariant[] }
+    existingOrder: existingOrder || null,
+  } as Quote & { items: QuoteItemWithVariants[]; variants: QuoteVariant[]; existingOrder: { id: string; order_number: string } | null }
 }
 
 function formatPrice(price: number) {
@@ -170,7 +179,15 @@ export default async function QuoteDetailPage({ params }: PageProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
+              <QuoteStatusBadge
+                quoteId={quote.id}
+                status={(quote.status as QuoteStatus) || 'draft'}
+                validUntil={quote.valid_until}
+                existingOrder={quote.existingOrder}
+              />
+            </div>
             <p className="text-muted-foreground">
               Vytvořeno {format(new Date(quote.created_at), 'd. MMMM yyyy', { locale: cs })}
             </p>

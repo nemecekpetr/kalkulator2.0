@@ -1,25 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
 
 /**
  * POST /api/admin/products/bulk-delete
  * Bulk delete products by IDs
  */
 export async function POST(request: Request) {
+  const auth = await requireAdmin()
+  if (isAuthError(auth)) return auth.error
+
   try {
     const supabase = await createClient()
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // Parse request body
     const body = await request.json()

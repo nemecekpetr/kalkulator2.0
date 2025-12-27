@@ -11,9 +11,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ClickableTableRow } from '@/components/admin/clickable-table-row'
+import { StopPropagationCell } from '@/components/admin/stop-propagation-cell'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Search, Eye, FileDown, Pencil, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Eye, FileDown, Pencil, MoreHorizontal, Trash2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +36,9 @@ import { formatDistanceToNow } from 'date-fns'
 import { cs } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import type { Quote, UserRole } from '@/lib/supabase/types'
+import type { Quote, UserRole, QuoteStatus } from '@/lib/supabase/types'
+import { QUOTE_STATUS_LABELS } from '@/lib/supabase/types'
+import { Badge } from '@/components/ui/badge'
 
 interface QuotesTableProps {
   quotes: Quote[]
@@ -43,7 +46,6 @@ interface QuotesTableProps {
 
 export function QuotesTable({ quotes }: QuotesTableProps) {
   const router = useRouter()
-  const [search, setSearch] = useState('')
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -65,15 +67,6 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
     }
     fetchUserRole()
   }, [])
-
-  const filteredQuotes = quotes.filter((quote) => {
-    const matchesSearch =
-      quote.quote_number.toLowerCase().includes(search.toLowerCase()) ||
-      quote.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-      quote.customer_email?.toLowerCase().includes(search.toLowerCase())
-
-    return matchesSearch
-  })
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('cs-CZ', {
@@ -109,19 +102,6 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Hledat nabídky..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-
       {/* Table */}
       <div className="rounded-lg border bg-card">
         <Table>
@@ -129,30 +109,29 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
             <TableRow>
               <TableHead>Číslo nabídky</TableHead>
               <TableHead>Zákazník</TableHead>
+              <TableHead className="w-28">Stav</TableHead>
               <TableHead className="text-right">Celkem</TableHead>
               <TableHead>Vytvořeno</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredQuotes.length === 0 ? (
+            {quotes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  {search
-                    ? 'Žádné nabídky nenalezeny'
-                    : 'Zatím žádné nabídky. Vytvořte první nabídku.'}
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Žádné nabídky nenalezeny
                 </TableCell>
               </TableRow>
             ) : (
-              filteredQuotes.map((quote) => (
-                <TableRow key={quote.id}>
+              quotes.map((quote) => (
+                <ClickableTableRow
+                  key={quote.id}
+                  href={`/admin/nabidky/${quote.id}`}
+                >
                   <TableCell>
-                    <Link
-                      href={`/admin/nabidky/${quote.id}`}
-                      className="font-medium text-primary hover:underline"
-                    >
+                    <span className="font-medium text-primary">
                       {quote.quote_number}
-                    </Link>
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div>
@@ -164,6 +143,22 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                       )}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const status = (quote.status as QuoteStatus) || 'draft'
+                      const colorMap: Record<QuoteStatus, string> = {
+                        draft: 'bg-gray-50 text-gray-700 border-gray-200',
+                        sent: 'bg-blue-50 text-blue-700 border-blue-200',
+                        accepted: 'bg-green-50 text-green-700 border-green-200',
+                        rejected: 'bg-red-50 text-red-700 border-red-200',
+                      }
+                      return (
+                        <Badge variant="outline" className={colorMap[status]}>
+                          {QUOTE_STATUS_LABELS[status]}
+                        </Badge>
+                      )
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatPrice(quote.total_price)}
                   </TableCell>
@@ -173,7 +168,7 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                       locale: cs,
                     })}
                   </TableCell>
-                  <TableCell>
+                  <StopPropagationCell>
                     <div className="flex items-center justify-end gap-1">
                       <Button variant="ghost" size="icon" asChild>
                         <Link href={`/admin/nabidky/${quote.id}/upravit`}>
@@ -220,8 +215,8 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </StopPropagationCell>
+                </ClickableTableRow>
               ))
             )}
           </TableBody>
@@ -230,7 +225,7 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
 
       {/* Count */}
       <p className="text-sm text-muted-foreground">
-        Zobrazeno {filteredQuotes.length} z {quotes.length} nabídek
+        {quotes.length} nabídek
       </p>
 
       {/* Delete confirmation dialog */}

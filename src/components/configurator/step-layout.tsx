@@ -63,14 +63,17 @@ interface OptionCardProps {
   children: React.ReactNode
   className?: string
   disabled?: boolean
+  label?: string
 }
 
-export function OptionCard({ selected, onClick, children, className, disabled }: OptionCardProps) {
+export function OptionCard({ selected, onClick, children, className, disabled, label }: OptionCardProps) {
   return (
     <motion.button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={selected}
+      aria-label={label}
       whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       className={cn(
@@ -85,6 +88,7 @@ export function OptionCard({ selected, onClick, children, className, disabled }:
     >
       {/* Selection indicator */}
       <div
+        aria-hidden="true"
         className={cn(
           'absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300',
           selected
@@ -101,6 +105,7 @@ export function OptionCard({ selected, onClick, children, className, disabled }:
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
           </motion.svg>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -9,13 +9,14 @@ import {
   BarChart3,
   Waves,
   FileSpreadsheet,
-  ShoppingBag,
   LogOut,
-  UsersRound,
-  UserCircle
+  Package,
+  Wrench,
+  Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import type { UserRole } from '@/lib/supabase/types'
 
 interface NavItem {
@@ -23,20 +24,41 @@ interface NavItem {
   href: string
   icon: typeof BarChart3
   adminOnly?: boolean
+  countKey?: 'configurations' | 'quotes' | 'orders' | 'production'
+}
+
+interface SidebarCounts {
+  configurations: number
+  quotes: number
+  orders: number
+  production: number
 }
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
-  { name: 'Konfigurace', href: '/admin/konfigurace', icon: Waves },
-  { name: 'Nabídky', href: '/admin/nabidky', icon: FileSpreadsheet },
-  { name: 'Produkty', href: '/admin/produkty', icon: ShoppingBag },
-  { name: 'Uživatelé', href: '/admin/uzivatele', icon: UsersRound, adminOnly: true },
+  { name: 'Konfigurace', href: '/admin/konfigurace', icon: Waves, countKey: 'configurations' },
+  { name: 'Nabídky', href: '/admin/nabidky', icon: FileSpreadsheet, countKey: 'quotes' },
+  { name: 'Objednávky', href: '/admin/objednavky', icon: Package, countKey: 'orders' },
+  { name: 'Výroba', href: '/admin/vyroba', icon: Wrench, countKey: 'production' },
 ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [userRole, setUserRole] = useState<UserRole | null>(null)
+  const [counts, setCounts] = useState<SidebarCounts | null>(null)
+
+  const fetchCounts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/sidebar-counts')
+      if (response.ok) {
+        const data = await response.json()
+        setCounts(data)
+      }
+    } catch (error) {
+      console.error('Error fetching sidebar counts:', error)
+    }
+  }, [])
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -54,7 +76,12 @@ export function AdminSidebar() {
       }
     }
     fetchUserRole()
-  }, [])
+    fetchCounts()
+
+    // Refresh counts every 30 seconds
+    const interval = setInterval(fetchCounts, 30000)
+    return () => clearInterval(interval)
+  }, [fetchCounts])
 
   const handleLogout = async () => {
     const supabase = createClient()
@@ -76,7 +103,7 @@ export function AdminSidebar() {
         <div className="absolute bottom-40 -right-10 w-60 h-60 bg-[#48A9A6]/20 rounded-full blur-3xl" />
 
         {/* Logo */}
-        <div className="relative z-10 flex h-20 items-center justify-center px-6 border-b border-white/10">
+        <div className="relative z-10 flex py-8 items-center justify-center px-8 border-b border-white/10">
           <Link href="/admin/dashboard">
             <Image
               src="/logo-blue-gradient.svg"
@@ -84,7 +111,7 @@ export function AdminSidebar() {
               width={200}
               height={75}
               priority
-              className="object-contain w-auto h-12 brightness-0 invert"
+              className="object-contain w-auto h-10 brightness-0 invert"
             />
           </Link>
         </div>
@@ -93,6 +120,7 @@ export function AdminSidebar() {
         <nav className="relative z-10 px-4 py-6 space-y-2">
           {filteredNavigation.map((item) => {
             const isActive = pathname.startsWith(item.href)
+            const count = item.countKey && counts ? counts[item.countKey] : 0
             return (
               <Link
                 key={item.name}
@@ -112,7 +140,15 @@ export function AdminSidebar() {
                 )}>
                   <item.icon className="w-5 h-5" />
                 </div>
-                {item.name}
+                <span className="flex-1">{item.name}</span>
+                {count > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-white/20 text-white hover:bg-white/20 text-xs min-w-[1.5rem] justify-center"
+                  >
+                    {count}
+                  </Badge>
+                )}
               </Link>
             )
           })}
@@ -124,12 +160,12 @@ export function AdminSidebar() {
             <Image
               src="/maskot-holding.png"
               alt="Rentmil maskot"
-              width={210}
-              height={210}
+              width={180}
+              height={180}
               className="object-contain opacity-90 drop-shadow-lg"
             />
           </div>
-          <p className="mt-4 text-xl font-semibold text-white/90 italic text-center leading-tight">
+          <p className="mt-4 mb-8 text-lg font-semibold text-white/90 italic text-center leading-tight">
             „Vy zenujete,<br />my bazénujeme."
           </p>
         </div>
@@ -137,23 +173,23 @@ export function AdminSidebar() {
         {/* Footer */}
         <div className="relative z-10 p-4 border-t border-white/10 space-y-2">
           <Link
-            href="/admin/profil"
+            href="/admin/nastaveni"
             className={cn(
               'group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-              pathname === '/admin/profil'
+              pathname.startsWith('/admin/nastaveni')
                 ? 'bg-white/20 text-white shadow-lg shadow-black/10 backdrop-blur-sm'
                 : 'text-white/70 hover:bg-white/10 hover:text-white'
             )}
           >
             <div className={cn(
               'p-2 rounded-lg transition-all duration-200',
-              pathname === '/admin/profil'
+              pathname.startsWith('/admin/nastaveni')
                 ? 'bg-white/20'
                 : 'bg-white/5 group-hover:bg-white/10'
             )}>
-              <UserCircle className="w-5 h-5" />
+              <Settings className="w-5 h-5" />
             </div>
-            Můj profil
+            Nastavení
           </Link>
           <Button
             variant="ghost"

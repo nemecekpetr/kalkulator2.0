@@ -94,7 +94,7 @@ export function ProductsHeader({ totalProducts, lastSync, pipedriveConfigured }:
 
         {userRole === 'admin' && (
           <div className="flex items-center gap-2">
-            <Link href="/admin/produkty/mapovani">
+            <Link href="/admin/nastaveni/produkty/mapovani">
               <Button variant="outline" size="sm">
                 <Settings2 className="w-4 h-4 mr-2" />
                 Mapování produktů

@@ -21,8 +21,22 @@ export async function POST(request: NextRequest) {
   try {
     const payload: CallbackPayload = await request.json()
 
+    // Fail-closed: Always require secret in production
+    const MAKE_CALLBACK_SECRET = process.env.MAKE_CALLBACK_SECRET
+    if (!MAKE_CALLBACK_SECRET) {
+      console.error('CRITICAL: MAKE_CALLBACK_SECRET not configured')
+      return NextResponse.json(
+        { error: 'Webhook not configured' },
+        { status: 503 }
+      )
+    }
+
     // Verify callback secret
-    if (process.env.MAKE_CALLBACK_SECRET && payload.secret !== process.env.MAKE_CALLBACK_SECRET) {
+    if (payload.secret !== MAKE_CALLBACK_SECRET) {
+      console.warn('Invalid webhook secret attempt', {
+        ip: request.headers.get('x-forwarded-for'),
+        configurationId: payload.configurationId,
+      })
       return NextResponse.json(
         { error: 'Invalid secret' },
         { status: 401 }

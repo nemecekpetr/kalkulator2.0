@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
+import { getBrowser, releaseBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
 import path from 'path'
@@ -29,7 +30,10 @@ async function getLogoDataUri(): Promise<string> {
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  let browser = null
+  const auth = await requireAdmin()
+  if (isAuthError(auth)) return auth.error
+
+  let page = null
 
   try {
     const { id } = await params
@@ -61,20 +65,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     console.log('Generating PDF for quote:', quote.quote_number, hasVariants ? `with ${variants?.length} variants` : 'without variants')
 
-    // Launch Puppeteer (configured for Railway deployment)
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-      ],
-    })
-
-    const page = await browser.newPage()
+    // Get browser from pool (reuses existing instance)
+    const browser = await getBrowser()
+    page = await browser.newPage()
 
     // Set viewport for A4
     await page.setViewport({
@@ -270,13 +263,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       { status: 500 }
     )
   } finally {
-    // Always cleanup browser instance
-    if (browser) {
+    // Close the page (not browser - it's pooled)
+    if (page) {
       try {
-        await browser.close()
+        await page.close()
       } catch (closeError) {
-        console.error('Error closing browser:', closeError)
+        console.error('Error closing page:', closeError)
       }
     }
+    // Release browser back to pool
+    releaseBrowser()
   }
 }

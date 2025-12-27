@@ -34,6 +34,8 @@ import {
 } from '@/lib/constants/configurator'
 import { ConfigurationActions } from '@/components/admin/configuration-actions'
 import { SyncLogList } from '@/components/admin/sync-log-list'
+import { ConfigurationStatusBadge } from '@/components/admin/configuration-status-badge'
+import type { ConfigurationStatus } from '@/lib/supabase/types'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -70,6 +72,7 @@ async function getConfiguration(id: string) {
     message: string | null
     pipedrive_status: string
     pipedrive_deal_id: string | null
+    status: ConfigurationStatus
   }
 }
 
@@ -134,7 +137,10 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Detail konfigurace</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold">Detail konfigurace</h1>
+              <ConfigurationStatusBadge status={config.status || 'new'} />
+            </div>
             <p className="text-muted-foreground">
               {format(new Date(config.created_at), 'd. MMMM yyyy, HH:mm', { locale: cs })}
             </p>
@@ -252,12 +258,18 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Technologie</p>
                   <div className="flex flex-wrap gap-2">
-                    {config.technology && config.technology.length > 0 ? (
-                      config.technology.map((tech: string) => (
-                        <Badge key={tech} variant="secondary">
-                          {getTechnologyLabel(tech)}
+                    {config.technology ? (
+                      Array.isArray(config.technology) ? (
+                        config.technology.map((tech: string) => (
+                          <Badge key={tech} variant="secondary">
+                            {getTechnologyLabel(tech)}
+                          </Badge>
+                        ))
+                      ) : (
+                        <Badge variant="secondary">
+                          {getTechnologyLabel(config.technology)}
                         </Badge>
-                      ))
+                      )
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}

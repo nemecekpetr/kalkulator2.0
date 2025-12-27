@@ -1,0 +1,84 @@
+﻿Name,Code,Unit,Prices - Unit price,Category,Active flag
+"Změna hloubky na 1,3 m",PRI-001,ks,4500.0,prislusenstvi,1
+"Změna hloubky na 1,4 m",PRI-002,ks,6500.0,prislusenstvi,1
+"Změna hloubky na 1,5 m",PRI-003,ks,6500.0,prislusenstvi,1
+Příplatek za ostré rohy skeletu,PRI-004,ks,6400.0,prislusenstvi,1
+Schody přes celou šíři bazénu,PRI-005,ks,15090.0,prislusenstvi,1
+Vnitřní trojúhelníkové schody,PRI-006,ks,7600.0,prislusenstvi,1
+Románské vnější schody,PRI-007,ks,5600.0,prislusenstvi,1
+Bílá barva skeletu,PRI-008,ks,0.0,prislusenstvi,1
+Šedá RAL 7032 barva skeletu,PRI-009,ks,0.0,prislusenstvi,1
+Šedá RAL 7037 barva skeletu,PRI-010,ks,0.0,prislusenstvi,1
+Dávkovač pevných látek do potrubí vč. montáže,PRI-011,ks,3900.0,prislusenstvi,1
+ZODIAC EI2 do 40m3 vody úprava slanou vodou vč. montáže,PRI-012,ks,26698.0,prislusenstvi,1
+AutochlorPIXIE RP10 -úprava slanou vodou vč. montáže,PRI-013,ks,19400.0,prislusenstvi,1
+Bazénová sůl - 25kg/balení,PRI-014,ks,300.0,prislusenstvi,1
+UV LAMAPA 40W do 35m3 bazénu,PRI-015,ks,10780.0,prislusenstvi,1
+Dávkovací pumpa SEKO VA DOS ECO pH + pH sonda vč. montáže a kalibrace,PRI-016,ks,11047.0,prislusenstvi,1
+Dávkovací pumpa SEKO VA DOS ECO ORP + ORP sonda vč. montáže a kalibrace,PRI-017,ks,11120.0,prislusenstvi,1
+Dávkovací pumpa ZODIAC pH Expert,PRI-018,ks,14867.0,prislusenstvi,1
+Protiproud Elegance 70m3/hod 400V vč. montáže,PRI-019,ks,28500.0,prislusenstvi,1
+Šachta na filtraci 1x1x1 m,PRI-020,ks,7500.0,prislusenstvi,1
+"Šachta na filtraci a protiproud 1,2x1,2x1 m",PRI-021,ks,10900.0,prislusenstvi,1
+"Šachta na protiproud 0,7x1,2x0,75 m",PRI-022,ks,6800.0,prislusenstvi,1
+Vodotěsný prostup do filtrační šachty 50mm,PRI-023,ks,180.0,prislusenstvi,1
+Vodotěsný prostup do filtrační šachty 63 mm,PRI-024,ks,380.0,prislusenstvi,1
+Vodotěsný prostup do filtrační šachty 75 mm,PRI-025,ks,480.0,prislusenstvi,1
+Propojovací materiál nad rámec setu,PRI-026,ks,1550.0,prislusenstvi,1
+Odbočka na ohřev,PRI-027,ks,3000.0,prislusenstvi,1
+Halogenové světlo 300W  vč. transformátoru a propojovací krabice vč. Montáže,PRI-028,ks,6900.0,prislusenstvi,1
+LED světlo VA vč. transformátoru a propojovací krabice,PRI-029,ks,7980.0,prislusenstvi,1
+LED světlo VA RGB  vč. transformátoru a propojovací krabice vč. montáže,PRI-030,ks,9207.0,prislusenstvi,1
+Bezpečnostní transformátor 100W,PRI-031,ks,1100.0,prislusenstvi,1
+Bezpečnostní transformátor 200W,PRI-032,ks,1400.0,prislusenstvi,1
+Bezpečnostní transformátor 300W,PRI-033,ks,1800.0,prislusenstvi,1
+"Ruční vysavač komplet (tel.tyč 1,8-3,5m, vysavačová hadice, kartáč de LUX, hladinová síťka)",PRI-034,ks,3250.0,prislusenstvi,1
+Zateplení stěn bazénu extrudovaný polystyren 30 mm,PRI-035,ks,5700.0,prislusenstvi,1
+Polystyrén STYRODUR 20mm na dno bazénu (m2) vč. montáže,PRI-036,ks,175.0,prislusenstvi,1
+Tepelné čerpadlo NORM 5 kW vč. Montáže,PRI-037,ks,21100.0,prislusenstvi,1
+Tepelné čerpadlo NORM 8 kW vč. montáže,PRI-038,ks,25329.0,prislusenstvi,1
+Tepelné čerpadlo 9 - 11 kW vč. montáže,PRI-039,ks,27969.0,prislusenstvi,1
+"Tepelné čerpadlo NORM 12,3 kW vč. montáže",PRI-040,ks,33236.0,prislusenstvi,1
+"Tepelné čerpadlo Rapid Mini Inverter 6,0kW s chlazením vč. montáže",PRI-041,ks,25619.0,prislusenstvi,1
+"Tepelné čerpadlo Rapid Mini Inverter  8,0kW s chlazením vč. montáže",PRI-042,ks,31210.0,prislusenstvi,1
+"Tepelné čerpadlo Rapid Mini Inverter 9,5kW s chlazením vč. montáže",PRI-043,ks,36793.0,prislusenstvi,1
+"Tepelné čerpadlo Rapid Mini Inverter 12,5kW s chlazením vč. montáže",PRI-044,ks,48052.0,prislusenstvi,1
+WiFI modul RAPID - vzdálené ovládání tepelného čerpadla,PRI-045,ks,3136.0,prislusenstvi,1
+WiFI modul NORM - vzdálené ovládání tepelného čerpadla,PRI-046,ks,2730.0,prislusenstvi,1
+Automatické ovládání pro filtraci / světlo,PRI-047,ks,6028.0,prislusenstvi,1
+Automatické ovládání pro filtraci / světlo / protiproud,PRI-048,ks,6895.0,prislusenstvi,1
+Automatické ovládání pro filtraci / světlo / tepelné čerpadlo,PRI-049,ks,6893.0,prislusenstvi,1
+Automatické ovládání pro filtraci / světlo / tepelné čerpadlo / protiproud,PRI-050,ks,8784.0,prislusenstvi,1
+pH - Plus tekutý - 25kg,PRI-051,ks,1472.0,prislusenstvi,1
+pH - Mínus tekutý - 35kg,PRI-052,ks,1288.0,prislusenstvi,1
+pH - Mínus tekutý - 28kg (koncentrace 15%),PRI-053,ks,1090.0,prislusenstvi,1
+Chlornan sodný - 35 kg,PRI-054,ks,1469.0,prislusenstvi,1
+"Chlornan sodný - 24 kg, stabilizovaný",PRI-055,ks,1114.0,prislusenstvi,1
+"Chlor šok 1kg, rychlorozpustný granulát",PRI-056,ks,198.0,prislusenstvi,1
+Tester tabletkový v oranžové krabičce,PRI-057,ks,361.0,prislusenstvi,1
+pH+ 1 kg,PRI-058,ks,99.0,prislusenstvi,1
+"ph- 1,5 kg",PRI-059,ks,116.0,prislusenstvi,1
+pomalurozpustné tablety 5v1 3 kg(15 tablet),PRI-060,ks,610.0,prislusenstvi,1
+pomalurozpustné tablety 5v1 1 kg(5 tablet),PRI-061,ks,223.0,prislusenstvi,1
+Příplatek za filtraci 6m3/hod,PRI-062,ks,4600.0,prislusenstvi,1
+Příplatek za filtraci 9m3/hod,PRI-063,ks,1800.0,prislusenstvi,1
+Příplatek za filtraci 12m3/hod,PRI-064,ks,6800.0,prislusenstvi,1
+Písek 25 kg/ balení,PRI-065,ks,250.0,prislusenstvi,1
+Automatický vysavač ZODIAC RT 2100 Tornax (dno),PRI-066,ks,15281.0,prislusenstvi,1
+Automatický vysavač ZODIAC RC 4400 - CYCLONX (dno/stěny),PRI-067,ks,26438.0,prislusenstvi,1
+Automatický vysavač VOYAGER RE 4200 (dno/stěny),PRI-068,ks,24371.0,prislusenstvi,1
+Automatický vysavač ZODIAC RV 5300 - VORTEX (dno/stěny),PRI-069,ks,26636.0,prislusenstvi,1
+Bateriový ruční vysavač VEKTRO Z200,PRI-070,ks,3522.0,prislusenstvi,1
+Doprava  Kč/km Tam i zpět,PRI-071,ks,15.0,doprava,1
+Bazénový SET 4×3×1.2m Skimmer,BAZ-SET-4-3-SK,ks,74000.0,bazeny,1
+Bazénový SET 5×3×1.2m Skimmer,BAZ-SET-5-3-SK,ks,88000.0,bazeny,1
+Bazénový SET 6×3×1.2m Skimmer,BAZ-SET-6-3-SK,ks,94000.0,bazeny,1
+Bazénový SET 6×3.5×1.2m Skimmer,BAZ-SET-6-35-SK,ks,104000.0,bazeny,1
+Bazénový SET 7×3×1.2m Skimmer,BAZ-SET-7-3-SK,ks,105000.0,bazeny,1
+Bazénový SET 7×3.5×1.2m Skimmer,BAZ-SET-7-35-SK,ks,114000.0,bazeny,1
+Bazénový SET 4×3×1.2m Přelivový,BAZ-SET-4-3-PR,ks,96200.0,bazeny,1
+Bazénový SET 5×3×1.2m Přelivový,BAZ-SET-5-3-PR,ks,114400.0,bazeny,1
+Bazénový SET 6×3×1.2m Přelivový,BAZ-SET-6-3-PR,ks,122200.0,bazeny,1
+Bazénový SET 6×3.5×1.2m Přelivový,BAZ-SET-6-35-PR,ks,135200.0,bazeny,1
+Bazénový SET 7×3×1.2m Přelivový,BAZ-SET-7-3-PR,ks,136500.0,bazeny,1
+Bazénový SET 7×3.5×1.2m Přelivový,BAZ-SET-7-35-PR,ks,148200.0,bazeny,1

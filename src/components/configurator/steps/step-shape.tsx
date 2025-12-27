@@ -27,15 +27,16 @@ export function StepShape() {
             key={poolShape.id}
             selected={shape === poolShape.id}
             onClick={() => setShape(poolShape.id as 'circle' | 'rectangle_rounded' | 'rectangle_sharp')}
+            label={poolShape.label}
           >
             <div className="flex flex-col items-center text-center pt-2">
               <div className="mb-4 aspect-[2/1] w-full rounded-xl bg-gradient-to-b from-[#48A9A6]/10 to-[#01384B]/10 overflow-hidden relative flex items-center justify-center p-4">
                 {poolShape.id === 'circle' ? (
-                  <svg viewBox="0 0 100 100" className="w-20 h-20">
+                  <svg viewBox="0 0 100 100" className="w-20 h-20" aria-hidden="true">
                     <circle cx="50" cy="50" r="45" fill="#7BC4C1" stroke="#01384B" strokeWidth="3" />
                   </svg>
                 ) : poolShape.id === 'rectangle_sharp' ? (
-                  <svg viewBox="0 0 200 100" className="w-full h-16">
+                  <svg viewBox="0 0 200 100" className="w-full h-16" aria-hidden="true">
                     <rect x="5" y="5" width="190" height="90" rx="4" fill="#7BC4C1" stroke="#01384B" strokeWidth="3" />
                   </svg>
                 ) : (

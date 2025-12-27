@@ -4,18 +4,40 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 import { QuotesTable } from '@/components/admin/quotes-table'
+import { QuotesFilters } from '@/components/admin/quotes-filters'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, Plus } from 'lucide-react'
-import type { Quote } from '@/lib/supabase/types'
+import type { Quote, QuoteStatus } from '@/lib/supabase/types'
 
-async function getQuotes(): Promise<Quote[]> {
+interface PageProps {
+  searchParams: Promise<{
+    status?: string
+    search?: string
+  }>
+}
+
+async function getQuotes(filters: { status?: string; search?: string }): Promise<Quote[]> {
   const supabase = await createAdminClient()
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('quotes')
     .select('*')
     .order('created_at', { ascending: false })
+
+  // Apply status filter
+  if (filters.status && filters.status !== 'all') {
+    query = query.eq('status', filters.status as QuoteStatus)
+  }
+
+  // Apply search filter
+  if (filters.search) {
+    query = query.or(
+      `quote_number.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%,customer_email.ilike.%${filters.search}%`
+    )
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching quotes:', error)
@@ -35,8 +57,9 @@ function QuotesTableSkeleton() {
   )
 }
 
-export default async function QuotesPage() {
-  const quotes = await getQuotes()
+export default async function QuotesPage({ searchParams }: PageProps) {
+  const params = await searchParams
+  const quotes = await getQuotes(params)
 
   return (
     <div className="space-y-6">
@@ -59,6 +82,9 @@ export default async function QuotesPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Filters */}
+      <QuotesFilters />
 
       <Suspense fallback={<QuotesTableSkeleton />}>
         <QuotesTable quotes={quotes} />
