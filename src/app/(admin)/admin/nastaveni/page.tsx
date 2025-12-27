@@ -18,7 +18,7 @@ async function checkAdmin() {
     .from('user_profiles')
     .select('role')
     .eq('id', user.id)
-    .single()
+    .single() as { data: { role: string } | null }
 
   return profile?.role === 'admin'
 }
