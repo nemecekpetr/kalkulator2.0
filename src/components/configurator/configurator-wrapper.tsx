@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { AnimatePresence } from 'framer-motion'
 import { useConfiguratorStore } from '@/stores/configurator-store'
@@ -19,15 +19,49 @@ import { StepContact } from './steps/step-contact'
 import { StepSummary } from './steps/step-summary'
 import { StepNavigation } from './step-navigation'
 
-export function ConfiguratorWrapper() {
+interface ConfiguratorWrapperProps {
+  embedded?: boolean
+}
+
+export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperProps) {
   const [mounted, setMounted] = useState(false)
   const currentStep = useConfiguratorStore((state) => state.currentStep)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Send height to parent window for iframe auto-resize
+  const sendHeight = useCallback(() => {
+    if (embedded && containerRef.current) {
+      const height = containerRef.current.scrollHeight
+      window.parent.postMessage({ type: 'resize', height }, '*')
+    }
+  }, [embedded])
 
   // Handle hydration
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Send height on mount and step change
+  useEffect(() => {
+    if (mounted && embedded) {
+      // Small delay to ensure DOM is fully rendered
+      const timer = setTimeout(sendHeight, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [mounted, embedded, currentStep, sendHeight])
+
+  // ResizeObserver for dynamic content changes
+  useEffect(() => {
+    if (!mounted || !embedded || !containerRef.current) return
+
+    const observer = new ResizeObserver(() => {
+      sendHeight()
+    })
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [mounted, embedded, sendHeight])
 
   if (!mounted) {
     return (
@@ -75,6 +109,46 @@ export function ConfiguratorWrapper() {
     }
   }
 
+  // Embedded mode - minimal UI for iframe integration
+  if (embedded) {
+    return (
+      <div ref={containerRef} className="bg-white">
+        {/* Progress bar */}
+        <ConfiguratorProgress />
+
+        {/* Main content */}
+        <main className="container mx-auto px-4 py-6">
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Step content */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8">
+                <AnimatePresence mode="wait">
+                  {renderStep()}
+                </AnimatePresence>
+
+                {/* Navigation */}
+                <StepNavigation />
+              </div>
+            </div>
+
+            {/* Summary sidebar */}
+            <div className="hidden lg:block">
+              <div className="sticky top-4">
+                <ConfiguratorSummary />
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Mobile summary sheet trigger */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-lg border-t border-gray-200 shadow-lg">
+          <ConfiguratorSummary variant="mobile" />
+        </div>
+      </div>
+    )
+  }
+
+  // Standalone mode - full UI with header and decorations
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-[#48A9A6]/5 relative overflow-hidden">
       {/* Decorative background elements */}

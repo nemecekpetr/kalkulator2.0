@@ -21,35 +21,21 @@ const SKIP_VALUES = ['none']
  * Get the configuration value for a given field
  */
 function getConfigValue(config: Configuration, field: string): string | null {
-  // Handle accessories array - these are stored in the accessories field
-  if (field === 'lighting' || field === 'counterflow' || field === 'waterTreatment') {
-    const accessories = config.accessories || []
-    // Check if the value is in accessories
-    if (field === 'lighting') {
-      return accessories.includes('led') ? 'led' : 'none'
-    }
-    if (field === 'counterflow') {
-      return accessories.includes('with_counterflow') ? 'with_counterflow' : 'none'
-    }
-    if (field === 'waterTreatment') {
-      // Check for chlorine or salt
-      if (accessories.includes('salt')) return 'salt'
-      if (accessories.includes('chlorine')) return 'chlorine'
-      return 'chlorine' // default
-    }
+  // Handle field name mapping (waterTreatment -> water_treatment)
+  const fieldMap: Record<string, keyof Configuration> = {
+    lighting: 'lighting',
+    counterflow: 'counterflow',
+    waterTreatment: 'water_treatment',
+    technology: 'technology',
+    stairs: 'stairs',
+    heating: 'heating',
+    roofing: 'roofing',
   }
 
-  // Handle technology array
-  if (field === 'technology') {
-    const tech = config.technology || []
-    if (tech.includes('shaft')) return 'shaft'
-    if (tech.includes('wall')) return 'wall'
-    if (tech.includes('other')) return 'other'
-    return null
-  }
+  const dbField = fieldMap[field] || field
 
-  // Direct field mapping
-  const value = (config as Record<string, unknown>)[field]
+  // Direct field mapping - all fields are now individual strings
+  const value = config[dbField as keyof Configuration]
   if (typeof value === 'string') {
     return value
   }
@@ -279,6 +265,6 @@ export function formatPoolConfigForQuote(config: Configuration): {
     dimensions: dimensionsStr,
     color,
     stairs: stairs !== 'none' ? stairs : undefined,
-    technology: technology?.[0],
+    technology: technology !== 'none' ? technology : undefined,
   }
 }

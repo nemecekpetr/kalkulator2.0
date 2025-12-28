@@ -66,8 +66,11 @@ export interface Database {
           dimensions: PoolDimensions
           color: string
           stairs: string
-          technology: string[]
-          accessories: string[]
+          technology: string
+          // Accessories (individual fields, not array)
+          lighting: string
+          counterflow: string
+          water_treatment: string
           heating: string
           roofing: string
           // Integration
@@ -96,8 +99,10 @@ export interface Database {
           dimensions: PoolDimensions
           color: string
           stairs: string
-          technology?: string[]
-          accessories?: string[]
+          technology?: string
+          lighting?: string
+          counterflow?: string
+          water_treatment?: string
           heating: string
           roofing: string
           pipedrive_status?: string
@@ -123,8 +128,10 @@ export interface Database {
           dimensions?: PoolDimensions
           color?: string
           stairs?: string
-          technology?: string[]
-          accessories?: string[]
+          technology?: string
+          lighting?: string
+          counterflow?: string
+          water_treatment?: string
           heating?: string
           roofing?: string
           pipedrive_status?: string

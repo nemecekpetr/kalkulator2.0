@@ -27,7 +27,9 @@ import {
   getColorLabel,
   getStairsLabel,
   getTechnologyLabel,
-  getAccessoryLabel,
+  getLightingLabel,
+  getCounterflowLabel,
+  getWaterTreatmentLabel,
   getHeatingLabel,
   getRoofingLabel,
   formatDimensions,
@@ -65,8 +67,10 @@ async function getConfiguration(id: string) {
     dimensions: { diameter?: number; width?: number; length?: number; depth?: number }
     color: string
     stairs: string
-    technology: string[]
-    accessories: string[]
+    technology: string
+    lighting: string
+    counterflow: string
+    water_treatment: string
     heating: string
     roofing: string
     message: string | null
@@ -259,17 +263,9 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
                   <p className="text-sm text-muted-foreground">Technologie</p>
                   <div className="flex flex-wrap gap-2">
                     {config.technology ? (
-                      Array.isArray(config.technology) ? (
-                        config.technology.map((tech: string) => (
-                          <Badge key={tech} variant="secondary">
-                            {getTechnologyLabel(tech)}
-                          </Badge>
-                        ))
-                      ) : (
-                        <Badge variant="secondary">
-                          {getTechnologyLabel(config.technology)}
-                        </Badge>
-                      )
+                      <Badge variant="secondary">
+                        {getTechnologyLabel(config.technology)}
+                      </Badge>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -279,13 +275,24 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Příslušenství</p>
                   <div className="flex flex-wrap gap-2">
-                    {config.accessories && config.accessories.length > 0 ? (
-                      config.accessories.map((acc: string) => (
-                        <Badge key={acc} variant="secondary">
-                          {getAccessoryLabel(acc)}
-                        </Badge>
-                      ))
-                    ) : (
+                    {config.lighting && config.lighting !== 'none' && (
+                      <Badge variant="secondary">
+                        {getLightingLabel(config.lighting)}
+                      </Badge>
+                    )}
+                    {config.counterflow && config.counterflow !== 'none' && (
+                      <Badge variant="secondary">
+                        {getCounterflowLabel(config.counterflow)}
+                      </Badge>
+                    )}
+                    {config.water_treatment && (
+                      <Badge variant="secondary">
+                        {getWaterTreatmentLabel(config.water_treatment)}
+                      </Badge>
+                    )}
+                    {(!config.lighting || config.lighting === 'none') &&
+                     (!config.counterflow || config.counterflow === 'none') &&
+                     !config.water_treatment && (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </div>

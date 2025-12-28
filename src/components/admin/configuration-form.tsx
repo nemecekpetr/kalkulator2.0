@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -33,7 +32,9 @@ import {
   POOL_COLORS,
   STAIRS_OPTIONS,
   TECHNOLOGY_OPTIONS,
-  ACCESSORY_OPTIONS,
+  LIGHTING_OPTIONS,
+  COUNTERFLOW_OPTIONS,
+  WATER_TREATMENT_OPTIONS,
   HEATING_OPTIONS,
   ROOFING_OPTIONS,
 } from '@/lib/constants/configurator'
@@ -52,8 +53,10 @@ const formSchema = z.object({
   depth: z.number().min(0.5, 'Minimální hloubka je 0.5m'),
   color: z.string().min(1, 'Vyberte barvu'),
   stairs: z.string().min(1, 'Vyberte schodiště'),
-  technology: z.array(z.string()),
-  accessories: z.array(z.string()),
+  technology: z.string().min(1, 'Vyberte technologii'),
+  lighting: z.string().min(1, 'Vyberte osvětlení'),
+  counterflow: z.string().min(1, 'Vyberte protiproud'),
+  water_treatment: z.string().min(1, 'Vyberte úpravu vody'),
   heating: z.string().min(1, 'Vyberte ohřev'),
   roofing: z.string().min(1, 'Vyberte zastřešení'),
   message: z.string().optional(),
@@ -84,8 +87,10 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
       depth: configuration?.dimensions?.depth || 1.5,
       color: configuration?.color || '',
       stairs: configuration?.stairs || '',
-      technology: configuration?.technology || [],
-      accessories: configuration?.accessories || [],
+      technology: configuration?.technology || '',
+      lighting: configuration?.lighting || 'none',
+      counterflow: configuration?.counterflow || 'none',
+      water_treatment: configuration?.water_treatment || 'chlorine',
       heating: configuration?.heating || '',
       roofing: configuration?.roofing || '',
       message: configuration?.message || '',
@@ -119,7 +124,9 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
         color: values.color,
         stairs: values.stairs,
         technology: values.technology,
-        accessories: values.accessories,
+        lighting: values.lighting,
+        counterflow: values.counterflow,
+        water_treatment: values.water_treatment,
         heating: values.heating,
         roofing: values.roofing,
         message: values.message || undefined,
@@ -388,81 +395,103 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
             <FormField
               control={form.control}
               name="technology"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Technologie</FormLabel>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {TECHNOLOGY_OPTIONS.map((item) => (
-                      <FormField
-                        key={item.value}
-                        control={form.control}
-                        name="technology"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item.value)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, item.value])
-                                    : field.onChange(
-                                        field.value?.filter((value) => value !== item.value)
-                                      )
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              {item.label}
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
+                  <FormLabel>Technologie *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Vyberte technologii" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {TECHNOLOGY_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
             {/* Accessories */}
-            <FormField
-              control={form.control}
-              name="accessories"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Příslušenství</FormLabel>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {ACCESSORY_OPTIONS.map((item) => (
-                      <FormField
-                        key={item.value}
-                        control={form.control}
-                        name="accessories"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item.value)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, item.value])
-                                    : field.onChange(
-                                        field.value?.filter((value) => value !== item.value)
-                                      )
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              {item.label}
-                            </FormLabel>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="lighting"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Osvětlení *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Vyberte osvětlení" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {LIGHTING_OPTIONS.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="counterflow"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Protiproud *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Vyberte protiproud" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {COUNTERFLOW_OPTIONS.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="water_treatment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Úprava vody *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Vyberte úpravu vody" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {WATER_TREATMENT_OPTIONS.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField

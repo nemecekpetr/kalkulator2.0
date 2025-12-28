@@ -93,7 +93,9 @@ export async function retryPipedriveSync(id: string) {
           color: config.color,
           stairs: config.stairs,
           technology: config.technology,
-          accessories: config.accessories,
+          lighting: config.lighting,
+          counterflow: config.counterflow,
+          water_treatment: config.water_treatment,
           heating: config.heating,
           roofing: config.roofing,
         },
@@ -168,8 +170,10 @@ export async function updateConfiguration(
     dimensions?: Record<string, number>
     color?: string
     stairs?: string
-    technology?: string[]
-    accessories?: string[]
+    technology?: string
+    lighting?: string
+    counterflow?: string
+    water_treatment?: string
     heating?: string
     roofing?: string
     message?: string
@@ -207,8 +211,10 @@ export async function createConfiguration(data: {
   dimensions: Record<string, number>
   color: string
   stairs: string
-  technology: string[]
-  accessories: string[]
+  technology: string
+  lighting: string
+  counterflow: string
+  water_treatment: string
   heating: string
   roofing: string
   message?: string

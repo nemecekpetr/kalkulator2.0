@@ -503,6 +503,11 @@ export function QuoteEditor({
                 color: configuration.color,
                 stairs: configuration.stairs,
                 technology: configuration.technology,
+                lighting: configuration.lighting,
+                counterflow: configuration.counterflow,
+                waterTreatment: configuration.water_treatment,
+                heating: configuration.heating,
+                roofing: configuration.roofing,
               }
             : null,
           valid_until: validUntil,
@@ -589,6 +594,11 @@ export function QuoteEditor({
                 color: configuration.color,
                 stairs: configuration.stairs,
                 technology: configuration.technology,
+                lighting: configuration.lighting,
+                counterflow: configuration.counterflow,
+                waterTreatment: configuration.water_treatment,
+                heating: configuration.heating,
+                roofing: configuration.roofing,
               }
             : null,
           valid_until: validUntil,

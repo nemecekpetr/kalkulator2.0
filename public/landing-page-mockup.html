@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfigurátor bazénů | Rentmil.cz - MOCKUP</title>
+
+    <!-- Nunito Sans Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           RENTMIL.CZ DESIGN SYSTEM
+           =========================================== */
+
+        :root {
+            /* Colors */
+            --rentmil-orange: #FF8620;
+            --rentmil-orange-hover: #e57a1c;
+            --rentmil-orange-light: rgba(255, 134, 33, 0.15);
+            --rentmil-blue-dark: #01384B;
+            --rentmil-blue: #025a6e;
+            --rentmil-water: #48A9A6;
+            --rentmil-water-light: rgba(72, 169, 166, 0.1);
+
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+
+            --bg-white: #ffffff;
+            --bg-light: #f8f9fa;
+            --bg-section: #fafbfc;
+
+            --border-color: #e5e7eb;
+            --border-radius: 30px;
+            --border-radius-sm: 16px;
+            --border-radius-xs: 8px;
+
+            /* Shadows */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+            --shadow-orange: 0 4px 15px rgba(255, 134, 33, 0.25);
+
+            /* Transitions */
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-white);
+        }
+
+        /* ===========================================
+           HEADER - Kompaktní verze
+           =========================================== */
+
+        .site-header {
+            background: var(--bg-white);
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-main {
+            padding: 12px 0;
+        }
+
+        .header-main .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--rentmil-blue-dark);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--rentmil-orange) 0%, #ff9f4a 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            color: var(--rentmil-orange);
+        }
+
+        .main-nav {
+            display: flex;
+            gap: 28px;
+        }
+
+        .main-nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            padding: 6px 0;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .main-nav a:hover {
+            color: var(--rentmil-orange);
+        }
+
+        .main-nav a.active {
+            color: var(--rentmil-orange);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-phone {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .header-phone:hover {
+            color: var(--rentmil-orange);
+        }
+
+        .header-cta {
+            background: var(--rentmil-orange);
+            color: white;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-orange);
+        }
+
+        .header-cta:hover {
+            background: var(--rentmil-orange-hover);
+            transform: translateY(-1px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ===========================================
+           CONFIGURATOR SECTION - Full width, no scroll
+           =========================================== */
+
+        .configurator-section {
+            padding: 0;
+            background: var(--bg-white);
+        }
+
+        .configurator-wrapper {
+            width: 100%;
+            position: relative;
+        }
+
+        .configurator-iframe {
+            width: 100%;
+            border: none;
+            display: block;
+            /* Height will be set dynamically via postMessage */
+            min-height: 600px;
+            transition: height 0.3s ease;
+        }
+
+        /* ===========================================
+           BENEFITS SECTION
+           =========================================== */
+
+        .benefits-section {
+            padding: 80px 0;
+            background: var(--bg-section);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-header h2 {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--rentmil-blue-dark);
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .benefit-card {
+            background: var(--bg-white);
+            border-radius: var(--border-radius);
+            padding: 32px;
+            text-align: center;
+            transition: var(--transition);
+            border: 2px solid transparent;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--rentmil-orange);
+        }
+
+        .benefit-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--rentmil-orange) 0%, #ff9f4a 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 28px;
+            color: white;
+        }
+
+        .benefit-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--rentmil-blue-dark);
+        }
+
+        .benefit-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           CTA SECTION
+           =========================================== */
+
+        .cta-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, var(--rentmil-blue-dark) 0%, var(--rentmil-blue) 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 32px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 32px;
+            border-radius: var(--border-radius);
+            font-weight: 700;
+            font-size: 16px;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--rentmil-orange);
+            color: white;
+            box-shadow: var(--shadow-orange);
+        }
+
+        .btn-primary:hover {
+            background: var(--rentmil-orange-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--rentmil-blue-dark);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-light);
+            transform: translateY(-2px);
+        }
+
+        /* ===========================================
+           FOOTER
+           =========================================== */
+
+        .site-footer {
+            background: var(--rentmil-blue-dark);
+            color: white;
+            padding: 60px 0 24px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand p {
+            opacity: 0.8;
+            margin-top: 16px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .footer-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--rentmil-orange);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 12px;
+        }
+
+        .footer-links a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--rentmil-orange);
+        }
+
+        .footer-contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .footer-contact-item a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .footer-contact-item a:hover {
+            color: var(--rentmil-orange);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-social a:hover {
+            background: var(--rentmil-orange);
+        }
+
+        /* ===========================================
+           RESPONSIVE
+           =========================================== */
+
+        @media (max-width: 1024px) {
+            .main-nav {
+                display: none;
+            }
+
+            .benefits-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .benefits-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .header-phone {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================
+         HEADER - Kompaktní
+         ============================================ -->
+    <header class="site-header">
+        <div class="header-main">
+            <div class="container">
+                <a href="/" class="logo">
+                    <div class="logo-icon">R</div>
+                    <div class="logo-text">Rent<span>mil</span></div>
+                </a>
+
+                <nav class="main-nav">
+                    <a href="#">Bazény</a>
+                    <a href="#" class="active">Konfigurátor</a>
+                    <a href="#">Zastřešení</a>
+                    <a href="#">Příslušenství</a>
+                    <a href="#">O nás</a>
+                    <a href="#">Kontakt</a>
+                </nav>
+
+                <div class="header-right">
+                    <a href="tel:+420123456789" class="header-phone">
+                        <span>📞</span> +420 123 456 789
+                    </a>
+                    <a href="#" class="header-cta">Nezávazná poptávka</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================
+         CONFIGURATOR - Ihned pod headerem, bez scrollbaru
+         ============================================ -->
+    <section class="configurator-section">
+        <div class="configurator-wrapper">
+            <iframe
+                id="configurator-iframe"
+                src="http://localhost:3000/embed"
+                class="configurator-iframe"
+                loading="eager"
+                allow="clipboard-write"
+                scrolling="no"
+            ></iframe>
+        </div>
+    </section>
+
+    <!-- ============================================
+         BENEFITS SECTION
+         ============================================ -->
+    <section class="benefits-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Proč si vybrat Rentmil?</h2>
+                <p>Více než 20 let zkušeností s výrobou bazénů na míru</p>
+            </div>
+
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">🏭</div>
+                    <h3>Česká výroba</h3>
+                    <p>Všechny bazény vyrábíme v naší továrně v České republice z kvalitních materiálů.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon">📐</div>
+                    <h3>Na míru</h3>
+                    <p>Každý bazén je vyroben přesně podle vašich požadavků a rozměrů vaší zahrady.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon">🛡️</div>
+                    <h3>Záruka 10 let</h3>
+                    <p>Na konstrukci bazénu poskytujeme prodlouženou záruku 10 let.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon">🚚</div>
+                    <h3>Doprava zdarma</h3>
+                    <p>Bazén dovezeme a nainstalujeme po celé České republice bez příplatku.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon">💧</div>
+                    <h3>Kompletní servis</h3>
+                    <p>Zajistíme vše od projektu přes výrobu až po instalaci a zaškolení.</p>
+                </div>
+
+                <div class="benefit-card">
+                    <div class="benefit-icon">⭐</div>
+                    <h3>500+ spokojených</h3>
+                    <p>Více než 500 realizovaných bazénů a spokojených zákazníků po celé ČR.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         CTA SECTION
+         ============================================ -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>Potřebujete poradit s výběrem?</h2>
+            <p>Naši specialisté vám rádi pomohou s konfigurací a zodpoví všechny vaše dotazy.</p>
+
+            <div class="cta-buttons">
+                <a href="tel:+420123456789" class="btn btn-primary">
+                    <span>📞</span> Zavolat +420 123 456 789
+                </a>
+                <a href="mailto:info@rentmil.cz" class="btn btn-secondary">
+                    <span>✉️</span> Napsat email
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         FOOTER
+         ============================================ -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="/" class="logo">
+                        <div class="logo-icon">R</div>
+                        <div class="logo-text">Rent<span>mil</span></div>
+                    </a>
+                    <p>Jsme česká rodinná firma zabývající se výrobou bazénů na míru. Více než 20 let pomáháme lidem splnit si sen o vlastním bazénu.</p>
+                </div>
+
+                <div>
+                    <div class="footer-title">Produkty</div>
+                    <ul class="footer-links">
+                        <li><a href="#">Bazény</a></li>
+                        <li><a href="#">Zastřešení</a></li>
+                        <li><a href="#">Příslušenství</a></li>
+                        <li><a href="#">Tepelná čerpadla</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="footer-title">Informace</div>
+                    <ul class="footer-links">
+                        <li><a href="#">O nás</a></li>
+                        <li><a href="#">Reference</a></li>
+                        <li><a href="#">Obchodní podmínky</a></li>
+                        <li><a href="#">Ochrana osobních údajů</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="footer-title">Kontakt</div>
+                    <div class="footer-contact-item">
+                        <span>📍</span>
+                        <span>Průmyslová 123, Praha</span>
+                    </div>
+                    <div class="footer-contact-item">
+                        <span>📞</span>
+                        <a href="tel:+420123456789">+420 123 456 789</a>
+                    </div>
+                    <div class="footer-contact-item">
+                        <span>✉️</span>
+                        <a href="mailto:info@rentmil.cz">info@rentmil.cz</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <span>© 2024 Rentmil s.r.o. Všechna práva vyhrazena.</span>
+                <div class="footer-social">
+                    <a href="#" title="Facebook">f</a>
+                    <a href="#" title="Instagram">ig</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================
+         AUTO-RESIZE SCRIPT
+         ============================================ -->
+    <script>
+        // Listen for height messages from iframe
+        window.addEventListener('message', function(event) {
+            // Verify origin in production: if (event.origin !== 'https://konfigurator.rentmil.cz') return;
+
+            if (event.data && event.data.type === 'resize') {
+                const iframe = document.getElementById('configurator-iframe');
+                if (iframe && event.data.height) {
+                    // Add some padding for mobile bottom bar
+                    const height = event.data.height + 80;
+                    iframe.style.height = height + 'px';
+                }
+            }
+        });
+
+        // Fallback: Set minimum height based on viewport
+        document.addEventListener('DOMContentLoaded', function() {
+            const iframe = document.getElementById('configurator-iframe');
+            if (iframe) {
+                // Initial height - will be overridden by postMessage
+                iframe.style.height = Math.max(800, window.innerHeight - 64) + 'px';
+            }
+        });
+    </script>
+
+</body>
+</html>
