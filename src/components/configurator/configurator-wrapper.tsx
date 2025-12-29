@@ -31,32 +31,68 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   const isSubmitted = useConfiguratorStore((state) => state.isSubmitted)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Send height to parent window for iframe auto-resize
-  // Security: Only send to trusted parent origins
-  const sendHeight = useCallback(() => {
-    if (embedded && containerRef.current) {
-      const height = containerRef.current.scrollHeight
-      // Get allowed origins from env or use defaults
-      const allowedOrigins = process.env.NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS?.split(',') || [
-        'https://www.rentmil.cz',
-        'https://rentmil.cz',
-        'https://kalkulator20-production.up.railway.app',
-      ]
-      // In development, also allow localhost
-      if (process.env.NODE_ENV === 'development') {
-        allowedOrigins.push('http://localhost:3000', 'http://127.0.0.1:3000')
-      }
-      // Try to get referrer origin, fallback to sending to allowed origins
-      const referrerOrigin = document.referrer ? new URL(document.referrer).origin : null
-      const targetOrigin = referrerOrigin && allowedOrigins.includes(referrerOrigin)
-        ? referrerOrigin
-        : allowedOrigins[0]
+  // Get allowed origins for iframe communication
+  const getAllowedOrigins = useCallback(() => {
+    const origins = process.env.NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS?.split(',') || [
+      'https://www.rentmil.cz',
+      'https://rentmil.cz',
+      'https://kalkulator20-production.up.railway.app',
+    ]
+    // In development, also allow localhost
+    if (process.env.NODE_ENV === 'development') {
+      origins.push('http://localhost:3000', 'http://127.0.0.1:3000')
+    }
+    return origins
+  }, [])
 
-      if (targetOrigin) {
-        window.parent.postMessage({ type: 'resize', height }, targetOrigin)
+  // Send height to parent window for iframe auto-resize
+  // Security: Only send to validated parent origins
+  const sendHeight = useCallback(() => {
+    if (!embedded || !containerRef.current) return
+
+    const height = containerRef.current.scrollHeight
+    const allowedOrigins = getAllowedOrigins()
+
+    // Get parent origin from referrer
+    let referrerOrigin: string | null = null
+    try {
+      referrerOrigin = document.referrer ? new URL(document.referrer).origin : null
+    } catch {
+      console.warn('[Configurator] Invalid referrer URL:', document.referrer)
+    }
+
+    // SECURITY: Only send to validated origins
+    // Do NOT fallback to arbitrary origin - that's a security risk
+    if (!referrerOrigin || !allowedOrigins.includes(referrerOrigin)) {
+      // If we can't validate the parent, don't send postMessage
+      // but still set CSS fallback for height
+      if (containerRef.current) {
+        containerRef.current.style.minHeight = `${height}px`
+      }
+      if (referrerOrigin && process.env.NODE_ENV === 'development') {
+        console.warn(
+          '[Configurator] Parent origin not in allowlist:',
+          referrerOrigin,
+          'Allowed:',
+          allowedOrigins
+        )
+      }
+      return
+    }
+
+    try {
+      window.parent.postMessage(
+        { type: 'resize', height },
+        referrerOrigin
+      )
+    } catch (error) {
+      // postMessage failed - apply CSS fallback
+      console.warn('[Configurator] postMessage failed:', error)
+      if (containerRef.current) {
+        containerRef.current.style.minHeight = `${height}px`
       }
     }
-  }, [embedded])
+  }, [embedded, getAllowedOrigins])
 
   // Handle hydration
   useEffect(() => {

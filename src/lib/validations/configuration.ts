@@ -64,6 +64,49 @@ export const DimensionsSchema = z.object({
 
 export type PoolDimensions = z.infer<typeof DimensionsSchema>
 
+// Discriminated dimension types for type-safe state management
+export type CircleDimensions = {
+  diameter: number
+  depth: number
+}
+
+export type RectangleDimensions = {
+  width: number
+  length: number
+  depth: number
+}
+
+// Type guard functions
+export function isCircleDimensions(
+  dimensions: Partial<PoolDimensions> | null
+): dimensions is CircleDimensions {
+  return dimensions !== null &&
+    typeof dimensions.diameter === 'number' &&
+    typeof dimensions.depth === 'number'
+}
+
+export function isRectangleDimensions(
+  dimensions: Partial<PoolDimensions> | null
+): dimensions is RectangleDimensions {
+  return dimensions !== null &&
+    typeof dimensions.width === 'number' &&
+    typeof dimensions.length === 'number' &&
+    typeof dimensions.depth === 'number'
+}
+
+// Validate dimensions based on shape
+export function areDimensionsValidForShape(
+  shape: PoolShape | null,
+  dimensions: Partial<PoolDimensions> | null
+): boolean {
+  if (!shape || !dimensions) return false
+
+  if (shape === 'circle') {
+    return isCircleDimensions(dimensions)
+  }
+  return isRectangleDimensions(dimensions)
+}
+
 // Contact schema
 export const ContactSchema = z.object({
   name: z.string().min(2, 'Jmeno musi mit alespon 2 znaky'),

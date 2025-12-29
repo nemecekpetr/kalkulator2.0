@@ -106,7 +106,7 @@ function SummaryContent() {
       />
       <SummaryItem
         icon={<Square className="w-4 h-4" />}
-        label="Rozmery"
+        label="Rozměry"
         value={shape && dimensions ? formatDimensions(shape, dimensions) : null}
       />
       <SummaryItem

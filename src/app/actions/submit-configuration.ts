@@ -3,9 +3,9 @@
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ConfigurationSchema } from '@/lib/validations/configuration'
+import { sanitizeContact, sanitizeText } from '@/lib/validations/contact'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { sanitizeText, sanitizeEmail, sanitizePhone } from '@/lib/sanitize'
 import { sendEmail } from '@/lib/email/client'
 import {
   configToEmailData,
@@ -291,18 +291,17 @@ export async function submitConfiguration(
       }
     }
 
-    // 5. Sanitize user inputs
-    const sanitizedName = sanitizeText(validatedData.contact.name)
-    const sanitizedEmail = sanitizeEmail(validatedData.contact.email)
-    const sanitizedPhone = sanitizePhone(validatedData.contact.phone)
-    const sanitizedAddress = sanitizeText(validatedData.contact.address)
+    // 5. Sanitize and validate user inputs (using centralized contact validation)
+    const sanitizedContactData = sanitizeContact(validatedData.contact)
 
-    if (!sanitizedName || !sanitizedEmail || !sanitizedPhone) {
+    if (!sanitizedContactData) {
       return {
         success: false,
         message: 'Neplatné kontaktní údaje.',
       }
     }
+
+    const { name: sanitizedName, email: sanitizedEmail, phone: sanitizedPhone, address: sanitizedAddress } = sanitizedContactData
 
     // 6. Idempotency check - prevent duplicate submissions
     const idempotencyKey = generateIdempotencyKey({

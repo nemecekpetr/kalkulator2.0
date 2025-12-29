@@ -20,10 +20,11 @@ This is a pool configurator application for Rentmil (Czech pool manufacturer) bu
 
 **Public Configurator** (`/`)
 - 11-step wizard for customers to configure pool specifications
-- State managed via Zustand store (`src/stores/configurator-store.ts`) with localStorage persistence
+- State managed via Zustand store (`src/stores/configurator-store.ts`) with persistence
 - Steps: 1.Shape > 2.Type > 3.Dimensions > 4.Color > 5.Stairs > 6.Technology > 7.Accessories > 8.Heating > 9.Roofing > 10.Contact > 11.Summary
 - Step 5 (Stairs) is automatically skipped for circular pools
 - Configuration constants in `src/lib/constants/configurator.ts`
+- Storage: Uses localStorage with memory fallback for Safari ITP (`src/lib/storage.ts`)
 
 **Embedded Mode** (`/embed`)
 - Minimal UI version for iframe embedding in WordPress or other sites

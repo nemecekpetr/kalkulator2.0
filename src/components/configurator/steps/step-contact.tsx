@@ -6,6 +6,7 @@ import { StepLayout } from '../step-layout'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { isValidEmail, isValidPhone } from '@/lib/validations/contact'
 
 export function StepContact() {
   const contact = useConfiguratorStore((state) => state.contact)
@@ -16,15 +17,6 @@ export function StepContact() {
       ...contact,
       [field]: value
     })
-  }
-
-  // Simple validation helpers
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  }
-
-  const isValidPhone = (phone: string) => {
-    return phone.replace(/[\s\-\+]/g, '').length >= 9
   }
 
   const emailError = contact?.email && !isValidEmail(contact.email)

@@ -1,18 +1,21 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type {
-  PoolShape,
-  PoolType,
-  PoolColor,
-  StairsType,
-  TechnologyLocation,
-  LightingOption,
-  CounterflowOption,
-  WaterTreatment,
-  HeatingOption,
-  RoofingOption,
-  PoolDimensions,
-  ContactData
+import { createSafeStorage } from '@/lib/storage'
+import { isValidEmail, isValidPhone, isValidName } from '@/lib/validations/contact'
+import {
+  areDimensionsValidForShape,
+  type PoolShape,
+  type PoolType,
+  type PoolColor,
+  type StairsType,
+  type TechnologyLocation,
+  type LightingOption,
+  type CounterflowOption,
+  type WaterTreatment,
+  type HeatingOption,
+  type RoofingOption,
+  type PoolDimensions,
+  type ContactData
 } from '@/lib/validations/configuration'
 
 export interface ConfiguratorState {
@@ -147,10 +150,16 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
 
       // Setters
       setShape: (shape) => {
-        // Reset stairs when changing to circle
+        const currentShape = get().shape
+        // Reset stairs when changing shape
         if (shape === 'circle') {
+          // Circle cannot have stairs
           set({ shape, stairs: 'none' })
+        } else if (currentShape === 'circle') {
+          // Changing FROM circle to rectangle - reset stairs to allow user to choose
+          set({ shape, stairs: null })
         } else {
+          // Changing between rectangle types - keep current stairs
           set({ shape })
         }
       },
@@ -183,14 +192,8 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           case 2:
             return state.type !== null
           case 3:
-            if (state.shape === 'circle') {
-              return state.dimensions?.diameter !== undefined && state.dimensions?.depth !== undefined
-            }
-            return (
-              state.dimensions?.width !== undefined &&
-              state.dimensions?.length !== undefined &&
-              state.dimensions?.depth !== undefined
-            )
+            // Use centralized validation from @/lib/validations/configuration
+            return areDimensionsValidForShape(state.shape, state.dimensions)
           case 4:
             return state.color !== null
           case 5:
@@ -210,14 +213,11 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           case 9:
             return state.roofing !== null
           case 10:
-            // Validate contact - phone without spaces/dashes should be at least 9 digits
-            const phoneDigits = state.contact?.phone?.replace(/[\s\-\+]/g, '') || ''
+            // Use centralized validation from @/lib/validations/contact
             return (
-              state.contact?.name !== undefined &&
-              state.contact?.name.length >= 2 &&
-              state.contact?.email !== undefined &&
-              state.contact?.email.includes('@') &&
-              phoneDigits.length >= 9
+              isValidName(state.contact?.name || '') &&
+              isValidEmail(state.contact?.email || '') &&
+              isValidPhone(state.contact?.phone || '')
             )
           case 11:
             return true // Summary step
@@ -253,22 +253,26 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
     }),
     {
       name: 'rentmil-configurator',
+      // Use safe storage with Safari ITP fallback
+      storage: createSafeStorage<ConfiguratorState>(),
       // Only persist configuration data, not submission state
-      partialize: (state) => ({
-        shape: state.shape,
-        type: state.type,
-        dimensions: state.dimensions,
-        color: state.color,
-        stairs: state.stairs,
-        technology: state.technology,
-        lighting: state.lighting,
-        counterflow: state.counterflow,
-        waterTreatment: state.waterTreatment,
-        heating: state.heating,
-        roofing: state.roofing,
-        contact: state.contact,
-        currentStep: state.currentStep
-      }),
+      // Note: contact data is intentionally excluded for privacy
+      partialize: (state) =>
+        ({
+          shape: state.shape,
+          type: state.type,
+          dimensions: state.dimensions,
+          color: state.color,
+          stairs: state.stairs,
+          technology: state.technology,
+          lighting: state.lighting,
+          counterflow: state.counterflow,
+          waterTreatment: state.waterTreatment,
+          heating: state.heating,
+          roofing: state.roofing,
+          currentStep: state.currentStep,
+          // contact: excluded - sensitive data should not persist
+        }) as ConfiguratorState,
       // Skip SSR storage to avoid hydration mismatch
       skipHydration: false,
     }

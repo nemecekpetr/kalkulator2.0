@@ -8,8 +8,21 @@ const nextConfig: NextConfig = {
         source: '/embed',
         headers: [
           {
+            // CSP: Explicit whitelist of allowed parent domains
+            // SECURITY: Do NOT use wildcard subdomains (*.rentmil.cz)
+            // to prevent subdomain takeover attacks
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://rentmil.cz https://www.rentmil.cz https://*.rentmil.cz",
+            value: "frame-ancestors 'self' https://rentmil.cz https://www.rentmil.cz https://kalkulator20-production.up.railway.app",
+          },
+          {
+            // Permissions-Policy: Restrict sensitive APIs in iframe
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()',
+          },
+          {
+            // Prevent caching issues with WordPress plugins
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
           },
         ],
       },
