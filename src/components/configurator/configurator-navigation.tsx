@@ -1,7 +1,8 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft, ArrowRight, Sparkles, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { STEPS } from '@/lib/constants/configurator'
@@ -11,9 +12,12 @@ interface ConfiguratorNavigationProps {
 }
 
 export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigationProps) {
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+
   const currentStep = useConfiguratorStore((state) => state.currentStep)
   const nextStep = useConfiguratorStore((state) => state.nextStep)
   const prevStep = useConfiguratorStore((state) => state.prevStep)
+  const reset = useConfiguratorStore((state) => state.reset)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
   const isSubmitted = useConfiguratorStore((state) => state.isSubmitted)
   const isSubmitting = useConfiguratorStore((state) => state.isSubmitting)
@@ -30,39 +34,103 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
   const totalSteps = visibleSteps.length
   const currentIndex = visibleSteps.findIndex(step => step.number === currentStep)
 
+  const handleReset = () => {
+    reset()
+    setShowResetConfirm(false)
+  }
+
   // Hide after submission
   if (isSubmitted) {
     return null
   }
 
   return (
-    <div className="bg-white border-b border-slate-100">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
-          {/* Back button */}
+    <>
+      {/* Reset confirmation dialog */}
+      <AnimatePresence>
+        {showResetConfirm && (
           <motion.div
-            whileHover={{ x: -2 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex-shrink-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowResetConfirm(false)}
           >
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={isFirstStep}
-              className="gap-2 h-10 px-4 border-slate-200 hover:border-[#48A9A6]/50 hover:bg-[#48A9A6]/5 disabled:opacity-30"
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full"
+              onClick={(e) => e.stopPropagation()}
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Zpět</span>
-            </Button>
+              <h3 className="text-lg font-bold text-[#01384B] mb-2">
+                Začít znovu?
+              </h3>
+              <p className="text-slate-600 text-sm mb-6">
+                Opravdu chcete smazat dosavadní konfiguraci a začít od začátku?
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowResetConfirm(false)}
+                >
+                  Zrušit
+                </Button>
+                <Button
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  onClick={handleReset}
+                >
+                  Ano, začít znovu
+                </Button>
+              </div>
+            </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Step counter - center */}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-500">Krok</span>
-            <span className="font-bold text-[#01384B]">{currentIndex + 1}</span>
-            <span className="text-slate-400">z</span>
-            <span className="font-medium text-slate-600">{totalSteps}</span>
-          </div>
+      <div className="bg-white border-b border-slate-100">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Left side: Reset + Back */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* Reset button - only show if not on first step */}
+              {!isFirstStep && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowResetConfirm(true)}
+                  className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                  title="Začít znovu"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </motion.button>
+              )}
+
+              {/* Back button */}
+              <motion.div
+                whileHover={{ x: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={isFirstStep}
+                  className="gap-2 h-10 px-4 border-slate-200 hover:border-[#48A9A6]/50 hover:bg-[#48A9A6]/5 disabled:opacity-30"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Zpět</span>
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Step counter - center */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-slate-500">Krok</span>
+              <span className="font-bold text-[#01384B]">{currentIndex + 1}</span>
+              <span className="text-slate-400">z</span>
+              <span className="font-medium text-slate-600">{totalSteps}</span>
+            </div>
 
           {/* Next/Submit button */}
           {isLastStep ? (
@@ -113,8 +181,9 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
               </Button>
             </motion.div>
           )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
