@@ -17,7 +17,8 @@ import { StepHeating } from './steps/step-heating'
 import { StepRoofing } from './steps/step-roofing'
 import { StepContact } from './steps/step-contact'
 import { StepSummary } from './steps/step-summary'
-import { StepNavigation } from './step-navigation'
+import { ConfiguratorCTA } from './configurator-cta'
+import { ConfiguratorErrorBoundary } from './configurator-error-boundary'
 
 interface ConfiguratorWrapperProps {
   embedded?: boolean
@@ -27,13 +28,32 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   const [mounted, setMounted] = useState(false)
   const currentStep = useConfiguratorStore((state) => state.currentStep)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
+  const isSubmitted = useConfiguratorStore((state) => state.isSubmitted)
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Send height to parent window for iframe auto-resize
+  // Security: Only send to trusted parent origins
   const sendHeight = useCallback(() => {
     if (embedded && containerRef.current) {
       const height = containerRef.current.scrollHeight
-      window.parent.postMessage({ type: 'resize', height }, '*')
+      // Get allowed origins from env or use defaults
+      const allowedOrigins = process.env.NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS?.split(',') || [
+        'https://www.rentmil.cz',
+        'https://rentmil.cz',
+      ]
+      // In development, also allow localhost
+      if (process.env.NODE_ENV === 'development') {
+        allowedOrigins.push('http://localhost:3000', 'http://127.0.0.1:3000')
+      }
+      // Try to get referrer origin, fallback to sending to allowed origins
+      const referrerOrigin = document.referrer ? new URL(document.referrer).origin : null
+      const targetOrigin = referrerOrigin && allowedOrigins.includes(referrerOrigin)
+        ? referrerOrigin
+        : allowedOrigins[0]
+
+      if (targetOrigin) {
+        window.parent.postMessage({ type: 'resize', height }, targetOrigin)
+      }
     }
   }, [embedded])
 
@@ -51,16 +71,23 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     }
   }, [mounted, embedded, currentStep, sendHeight])
 
-  // ResizeObserver for dynamic content changes
+  // ResizeObserver for dynamic content changes (debounced to avoid excessive calls)
   useEffect(() => {
     if (!mounted || !embedded || !containerRef.current) return
 
-    const observer = new ResizeObserver(() => {
-      sendHeight()
-    })
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const debouncedSendHeight = () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(sendHeight, 100)
+    }
 
+    const observer = new ResizeObserver(debouncedSendHeight)
     observer.observe(containerRef.current)
-    return () => observer.disconnect()
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      observer.disconnect()
+    }
   }, [mounted, embedded, sendHeight])
 
   if (!mounted) {
@@ -91,6 +118,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       case 4:
         return <StepColor key="step-4" />
       case 5:
+        // Defense: skip check here in case step is set directly (e.g., from localStorage)
         return shouldSkipStep(5) ? null : <StepStairs key="step-5" />
       case 6:
         return <StepTechnology key="step-6" />
@@ -117,33 +145,32 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
         <ConfiguratorProgress />
 
         {/* Main content */}
-        <main className="container mx-auto px-4 py-6">
+        <main className="container mx-auto px-4 py-6 pb-24">
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Step content */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8">
-                <AnimatePresence mode="wait">
-                  {renderStep()}
-                </AnimatePresence>
-
-                {/* Navigation */}
-                <StepNavigation />
+                <ConfiguratorErrorBoundary>
+                  <AnimatePresence mode="wait">
+                    {renderStep()}
+                  </AnimatePresence>
+                </ConfiguratorErrorBoundary>
               </div>
             </div>
 
-            {/* Summary sidebar */}
-            <div className="hidden lg:block">
-              <div className="sticky top-4">
-                <ConfiguratorSummary />
+            {/* Summary sidebar - skrýt po odeslání */}
+            {!isSubmitted && (
+              <div className="hidden lg:block">
+                <div className="sticky top-28">
+                  <ConfiguratorSummary />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </main>
 
-        {/* Mobile summary sheet trigger */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-lg border-t border-gray-200 shadow-lg">
-          <ConfiguratorSummary variant="mobile" />
-        </div>
+        {/* Sticky bottom CTA */}
+        <ConfiguratorCTA />
       </div>
     )
   }
@@ -196,50 +223,49 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       <ConfiguratorProgress />
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8 relative z-10">
+      <main className="container mx-auto px-4 py-8 pb-28 relative z-10">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Step content */}
           <div className="lg:col-span-2">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-[#01384B]/5 border border-white/50 p-6 md:p-8">
-              <AnimatePresence mode="wait">
-                {renderStep()}
-              </AnimatePresence>
-
-              {/* Navigation */}
-              <StepNavigation />
+              <ConfiguratorErrorBoundary>
+                <AnimatePresence mode="wait">
+                  {renderStep()}
+                </AnimatePresence>
+              </ConfiguratorErrorBoundary>
             </div>
           </div>
 
-          {/* Summary sidebar */}
-          <div className="hidden lg:block">
-            <div className="sticky top-32">
-              <ConfiguratorSummary />
+          {/* Summary sidebar - skrýt po odeslání */}
+          {!isSubmitted && (
+            <div className="hidden lg:block">
+              <div className="sticky top-48">
+                <ConfiguratorSummary />
 
-              {/* Mascot decoration */}
-              <div className="mt-6 flex justify-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#48A9A6]/20 to-transparent rounded-full blur-2xl" />
-                  <Image
-                    src="/maskot-holding.png"
-                    alt="Rentmil maskot"
-                    width={180}
-                    height={180}
-                    className="relative animate-float drop-shadow-lg"
-                  />
+                {/* Mascot decoration */}
+                <div className="mt-6 flex justify-center">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#48A9A6]/20 to-transparent rounded-full blur-2xl" />
+                    <Image
+                      src="/maskot-holding.png"
+                      alt="Rentmil maskot"
+                      width={180}
+                      height={180}
+                      className="relative animate-float drop-shadow-lg"
+                    />
+                  </div>
                 </div>
+                <p className="text-center text-sm text-[#01384B]/70 italic mt-2">
+                  „Vy zenujete, my bazenujeme."
+                </p>
               </div>
-              <p className="text-center text-sm text-[#01384B]/70 italic mt-2">
-                „Vy zenujete, my bazenujeme."
-              </p>
             </div>
-          </div>
+          )}
         </div>
       </main>
 
-      {/* Mobile summary sheet trigger */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-[#48A9A6]/20 shadow-lg shadow-black/5">
-        <ConfiguratorSummary variant="mobile" />
-      </div>
+      {/* Sticky bottom CTA */}
+      <ConfiguratorCTA />
 
       {/* Footer decoration - visible on larger screens */}
       <div className="hidden lg:block fixed bottom-4 left-4 opacity-50">

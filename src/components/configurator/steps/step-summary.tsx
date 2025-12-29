@@ -5,8 +5,10 @@ import { motion } from 'framer-motion'
 import {
   Circle, Droplets, Ruler, Palette, Footprints,
   Settings, Lightbulb, Waves, Thermometer, Home,
-  User, Mail, Phone, MapPin, Check, Clock
+  User, Mail, Phone, MapPin, Check, Clock,
+  Plus, Edit2
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import {
   getShapeLabel,
@@ -63,11 +65,14 @@ export function StepSummary() {
     heating,
     roofing,
     contact,
+    isSubmitting,
     isSubmitted,
     submitError,
     setSubmitting,
     setSubmitted,
-    setSubmitError
+    setSubmitError,
+    setStep,
+    reset
   } = useConfiguratorStore()
 
   const handleTurnstileVerify = useCallback((token: string) => {
@@ -80,29 +85,38 @@ export function StepSummary() {
     setSubmitError(null)
 
     try {
-      // Prepare form data
+      // Validate required fields before submission
+      if (!shape || !type || !dimensions?.depth || !color || !technology ||
+          !waterTreatment || !heating || !roofing ||
+          !contact?.name || !contact?.email || !contact?.phone) {
+        setSubmitError('Chybí povinné údaje. Vraťte se a zkontrolujte všechny kroky.')
+        setSubmitting(false)
+        return
+      }
+
+      // Prepare form data with validated values
       const formData = {
-        shape: shape!,
-        type: type!,
+        shape,
+        type,
         dimensions: {
-          diameter: dimensions?.diameter,
-          width: dimensions?.width,
-          length: dimensions?.length,
-          depth: dimensions?.depth!
+          diameter: dimensions.diameter,
+          width: dimensions.width,
+          length: dimensions.length,
+          depth: dimensions.depth
         },
-        color: color!,
+        color,
         stairs: stairs ?? 'none',
-        technology: technology!,
+        technology,
         lighting: lighting ?? 'none',
         counterflow: counterflow ?? 'none',
-        waterTreatment: waterTreatment!,
-        heating: heating!,
-        roofing: roofing!,
+        waterTreatment,
+        heating,
+        roofing,
         contact: {
-          name: contact!.name!,
-          email: contact!.email!,
-          phone: contact!.phone!,
-          address: contact?.address
+          name: contact.name,
+          email: contact.email,
+          phone: contact.phone,
+          address: contact.address
         },
         turnstileToken: turnstileToken ?? undefined
       }
@@ -169,6 +183,60 @@ export function StepSummary() {
           >
             <Clock className="w-5 h-5 text-[#48A9A6]" />
             <span className="font-medium">Ozveme se Vám do 24 hodin s cenovou kalkulací</span>
+          </motion.div>
+
+          {/* Co očekávat */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-8 p-4 bg-slate-50 rounded-lg text-left max-w-md mx-auto"
+          >
+            <p className="text-sm font-semibold text-[#01384B] mb-3">Co můžete očekávat:</p>
+            <ul className="text-sm text-slate-600 space-y-2">
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#48A9A6]" />
+                Potvrzovací e-mail během několika minut
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#48A9A6]" />
+                Cenovou nabídku do 24 hodin
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#48A9A6]" />
+                Telefonát od našeho specialisty
+              </li>
+            </ul>
+          </motion.div>
+
+          {/* Akční tlačítka */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
+          >
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSubmitted(false)
+                setStep(1)
+              }}
+              className="gap-2"
+            >
+              <Edit2 className="w-4 h-4" />
+              Upravit konfiguraci
+            </Button>
+            <Button
+              onClick={() => {
+                reset()
+                setStep(1)
+              }}
+              className="gap-2 bg-gradient-to-r from-[#48A9A6] to-[#01384B] hover:from-[#48A9A6]/90 hover:to-[#01384B]/90"
+            >
+              <Plus className="w-4 h-4" />
+              Nová konfigurace
+            </Button>
           </motion.div>
         </motion.div>
       </StepLayout>
@@ -377,6 +445,7 @@ export function StepSummary() {
             </CardContent>
           </Card>
         </div>
+
       </form>
     </StepLayout>
   )

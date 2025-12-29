@@ -18,7 +18,14 @@ export function StepLayout({ title, description, children, className }: StepLayo
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
       className={cn('space-y-6', className)}
+      role="region"
+      aria-label={title}
     >
+      {/* Screen reader announcement for step change */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {title}{description ? `: ${description}` : ''}
+      </div>
+
       {/* Header */}
       <div className="space-y-2">
         <motion.div
@@ -27,7 +34,7 @@ export function StepLayout({ title, description, children, className }: StepLayo
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="w-1.5 h-8 bg-gradient-to-b from-[#48A9A6] to-[#01384B] rounded-full" />
+          <div className="w-1.5 h-8 bg-gradient-to-b from-[#48A9A6] to-[#01384B] rounded-full" aria-hidden="true" />
           <h2 className="text-2xl md:text-3xl font-bold text-[#01384B]">
             {title}
           </h2>

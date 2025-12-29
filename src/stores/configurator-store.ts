@@ -269,13 +269,8 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         contact: state.contact,
         currentStep: state.currentStep
       }),
-      // Handle hydration properly
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Trigger a re-render after hydration
-          useConfiguratorStore.setState({ ...state })
-        }
-      }
+      // Skip SSR storage to avoid hydration mismatch
+      skipHydration: false,
     }
   )
 )
