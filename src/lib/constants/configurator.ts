@@ -19,18 +19,24 @@ export const POOL_SHAPES = [
     id: 'circle',
     label: 'Kruhový',
     description: 'Kruhový design pro menší zahrady',
+    benefits: ['Ideální pro relaxaci', 'Snadná údržba', 'Úsporné řešení'],
+    tag: 'Nejlevnější',
     icon: 'circle'
   },
   {
     id: 'rectangle_rounded',
     label: 'Obdélník se zaoblenými rohy',
     description: 'Měkčí zakončení, elegantní vzhled',
+    benefits: ['Nejoblíbenější volba', 'Elegantní design'],
+    tag: 'Tradiční',
     icon: 'rounded-rectangle'
   },
   {
     id: 'rectangle_sharp',
     label: 'Obdélník s ostrými rohy',
     description: 'Klasické pravoúhlé hranice',
+    benefits: ['Nejprodávanější', 'Maximální využití plochy', 'Moderní vzhled'],
+    tag: 'Moderní',
     icon: 'rectangle'
   }
 ] as const

@@ -1,9 +1,11 @@
 'use client'
 
 import Image from 'next/image'
+import { Lightbulb } from 'lucide-react'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { POOL_SHAPES } from '@/lib/constants/configurator'
-import { StepLayout, OptionCard } from '../step-layout'
+import { StepLayout, OptionCard, OptionTag } from '../step-layout'
+import { Card } from '@/components/ui/card'
 
 // Map shape types to image paths
 const SHAPE_IMAGES: Record<string, string> = {
@@ -49,16 +51,50 @@ export function StepShape() {
                   />
                 )}
               </div>
-              <h3 className="font-semibold text-foreground mb-1">
-                {poolShape.label}
-              </h3>
-              <p className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 mb-1 flex-wrap justify-center">
+                <h3 className="font-semibold text-foreground">
+                  {poolShape.label}
+                </h3>
+                {poolShape.tag && (
+                  <OptionTag variant={poolShape.tag === 'Nejlevnější' ? 'recommended' : 'default'}>
+                    {poolShape.tag}
+                  </OptionTag>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">
                 {poolShape.description}
               </p>
+              {/* Benefits */}
+              <div className="flex flex-wrap gap-1 justify-center">
+                {poolShape.benefits.map((benefit, index) => (
+                  <span
+                    key={index}
+                    className="text-xs text-[#48A9A6] bg-[#48A9A6]/10 px-2 py-0.5 rounded-full"
+                  >
+                    {benefit}
+                  </span>
+                ))}
+              </div>
             </div>
           </OptionCard>
         ))}
       </div>
+
+      {/* Tip box */}
+      <Card className="mt-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <Lightbulb className="w-4 h-4 text-amber-600" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-[#01384B] text-sm mb-1">Tip pro výběr tvaru</h4>
+            <p className="text-sm text-slate-600">
+              Pro plavání doporučujeme obdélníkový tvar s délkou alespoň 6 m.
+              Kruhový bazén je vhodný pro relaxaci a menší zahrady.
+            </p>
+          </div>
+        </div>
+      </Card>
     </StepLayout>
   )
 }
