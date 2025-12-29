@@ -67,7 +67,10 @@ export function ConfiguratorProgress() {
         </div>
 
         {/* Step indicators - Desktop */}
-        <div className="hidden md:flex items-center justify-between">
+        <div
+          className="hidden md:grid items-center"
+          style={{ gridTemplateColumns: `repeat(${visibleSteps.length}, 1fr)` }}
+        >
           {visibleSteps.map((step, index) => {
             const isCompleted = isStepCompleted(step.number)
             const isCurrent = step.number === currentStep
@@ -104,7 +107,7 @@ export function ConfiguratorProgress() {
                 </motion.div>
                 <span
                   className={cn(
-                    'text-xs font-medium transition-colors',
+                    'text-xs font-medium transition-colors text-center',
                     isCurrent && 'text-[#01384B] font-semibold',
                     isPast && isCompleted && 'text-[#48A9A6]',
                     !isCurrent && !isPast && isCompleted && 'text-[#48A9A6]',
