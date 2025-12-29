@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
   ArrowLeft,
   Pencil,
@@ -20,6 +19,7 @@ import {
   Mail,
   Phone,
   MessageSquare,
+  ExternalLink,
 } from 'lucide-react'
 import {
   getShapeLabel,
@@ -34,6 +34,7 @@ import {
   getRoofingLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
+import { getPipedriveDealUrl, getPipedrivePersonUrl } from '@/lib/env'
 import { ConfigurationActions } from '@/components/admin/configuration-actions'
 import { SyncLogList } from '@/components/admin/sync-log-list'
 import { ConfigurationStatusBadge } from '@/components/admin/configuration-status-badge'
@@ -233,75 +234,85 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
             <CardHeader>
               <CardTitle>Konfigurace bazénu</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Tvar</p>
-                  <p className="font-medium">{getShapeLabel(config.pool_shape)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Typ konstrukce</p>
-                  <p className="font-medium">{getTypeLabel(config.pool_type)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Rozměry</p>
-                  <p className="font-medium">{formatDimensions(config.pool_shape, config.dimensions)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Barva</p>
-                  <p className="font-medium">{getColorLabel(config.color)}</p>
-                </div>
-                {config.pool_shape !== 'circle' && (
+            <CardContent className="space-y-6">
+              {/* Bazén */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-primary">Bazén</h4>
+                <div className="grid gap-4 sm:grid-cols-2 pl-3 border-l-2 border-primary/20">
                   <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">Schodiště</p>
-                    <p className="font-medium">{getStairsLabel(config.stairs)}</p>
+                    <p className="text-sm text-muted-foreground">Tvar</p>
+                    <p className="font-medium">{getShapeLabel(config.pool_shape)}</p>
                   </div>
-                )}
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Typ konstrukce</p>
+                    <p className="font-medium">{getTypeLabel(config.pool_type)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Rozměry</p>
+                    <p className="font-medium">{formatDimensions(config.pool_shape, config.dimensions)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Barva</p>
+                    <p className="font-medium">{getColorLabel(config.color)}</p>
+                  </div>
+                  {config.pool_shape !== 'circle' && (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Schodiště</p>
+                      <p className="font-medium">{getStairsLabel(config.stairs)}</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <Separator className="my-4" />
+              {/* Technologie a příslušenství */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-primary">Technologie a příslušenství</h4>
+                <div className="space-y-4 pl-3 border-l-2 border-primary/20">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Technologie</p>
+                    <div className="flex flex-wrap gap-2">
+                      {config.technology ? (
+                        <Badge variant="secondary">
+                          {getTechnologyLabel(config.technology)}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
+                  </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Technologie</p>
-                  <div className="flex flex-wrap gap-2">
-                    {config.technology ? (
-                      <Badge variant="secondary">
-                        {getTechnologyLabel(config.technology)}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Příslušenství</p>
+                    <div className="flex flex-wrap gap-2">
+                      {config.lighting && config.lighting !== 'none' && (
+                        <Badge variant="secondary">
+                          {getLightingLabel(config.lighting)}
+                        </Badge>
+                      )}
+                      {config.counterflow && config.counterflow !== 'none' && (
+                        <Badge variant="secondary">
+                          {getCounterflowLabel(config.counterflow)}
+                        </Badge>
+                      )}
+                      {config.water_treatment && (
+                        <Badge variant="secondary">
+                          {getWaterTreatmentLabel(config.water_treatment)}
+                        </Badge>
+                      )}
+                      {(!config.lighting || config.lighting === 'none') &&
+                       (!config.counterflow || config.counterflow === 'none') &&
+                       !config.water_treatment && (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Příslušenství</p>
-                  <div className="flex flex-wrap gap-2">
-                    {config.lighting && config.lighting !== 'none' && (
-                      <Badge variant="secondary">
-                        {getLightingLabel(config.lighting)}
-                      </Badge>
-                    )}
-                    {config.counterflow && config.counterflow !== 'none' && (
-                      <Badge variant="secondary">
-                        {getCounterflowLabel(config.counterflow)}
-                      </Badge>
-                    )}
-                    {config.water_treatment && (
-                      <Badge variant="secondary">
-                        {getWaterTreatmentLabel(config.water_treatment)}
-                      </Badge>
-                    )}
-                    {(!config.lighting || config.lighting === 'none') &&
-                     (!config.counterflow || config.counterflow === 'none') &&
-                     !config.water_treatment && (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
+              {/* Ohřev a zastřešení */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-primary">Ohřev a zastřešení</h4>
+                <div className="grid gap-4 sm:grid-cols-2 pl-3 border-l-2 border-primary/20">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Ohřev</p>
                     <p className="font-medium">{getHeatingLabel(config.heating)}</p>
@@ -327,14 +338,45 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
               {getStatusBadge(config.pipedrive_status)}
               {config.pipedrive_deal_id && (
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Deal ID</p>
-                  <p className="font-medium">{config.pipedrive_deal_id}</p>
+                  <p className="text-sm text-muted-foreground">Deal v Pipedrive</p>
+                  {(() => {
+                    const dealUrl = getPipedriveDealUrl(config.pipedrive_deal_id)
+                    const dealTitle = `Konfigurace - ${config.contact_name}`
+                    return dealUrl ? (
+                      <a
+                        href={dealUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        {dealTitle}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <p className="font-medium">{dealTitle} (ID: {config.pipedrive_deal_id})</p>
+                    )
+                  })()}
                 </div>
               )}
               {config.pipedrive_person_id && (
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Person ID</p>
-                  <p className="font-medium">{config.pipedrive_person_id}</p>
+                  <p className="text-sm text-muted-foreground">Kontakt v Pipedrive</p>
+                  {(() => {
+                    const personUrl = getPipedrivePersonUrl(config.pipedrive_person_id)
+                    return personUrl ? (
+                      <a
+                        href={personUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        {config.contact_name}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <p className="font-medium">{config.contact_name} (ID: {config.pipedrive_person_id})</p>
+                    )
+                  })()}
                 </div>
               )}
               {config.pipedrive_status !== 'success' && (

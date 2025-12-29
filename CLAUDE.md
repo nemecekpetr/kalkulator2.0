@@ -46,17 +46,17 @@ This is a pool configurator application for Rentmil (Czech pool manufacturer) bu
 - PDF generation via Puppeteer (HTML-to-PDF) at `/api/admin/quotes/[id]/pdf`
 - Auto-generation of quote items from configuration via `src/lib/quote-generator.ts`
 - Quote variants: Support for multiple pricing tiers (`ekonomicka`, `optimalni`, `premiova`)
-- Quote statuses: `draft`, `sent`, `accepted`, `rejected`, `expired`, `converted`
+- Quote statuses: `draft`, `sent`, `accepted`, `rejected`
 
 **Orders System** (`/admin/objednavky`)
 - Created from accepted quotes via status conversion
 - Manages customer orders with status tracking
-- Order statuses: `new`, `confirmed`, `in_production`, `ready`, `shipped`, `delivered`, `cancelled`
+- Order statuses: `created`, `sent`, `in_production`
 
 **Production System** (`/admin/vyroba`)
 - Tracks pool manufacturing process
 - Created from orders, one production per order
-- Production statuses: `scheduled`, `in_progress`, `quality_check`, `completed`, `on_hold`
+- Production statuses: `pending`, `in_progress`, `completed`, `cancelled`
 - Includes production checklist items for tracking build progress
 - PDF print view for production sheets at `/production/[id]/print`
 
@@ -93,13 +93,18 @@ Located in `src/app/api/`:
 - `/api/admin/quotes/generate-items`: Auto-generate quote items from configuration
 - `/api/admin/orders`: Orders CRUD
 - `/api/admin/orders/[id]`: Single order operations
+- `/api/admin/orders/[id]/status`: Update order status
+- `/api/admin/orders/[id]/pdf`: PDF generation for orders
 - `/api/admin/production`: Production orders CRUD
 - `/api/admin/production/[id]`: Single production order operations
+- `/api/admin/production/[id]/items`: Production order items CRUD
+- `/api/admin/production/[id]/pdf`: PDF generation for production orders
 - `/api/admin/products/sync`: Pipedrive product sync
 - `/api/admin/products/bulk-update`: Bulk product updates
 - `/api/admin/products/bulk-delete`: Bulk product deletion
 - `/api/admin/mapping-rules`: Product mapping rules CRUD
 - `/api/admin/mapping-rules/auto-assign`: Auto-assign products to mapping rules
+- `/api/admin/sidebar-counts`: Sidebar badge counts
 - `/api/admin/export`: Data export
 - `/api/health`: Health check endpoint for Railway deployment
 

@@ -2,10 +2,15 @@
 
 import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 
-export function ConfiguratorCTA() {
+interface ConfiguratorCTAProps {
+  embedded?: boolean
+}
+
+export function ConfiguratorCTA({ embedded = false }: ConfiguratorCTAProps) {
   const currentStep = useConfiguratorStore((state) => state.currentStep)
   const canProceed = useConfiguratorStore((state) => state.canProceed)
   const nextStep = useConfiguratorStore((state) => state.nextStep)
@@ -21,7 +26,10 @@ export function ConfiguratorCTA() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-[#48A9A6]/20 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+    <div className={cn(
+      "z-50 bg-white/95 backdrop-blur-lg border-t border-[#48A9A6]/20 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]",
+      embedded ? "sticky bottom-0" : "fixed bottom-0 left-0 right-0"
+    )}>
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-4">
           {/* Info text - na desktopu */}

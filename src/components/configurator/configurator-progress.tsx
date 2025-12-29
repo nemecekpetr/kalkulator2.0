@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { STEPS } from '@/lib/constants/configurator'
 
-export function ConfiguratorProgress() {
+interface ConfiguratorProgressProps {
+  embedded?: boolean
+}
+
+export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressProps) {
   const currentStep = useConfiguratorStore((state) => state.currentStep)
   const canProceed = useConfiguratorStore((state) => state.canProceed)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
@@ -57,7 +61,10 @@ export function ConfiguratorProgress() {
   }
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm border-b border-[#48A9A6]/10 shadow-sm sticky top-0 z-40 md:top-[72px]">
+    <div className={cn(
+      "bg-white/95 backdrop-blur-sm border-b border-[#48A9A6]/10 shadow-sm sticky z-40",
+      embedded ? "top-0" : "top-0 md:top-[72px]"
+    )}>
       <div className="container mx-auto px-4 py-3">
         {/* Desktop layout */}
         <div className="hidden md:block">

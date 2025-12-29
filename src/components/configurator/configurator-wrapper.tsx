@@ -143,7 +143,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     return (
       <div ref={containerRef} className="bg-white">
         {/* Progress bar */}
-        <ConfiguratorProgress />
+        <ConfiguratorProgress embedded />
 
         {/* Main content */}
         <main className="container mx-auto px-4 py-6 pb-24">
@@ -162,7 +162,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
             {/* Summary sidebar - skrýt po odeslání */}
             {!isSubmitted && (
               <div className="hidden lg:block">
-                <div className="sticky top-28">
+                <div className="sticky top-24">
                   <ConfiguratorSummary />
                 </div>
               </div>
@@ -171,7 +171,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
         </main>
 
         {/* Sticky bottom CTA */}
-        <ConfiguratorCTA />
+        <ConfiguratorCTA embedded />
       </div>
     )
   }

@@ -11,6 +11,7 @@ interface EnvConfig {
 
   // Pipedrive
   PIPEDRIVE_API_TOKEN: string
+  PIPEDRIVE_SUBDOMAIN: string
 
   // Email (Resend)
   RESEND_API_KEY: string
@@ -149,4 +150,29 @@ export function isRateLimitConfigured(): boolean {
  */
 export function isTurnstileConfigured(): boolean {
   return !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !!process.env.TURNSTILE_SECRET_KEY
+}
+
+/**
+ * Get Pipedrive subdomain for building URLs
+ */
+export function getPipedriveSubdomain(): string | null {
+  return process.env.PIPEDRIVE_SUBDOMAIN || null
+}
+
+/**
+ * Build Pipedrive deal URL
+ */
+export function getPipedriveDealUrl(dealId: string | number): string | null {
+  const subdomain = getPipedriveSubdomain()
+  if (!subdomain) return null
+  return `https://${subdomain}.pipedrive.com/deal/${dealId}`
+}
+
+/**
+ * Build Pipedrive person URL
+ */
+export function getPipedrivePersonUrl(personId: string | number): string | null {
+  const subdomain = getPipedriveSubdomain()
+  if (!subdomain) return null
+  return `https://${subdomain}.pipedrive.com/person/${personId}`
 }
