@@ -40,6 +40,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       const allowedOrigins = process.env.NEXT_PUBLIC_EMBED_ALLOWED_ORIGINS?.split(',') || [
         'https://www.rentmil.cz',
         'https://rentmil.cz',
+        'https://kalkulator20-production.up.railway.app',
       ]
       // In development, also allow localhost
       if (process.env.NODE_ENV === 'development') {
