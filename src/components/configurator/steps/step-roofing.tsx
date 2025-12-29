@@ -34,17 +34,15 @@ export function StepRoofing() {
                     )}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-lg text-foreground">
-                        {option.label}
-                      </h3>
-                      {'tag' in option && option.tag && (
-                        <OptionTag variant="recommended">
-                          {option.tag}
-                        </OptionTag>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold text-lg text-foreground">
+                      {option.label}
+                    </h3>
+                    {'tag' in option && option.tag && (
+                      <OptionTag variant="recommended" className="mt-1">
+                        {option.tag}
+                      </OptionTag>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-1">
                       {option.description}
                     </p>
                   </div>

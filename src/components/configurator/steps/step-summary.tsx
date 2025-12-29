@@ -308,53 +308,6 @@ export function StepSummary() {
             </CardContent>
           </Card>
 
-          {/* What happens next - prominent section */}
-          <Card className="border-2 border-[#48A9A6] bg-gradient-to-br from-[#48A9A6]/5 to-[#01384B]/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 text-[#01384B]">
-                <Clock className="w-5 h-5 text-[#48A9A6]" />
-                Co bude následovat po odeslání?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
-                    1
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[#01384B]">Potvrzení na e-mail</p>
-                    <p className="text-sm text-muted-foreground">
-                      Ihned po odeslání obdržíte shrnutí Vaší konfigurace na e-mail
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
-                    2
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[#01384B]">Cenová kalkulace do 24 hodin</p>
-                    <p className="text-sm text-muted-foreground">
-                      Náš specialista Vám připraví detailní cenovou nabídku na míru
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
-                    3
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[#01384B]">Osobní konzultace</p>
-                    <p className="text-sm text-muted-foreground">
-                      Budeme Vás kontaktovat pro upřesnění detailů a zodpovězení dotazů
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Turnstile widget */}
           {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
             <div className="flex justify-center">
@@ -376,6 +329,53 @@ export function StepSummary() {
               Kalkulaci obdržíte do 24 hodin.
             </p>
           </div>
+
+          {/* What happens next - info section */}
+          <Card className="border border-[#48A9A6]/30 bg-gradient-to-br from-[#48A9A6]/5 to-[#01384B]/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2 text-[#01384B]">
+                <Clock className="w-4 h-4 text-[#48A9A6]" />
+                Co bude následovat po odeslání?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-3 text-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0 text-white font-bold text-xs">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#01384B]">Potvrzení na e-mail</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ihned obdržíte shrnutí konfigurace
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0 text-white font-bold text-xs">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#01384B]">Cenová kalkulace do 24 hodin</p>
+                    <p className="text-xs text-muted-foreground">
+                      Specialista připraví nabídku na míru
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0 text-white font-bold text-xs">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#01384B]">Osobní konzultace</p>
+                    <p className="text-xs text-muted-foreground">
+                      Kontaktujeme Vás pro upřesnění detailů
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </form>
     </StepLayout>
