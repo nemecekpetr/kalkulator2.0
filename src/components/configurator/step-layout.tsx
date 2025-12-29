@@ -120,9 +120,10 @@ export function OptionCard({ selected, onClick, children, className, disabled, l
 interface OptionTagProps {
   children: React.ReactNode
   variant?: 'default' | 'premium' | 'recommended'
+  className?: string
 }
 
-export function OptionTag({ children, variant = 'default' }: OptionTagProps) {
+export function OptionTag({ children, variant = 'default', className }: OptionTagProps) {
   const variants = {
     default: 'bg-slate-100 text-slate-600',
     premium: 'bg-gradient-to-r from-[#FF8621] to-[#ED6663] text-white shadow-sm shadow-[#FF8621]/20',
@@ -132,7 +133,8 @@ export function OptionTag({ children, variant = 'default' }: OptionTagProps) {
   return (
     <span className={cn(
       'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold',
-      variants[variant]
+      variants[variant],
+      className
     )}>
       {children}
     </span>

@@ -29,11 +29,11 @@ export function StepNavigation() {
           variant="outline"
           onClick={prevStep}
           disabled={isFirstStep}
-          aria-label="Zpet na predchozi krok"
+          aria-label="Zpět na předchozí krok"
           className="gap-2 border-slate-200 hover:border-[#48A9A6]/50 hover:bg-[#48A9A6]/5 disabled:opacity-30"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Zpet</span>
+          <span className="hidden sm:inline">Zpět</span>
         </Button>
       </motion.div>
 
@@ -42,7 +42,7 @@ export function StepNavigation() {
         <div className="flex items-center gap-2 justify-center">
           <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#48A9A6] to-[#01384B]" />
           <p className="text-sm font-medium text-slate-500">
-            {isLastStep ? 'Posledni krok' : `Krok ${currentStep} z 11`}
+            {isLastStep ? 'Poslední krok' : `Krok ${currentStep} z 11`}
           </p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export function StepNavigation() {
             type="submit"
             form="configurator-form"
             disabled={!canGoNext || isSubmitting}
-            aria-label={isSubmitting ? 'Odesilam formular' : 'Odeslat formular a ziskat kalkulaci'}
+            aria-label={isSubmitting ? 'Odesílám formulář' : 'Odeslat formulář a získat kalkulaci'}
             aria-busy={isSubmitting}
             className="gap-2 bg-gradient-to-r from-[#FF8621] to-[#ED6663] hover:from-[#FF8621]/90 hover:to-[#ED6663]/90 shadow-lg shadow-[#FF8621]/20 text-white font-semibold px-6"
           >
@@ -66,12 +66,12 @@ export function StepNavigation() {
                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                   aria-hidden="true"
                 />
-                <span>Odesilam...</span>
+                <span>Odesílám...</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Ziskat kalkulaci</span>
+                <span className="hidden sm:inline">Získat kalkulaci</span>
                 <span className="sm:hidden">Odeslat</span>
               </>
             )}
@@ -82,11 +82,11 @@ export function StepNavigation() {
           <Button
             onClick={nextStep}
             disabled={!canGoNext}
-            aria-label="Dalsi krok"
+            aria-label="Další krok"
             className="gap-2 bg-gradient-to-r from-[#01384B] to-[#025a6e] hover:from-[#01384B]/90 hover:to-[#025a6e]/90 shadow-lg shadow-[#01384B]/20 text-white font-semibold px-6 disabled:opacity-30"
           >
-            <span className="hidden sm:inline">Dalsi krok</span>
-            <span className="sm:hidden">Dale</span>
+            <span className="hidden sm:inline">Další krok</span>
+            <span className="sm:hidden">Dále</span>
             <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </Button>
         </motion.div>

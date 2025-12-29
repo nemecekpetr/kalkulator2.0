@@ -39,16 +39,14 @@ export function StepTechnology() {
               <div className="mb-4 p-4 rounded-2xl bg-muted/50">
                 {getIcon(tech.id)}
               </div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-foreground">
-                  {tech.label}
-                </h3>
-                {'tag' in tech && tech.tag && (
-                  <OptionTag variant="recommended">
-                    {tech.tag}
-                  </OptionTag>
-                )}
-              </div>
+              <h3 className="font-semibold text-foreground mb-1">
+                {tech.label}
+              </h3>
+              {'tag' in tech && tech.tag && (
+                <OptionTag variant="recommended" className="mb-2">
+                  {tech.tag}
+                </OptionTag>
+              )}
               <p className="text-sm text-muted-foreground">
                 {tech.description}
               </p>

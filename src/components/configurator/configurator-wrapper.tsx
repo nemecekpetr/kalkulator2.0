@@ -74,7 +74,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
             height={120}
             className="animate-bounce"
           />
-          <span className="text-lg font-medium">Nacitam konfigurator...</span>
+          <span className="text-lg font-medium">Načítám konfigurátor...</span>
         </div>
       </div>
     )

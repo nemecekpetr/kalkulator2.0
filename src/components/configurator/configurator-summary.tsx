@@ -82,10 +82,10 @@ function SummaryContent() {
           <Droplets className="w-10 h-10 text-[#48A9A6]" />
         </div>
         <p className="text-sm text-slate-500 font-medium">
-          Zacnete vybirat a zde se zobrazi vase konfigurace
+          Začněte vybírat a zde se zobrazí vaše konfigurace
         </p>
         <p className="text-xs text-slate-400 mt-1">
-          Kazdy vas vyber se automaticky ulozi
+          Každý váš výběr se automaticky uloží
         </p>
       </div>
     )
@@ -118,7 +118,7 @@ function SummaryContent() {
       {stairs && stairs !== 'none' && shape !== 'circle' && (
         <SummaryItem
           icon={<Footprints className="w-4 h-4" />}
-          label="Schodiste"
+          label="Schodiště"
           value={getStairsLabel(stairs)}
         />
       )}
@@ -138,13 +138,13 @@ function SummaryContent() {
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-3 h-3 text-[#FF8621]" />
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Prislusenstvi
+              Příslušenství
             </p>
           </div>
           {lighting && lighting !== 'none' && (
             <SummaryItem
               icon={<Lightbulb className="w-4 h-4" />}
-              label="Osvetleni"
+              label="Osvětlení"
               value={getLightingLabel(lighting)}
               highlight
             />
@@ -160,7 +160,7 @@ function SummaryContent() {
           {waterTreatment && (
             <SummaryItem
               icon={<Droplets className="w-4 h-4" />}
-              label="Uprava vody"
+              label="Úprava vody"
               value={getWaterTreatmentLabel(waterTreatment)}
               highlight
             />
@@ -175,14 +175,14 @@ function SummaryContent() {
           {heating && heating !== 'none' && (
             <SummaryItem
               icon={<Thermometer className="w-4 h-4" />}
-              label="Ohrev"
+              label="Ohřev"
               value={getHeatingLabel(heating)}
             />
           )}
           {roofing && roofing !== 'none' && (
             <SummaryItem
               icon={<Home className="w-4 h-4" />}
-              label="Zastreseni"
+              label="Zastřešení"
               value={getRoofingLabel(roofing)}
             />
           )}
@@ -236,8 +236,8 @@ export function ConfiguratorSummary({ variant = 'desktop' }: ConfiguratorSummary
                 <Droplets className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="text-[#01384B]">Vase konfigurace</span>
-                <p className="text-xs text-slate-500 font-normal">Prehled vybranych moznosti</p>
+                <span className="text-[#01384B]">Vaše konfigurace</span>
+                <p className="text-xs text-slate-500 font-normal">Přehled vybraných možností</p>
               </div>
             </SheetTitle>
           </SheetHeader>
@@ -260,8 +260,8 @@ export function ConfiguratorSummary({ variant = 'desktop' }: ConfiguratorSummary
             <Droplets className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="text-[#01384B]">Vase konfigurace</span>
-            <p className="text-xs text-slate-500 font-normal">Automaticky ukladano</p>
+            <span className="text-[#01384B]">Vaše konfigurace</span>
+            <p className="text-xs text-slate-500 font-normal">Automaticky ukládáno</p>
           </div>
         </CardTitle>
       </CardHeader>
@@ -279,15 +279,15 @@ export function ConfiguratorSummary({ variant = 'desktop' }: ConfiguratorSummary
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#48A9A6] to-[#01384B] animate-pulse" />
-                <p className="text-xs text-slate-500 font-medium">Cenova kategorie</p>
+                <p className="text-xs text-slate-500 font-medium">Cenová kategorie</p>
               </div>
               <div className="flex items-center gap-2">
                 <Badge className="bg-gradient-to-r from-[#48A9A6]/10 to-[#01384B]/10 text-[#01384B] border-[#48A9A6]/30 hover:bg-[#48A9A6]/20">
-                  Individualni kalkulace
+                  Individuální kalkulace
                 </Badge>
               </div>
               <p className="text-xs text-slate-400 mt-2">
-                Presnou cenu vam spocitame na miru
+                Přesnou cenu vám spočítáme na míru
               </p>
             </motion.div>
           )}
