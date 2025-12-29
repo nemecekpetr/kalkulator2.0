@@ -25,6 +25,13 @@ This is a pool configurator application for Rentmil (Czech pool manufacturer) bu
 - Step 5 (Stairs) is automatically skipped for circular pools
 - Configuration constants in `src/lib/constants/configurator.ts`
 
+**Embedded Mode** (`/embed`)
+- Minimal UI version for iframe embedding in WordPress or other sites
+- Access via `/embed` route
+- Auto-resizes iframe via postMessage to parent window
+- Removes header, decorations, and background styling for seamless integration
+- Implementation: `ConfiguratorWrapper` component with `embedded` prop
+
 **Admin Panel** (`/admin/*`)
 - Protected routes via Supabase auth middleware (`src/lib/supabase/middleware.ts`)
 - Dashboard, configurations management, quotes management, products, user management
@@ -94,7 +101,6 @@ Located in `src/app/api/`:
 - `/api/admin/mapping-rules`: Product mapping rules CRUD
 - `/api/admin/mapping-rules/auto-assign`: Auto-assign products to mapping rules
 - `/api/admin/export`: Data export
-- `/api/webhook/pipedrive-callback`: Pipedrive webhook handler
 - `/api/health`: Health check endpoint for Railway deployment
 
 ### Deployment
@@ -110,7 +116,14 @@ Deployed on Railway using Nixpacks:
   - `src/lib/supabase/client.ts`: Browser client
   - `src/lib/supabase/server.ts`: Server component client
   - `src/lib/supabase/admin.ts`: Service role client (bypasses RLS)
-- **Pipedrive CRM**: Syncs products from Pipedrive (`src/lib/pipedrive/client.ts`)
+- **Pipedrive CRM**: Direct API integration for deals and products
+  - `src/lib/pipedrive/client.ts`: Product sync
+  - `src/lib/pipedrive/deals.ts`: Persons, Deals, Deal Products API
+  - On configuration submit: Creates Person + Deal with products attached
+- **Resend**: Email delivery for customer notifications
+  - `src/lib/email/client.ts`: Resend client
+  - `src/lib/email/templates/`: Email templates
+  - Sends confirmation email after configuration submission
 - **Upstash Redis**: Rate limiting for form submissions (`src/lib/rate-limit.ts`)
 - **Cloudflare Turnstile**: Bot protection (`src/lib/turnstile.ts`, `src/components/turnstile.tsx`)
 
@@ -152,6 +165,7 @@ Required for Supabase:
 
 Required for integrations:
 - `PIPEDRIVE_API_TOKEN`
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
 

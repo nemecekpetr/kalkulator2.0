@@ -76,6 +76,9 @@ async function getConfiguration(id: string) {
     message: string | null
     pipedrive_status: string
     pipedrive_deal_id: string | null
+    pipedrive_person_id: number | null
+    email_sent_at: string | null
+    email_error: string | null
     status: ConfigurationStatus
   }
 }
@@ -328,6 +331,55 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
                   <p className="font-medium">{config.pipedrive_deal_id}</p>
                 </div>
               )}
+              {config.pipedrive_person_id && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Person ID</p>
+                  <p className="font-medium">{config.pipedrive_person_id}</p>
+                </div>
+              )}
+              {config.pipedrive_status !== 'success' && (
+                <ConfigurationActions configId={config.id} action="retry" />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Email status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Stav emailu</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {config.email_sent_at ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Email odeslán
+                </Badge>
+              ) : config.email_error ? (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Chyba při odesílání
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <Clock className="w-3 h-3 mr-1" />
+                  Email neodeslan
+                </Badge>
+              )}
+              {config.email_sent_at && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Odesláno</p>
+                  <p className="font-medium">
+                    {format(new Date(config.email_sent_at), 'd. M. yyyy, HH:mm', { locale: cs })}
+                  </p>
+                </div>
+              )}
+              {config.email_error && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Chyba</p>
+                  <p className="text-sm text-red-600">{config.email_error}</p>
+                </div>
+              )}
+              <ConfigurationActions configId={config.id} action="resend-email" />
             </CardContent>
           </Card>
 
@@ -335,7 +387,7 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
           <Card>
             <CardHeader>
               <CardTitle>Historie synchronizace</CardTitle>
-              <CardDescription>Pokusy o odeslání do Pipedrive</CardDescription>
+              <CardDescription>Pokusy o odeslání do Pipedrive a emailu</CardDescription>
             </CardHeader>
             <CardContent>
               <SyncLogList logs={syncLogs} />

@@ -76,14 +76,20 @@ export interface Database {
           // Integration
           pipedrive_status: string
           pipedrive_deal_id: string | null
+          pipedrive_person_id: number | null
           pipedrive_error: string | null
           pipedrive_synced_at: string | null
+          // Email tracking
+          email_sent_at: string | null
+          email_error: string | null
           // Meta
           source: string
           notes: string | null
           is_deleted: boolean
           // Status
           status: ConfigurationStatus
+          // Idempotency
+          idempotency_key: string | null
         }
         Insert: {
           id?: string
@@ -107,12 +113,16 @@ export interface Database {
           roofing: string
           pipedrive_status?: string
           pipedrive_deal_id?: string | null
+          pipedrive_person_id?: number | null
           pipedrive_error?: string | null
           pipedrive_synced_at?: string | null
+          email_sent_at?: string | null
+          email_error?: string | null
           source?: string
           notes?: string | null
           is_deleted?: boolean
           status?: ConfigurationStatus
+          idempotency_key?: string | null
         }
         Update: {
           id?: string
@@ -136,12 +146,16 @@ export interface Database {
           roofing?: string
           pipedrive_status?: string
           pipedrive_deal_id?: string | null
+          pipedrive_person_id?: number | null
           pipedrive_error?: string | null
           pipedrive_synced_at?: string | null
+          email_sent_at?: string | null
+          email_error?: string | null
           source?: string
           notes?: string | null
           is_deleted?: boolean
           status?: ConfigurationStatus
+          idempotency_key?: string | null
         }
       }
       sync_log: {
@@ -149,21 +163,27 @@ export interface Database {
           id: string
           configuration_id: string
           created_at: string
+          action: string
           status: string
+          response: Record<string, unknown> | null
           error_message: string | null
         }
         Insert: {
           id?: string
           configuration_id: string
           created_at?: string
+          action: string
           status: string
+          response?: Record<string, unknown> | null
           error_message?: string | null
         }
         Update: {
           id?: string
           configuration_id?: string
           created_at?: string
+          action?: string
           status?: string
+          response?: Record<string, unknown> | null
           error_message?: string | null
         }
       }

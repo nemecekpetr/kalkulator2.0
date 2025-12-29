@@ -3,6 +3,55 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/require-role'
 import { revalidatePath } from 'next/cache'
+import { createPipedriveDealsClient } from '@/lib/pipedrive/deals'
+import { generateQuoteItemsFromConfiguration } from '@/lib/quote-generator'
+import { sendEmail } from '@/lib/email/client'
+import {
+  configToEmailData,
+  generateConfigurationEmailHtml,
+  generateConfigurationEmailText,
+} from '@/lib/email/templates/configuration-confirmation'
+import {
+  getShapeLabel,
+  getTypeLabel,
+  getColorLabel,
+  getStairsLabel,
+  getTechnologyLabel,
+  getLightingLabel,
+  getCounterflowLabel,
+  getWaterTreatmentLabel,
+  getHeatingLabel,
+  getRoofingLabel,
+  formatDimensions,
+} from '@/lib/constants/configurator'
+import type { Configuration } from '@/lib/supabase/types'
+
+// Generate deal note with configuration summary
+function generateDealNote(config: Configuration): string {
+  const lines = [
+    '=== Konfigurace bazénu z webu ===',
+    '',
+    `Tvar: ${getShapeLabel(config.pool_shape)}`,
+    `Typ: ${getTypeLabel(config.pool_type)}`,
+    `Rozměry: ${formatDimensions(config.pool_shape, config.dimensions as { diameter?: number; width?: number; length?: number; depth?: number })}`,
+    `Barva: ${getColorLabel(config.color)}`,
+    `Schodiště: ${getStairsLabel(config.stairs)}`,
+    `Technologie: ${getTechnologyLabel(config.technology)}`,
+    `Osvětlení: ${getLightingLabel(config.lighting)}`,
+    `Protiproud: ${getCounterflowLabel(config.counterflow)}`,
+    `Úprava vody: ${getWaterTreatmentLabel(config.water_treatment)}`,
+    `Ohřev: ${getHeatingLabel(config.heating)}`,
+    `Zastřešení: ${getRoofingLabel(config.roofing)}`,
+  ]
+
+  if (config.contact_address) {
+    lines.push('', `Místo instalace: ${config.contact_address}`)
+  }
+
+  lines.push('', `ID konfigurace: ${config.id}`)
+
+  return lines.join('\n')
+}
 
 export async function deleteConfiguration(id: string) {
   try {
@@ -53,87 +102,225 @@ export async function retryPipedriveSync(id: string) {
     // Update status to pending
     await supabase
       .from('configurations')
-      .update({ pipedrive_status: 'pending' })
+      .update({ pipedrive_status: 'pending', pipedrive_error: null })
       .eq('id', id)
 
-    // Send to Make.com webhook
-    const webhookUrl = process.env.MAKE_WEBHOOK_URL
-    if (!webhookUrl) {
-      // Log sync attempt
+    try {
+      const pipedriveClient = createPipedriveDealsClient()
+
+      // 1. Find or create person
+      const person = await pipedriveClient.findOrCreatePerson({
+        name: config.contact_name,
+        email: config.contact_email,
+        phone: config.contact_phone || '',
+      })
+
+      // 2. Find pipeline "nové zakázky" or use default
+      let pipelineId: number | undefined
+      let stageId: number | undefined
+
+      try {
+        const pipeline = await pipedriveClient.findPipelineByName('nové zakázky')
+        if (pipeline) {
+          pipelineId = pipeline.id
+          const firstStage = await pipedriveClient.getFirstStage(pipeline.id)
+          if (firstStage) {
+            stageId = firstStage.id
+          }
+        }
+      } catch {
+        console.warn('Pipeline "nové zakázky" not found, using default')
+      }
+
+      // 3. Create deal
+      const deal = await pipedriveClient.createDeal({
+        title: `Konfigurace - ${config.contact_name}`,
+        person_id: person.id,
+        pipeline_id: pipelineId,
+        stage_id: stageId,
+        visible_to: 3,
+      })
+
+      // 4. Add note with configuration details
+      try {
+        await pipedriveClient.addNoteToDeal(deal.id, generateDealNote(config))
+      } catch (err) {
+        console.warn('Failed to add note to deal:', err)
+      }
+
+      // 5. Generate and add products to deal
+      try {
+        const quoteItems = await generateQuoteItemsFromConfiguration(config, supabase)
+
+        const productsToAdd = quoteItems
+          .filter(item => item.product_id)
+          .map(async item => {
+            const { data: product } = await supabase
+              .from('products')
+              .select('pipedrive_id')
+              .eq('id', item.product_id)
+              .single()
+
+            if (product?.pipedrive_id) {
+              return {
+                product_id: product.pipedrive_id,
+                item_price: item.unit_price,
+                quantity: item.quantity,
+              }
+            }
+            return null
+          })
+
+        const resolvedProducts = (await Promise.all(productsToAdd)).filter(
+          (p): p is NonNullable<typeof p> => p !== null
+        )
+
+        if (resolvedProducts.length > 0) {
+          await pipedriveClient.addProductsToDeal(deal.id, resolvedProducts)
+        }
+      } catch (err) {
+        console.warn('Failed to add products to deal:', err)
+      }
+
+      // Log success
       await supabase.from('sync_log').insert({
         configuration_id: id,
+        action: 'pipedrive_retry',
+        status: 'success',
+        response: { dealId: deal.id, personId: person.id },
+      })
+
+      // Update configuration
+      await supabase
+        .from('configurations')
+        .update({
+          pipedrive_status: 'success',
+          pipedrive_deal_id: String(deal.id),
+          pipedrive_person_id: person.id,
+          pipedrive_synced_at: new Date().toISOString(),
+          pipedrive_error: null,
+        })
+        .eq('id', id)
+
+      revalidatePath('/admin/konfigurace')
+      revalidatePath(`/admin/konfigurace/${id}`)
+      revalidatePath('/admin/dashboard')
+
+      return { success: true }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Neznámá chyba'
+
+      // Log error
+      await supabase.from('sync_log').insert({
+        configuration_id: id,
+        action: 'pipedrive_retry',
         status: 'error',
-        error_message: 'Webhook URL neni nakonfigurovana',
+        error_message: errorMessage,
       })
 
       await supabase
         .from('configurations')
-        .update({ pipedrive_status: 'error' })
+        .update({
+          pipedrive_status: 'error',
+          pipedrive_error: errorMessage,
+        })
         .eq('id', id)
 
-      return { success: false, error: 'Webhook URL neni nakonfigurovana' }
+      return { success: false, error: errorMessage }
     }
-
-    const webhookResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        configuration_id: config.id,
-        contact: {
-          name: config.contact_name,
-          email: config.contact_email,
-          phone: config.contact_phone,
-        },
-        pool: {
-          shape: config.pool_shape,
-          type: config.pool_type,
-          dimensions: config.dimensions,
-          color: config.color,
-          stairs: config.stairs,
-          technology: config.technology,
-          lighting: config.lighting,
-          counterflow: config.counterflow,
-          water_treatment: config.water_treatment,
-          heating: config.heating,
-          roofing: config.roofing,
-        },
-        message: config.message,
-        created_at: config.created_at,
-        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/pipedrive-callback`,
-      }),
-    })
-
-    if (!webhookResponse.ok) {
-      // Log sync attempt
-      await supabase.from('sync_log').insert({
-        configuration_id: id,
-        status: 'error',
-        error_message: `Webhook vratil chybu: ${webhookResponse.status}`,
-      })
-
-      await supabase
-        .from('configurations')
-        .update({ pipedrive_status: 'error' })
-        .eq('id', id)
-
-      return { success: false, error: 'Webhook vratil chybu' }
-    }
-
-    // Log sync attempt
-    await supabase.from('sync_log').insert({
-      configuration_id: id,
-      status: 'pending',
-    })
-
-    revalidatePath('/admin/konfigurace')
-    revalidatePath('/admin/dashboard')
-
-    return { success: true }
   } catch (error) {
     console.error('Error retrying Pipedrive sync:', error)
-    return { success: false, error: 'Nepodarilo se odeslat do Pipedrive' }
+    return { success: false, error: 'Nepodařilo se odeslat do Pipedrive' }
+  }
+}
+
+export async function resendConfigurationEmail(id: string) {
+  try {
+    // Admin only
+    await requireAdmin()
+
+    const supabase = await createAdminClient()
+
+    // Get the configuration
+    const { data: config, error: fetchError } = await supabase
+      .from('configurations')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !config) {
+      return { success: false, error: 'Konfigurace nenalezena' }
+    }
+
+    try {
+      const emailData = configToEmailData(config)
+      const html = generateConfigurationEmailHtml(emailData)
+      const text = generateConfigurationEmailText(emailData)
+
+      const result = await sendEmail({
+        to: config.contact_email,
+        subject: 'Vaše konfigurace bazénu - Rentmil',
+        html,
+        text,
+        replyTo: 'info@rentmil.cz',
+      })
+
+      if (!result.success) {
+        // Log error
+        await supabase.from('sync_log').insert({
+          configuration_id: id,
+          action: 'email_resend',
+          status: 'error',
+          error_message: result.error,
+        })
+
+        await supabase
+          .from('configurations')
+          .update({ email_error: result.error })
+          .eq('id', id)
+
+        return { success: false, error: result.error }
+      }
+
+      // Log success
+      await supabase.from('sync_log').insert({
+        configuration_id: id,
+        action: 'email_resend',
+        status: 'success',
+      })
+
+      // Update configuration
+      await supabase
+        .from('configurations')
+        .update({
+          email_sent_at: new Date().toISOString(),
+          email_error: null,
+        })
+        .eq('id', id)
+
+      revalidatePath(`/admin/konfigurace/${id}`)
+
+      return { success: true }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Neznámá chyba'
+
+      await supabase.from('sync_log').insert({
+        configuration_id: id,
+        action: 'email_resend',
+        status: 'error',
+        error_message: errorMessage,
+      })
+
+      await supabase
+        .from('configurations')
+        .update({ email_error: errorMessage })
+        .eq('id', id)
+
+      return { success: false, error: errorMessage }
+    }
+  } catch (error) {
+    console.error('Error resending email:', error)
+    return { success: false, error: 'Nepodařilo se odeslat email' }
   }
 }
 

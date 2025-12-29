@@ -3,13 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { RefreshCw } from 'lucide-react'
-import { retryPipedriveSync } from '@/app/actions/admin-actions'
+import { RefreshCw, Mail } from 'lucide-react'
+import { retryPipedriveSync, resendConfigurationEmail } from '@/app/actions/admin-actions'
 import { toast } from 'sonner'
 
 interface ConfigurationActionsProps {
   configId: string
-  action: 'retry'
+  action: 'retry' | 'resend-email'
 }
 
 export function ConfigurationActions({ configId, action }: ConfigurationActionsProps) {
@@ -21,13 +21,30 @@ export function ConfigurationActions({ configId, action }: ConfigurationActionsP
     try {
       const result = await retryPipedriveSync(configId)
       if (result.success) {
-        toast.success('Konfigurace byla znovu odeslana do Pipedrive')
+        toast.success('Konfigurace byla znovu odeslána do Pipedrive')
         router.refresh()
       } else {
-        toast.error(result.error || 'Nepodarilo se odeslat do Pipedrive')
+        toast.error(result.error || 'Nepodařilo se odeslat do Pipedrive')
       }
     } catch {
-      toast.error('Nepodarilo se odeslat do Pipedrive')
+      toast.error('Nepodařilo se odeslat do Pipedrive')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendEmail = async () => {
+    setIsLoading(true)
+    try {
+      const result = await resendConfigurationEmail(configId)
+      if (result.success) {
+        toast.success('Email byl úspěšně odeslán')
+        router.refresh()
+      } else {
+        toast.error(result.error || 'Nepodařilo se odeslat email')
+      }
+    } catch {
+      toast.error('Nepodařilo se odeslat email')
     } finally {
       setIsLoading(false)
     }
@@ -35,9 +52,18 @@ export function ConfigurationActions({ configId, action }: ConfigurationActionsP
 
   if (action === 'retry') {
     return (
-      <Button variant="outline" onClick={handleRetry} disabled={isLoading}>
+      <Button variant="outline" size="sm" onClick={handleRetry} disabled={isLoading}>
         <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-        {isLoading ? 'Odesilam...' : 'Znovu odeslat'}
+        {isLoading ? 'Odesílám...' : 'Znovu odeslat do Pipedrive'}
+      </Button>
+    )
+  }
+
+  if (action === 'resend-email') {
+    return (
+      <Button variant="outline" size="sm" onClick={handleResendEmail} disabled={isLoading}>
+        <Mail className={`w-4 h-4 mr-2 ${isLoading ? 'animate-pulse' : ''}`} />
+        {isLoading ? 'Odesílám...' : 'Odeslat email znovu'}
       </Button>
     )
   }
