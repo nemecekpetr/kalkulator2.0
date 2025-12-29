@@ -12,10 +12,30 @@ interface ConfiguratorProgressProps {
 
 export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressProps) {
   const currentStep = useConfiguratorStore((state) => state.currentStep)
-  const canProceed = useConfiguratorStore((state) => state.canProceed)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
   const setStep = useConfiguratorStore((state) => state.setStep)
   const isSubmitted = useConfiguratorStore((state) => state.isSubmitted)
+
+  // Subscribe to all relevant state for canProceed to work correctly
+  // This ensures the component re-renders when any step's completion status changes
+  const shape = useConfiguratorStore((state) => state.shape)
+  const type = useConfiguratorStore((state) => state.type)
+  const dimensions = useConfiguratorStore((state) => state.dimensions)
+  const color = useConfiguratorStore((state) => state.color)
+  const stairs = useConfiguratorStore((state) => state.stairs)
+  const technology = useConfiguratorStore((state) => state.technology)
+  const lighting = useConfiguratorStore((state) => state.lighting)
+  const counterflow = useConfiguratorStore((state) => state.counterflow)
+  const waterTreatment = useConfiguratorStore((state) => state.waterTreatment)
+  const heating = useConfiguratorStore((state) => state.heating)
+  const roofing = useConfiguratorStore((state) => state.roofing)
+  const contact = useConfiguratorStore((state) => state.contact)
+  const canProceed = useConfiguratorStore((state) => state.canProceed)
+
+  // Mark these as used to avoid lint warnings
+  void shape; void type; void dimensions; void color; void stairs;
+  void technology; void lighting; void counterflow; void waterTreatment;
+  void heating; void roofing; void contact;
 
   // Filter out skipped steps
   const visibleSteps = STEPS.filter(step => !shouldSkipStep(step.number))

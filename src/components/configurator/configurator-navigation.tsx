@@ -12,16 +12,18 @@ interface ConfiguratorNavigationProps {
 
 export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigationProps) {
   const currentStep = useConfiguratorStore((state) => state.currentStep)
-  const canProceed = useConfiguratorStore((state) => state.canProceed)
   const nextStep = useConfiguratorStore((state) => state.nextStep)
   const prevStep = useConfiguratorStore((state) => state.prevStep)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
   const isSubmitted = useConfiguratorStore((state) => state.isSubmitted)
   const isSubmitting = useConfiguratorStore((state) => state.isSubmitting)
 
+  // Subscribe to canProceed result directly to ensure re-render on state changes
+  // This is necessary because canProceed is a function that reads state internally
+  const canGoNext = useConfiguratorStore((state) => state.canProceed(state.currentStep))
+
   const isFirstStep = currentStep === 1
   const isLastStep = currentStep === 11
-  const canGoNext = canProceed(currentStep)
 
   // Calculate visible steps for step counter
   const visibleSteps = STEPS.filter(step => !shouldSkipStep(step.number))
