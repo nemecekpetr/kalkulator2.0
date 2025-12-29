@@ -114,6 +114,8 @@ class PipedriveDealsClient {
     options?: RequestInit
   ): Promise<PipedriveResponse<T>> {
     const url = new URL(`${PIPEDRIVE_API_URL}${endpoint}`)
+    // Pipedrive API requires api_token as query parameter (not Bearer header)
+    url.searchParams.set('api_token', this.apiToken)
 
     let lastError: Error | null = null
 
@@ -123,7 +125,6 @@ class PipedriveDealsClient {
           ...options,
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiToken}`,
             ...options?.headers,
           },
         })
