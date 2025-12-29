@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { AnimatePresence } from 'framer-motion'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { ConfiguratorProgress } from './configurator-progress'
+import { ConfiguratorNavigation } from './configurator-navigation'
 import { ConfiguratorSummary } from './configurator-summary'
 import { StepShape } from './steps/step-shape'
 import { StepType } from './steps/step-type'
@@ -17,7 +18,6 @@ import { StepHeating } from './steps/step-heating'
 import { StepRoofing } from './steps/step-roofing'
 import { StepContact } from './steps/step-contact'
 import { StepSummary } from './steps/step-summary'
-import { ConfiguratorCTA } from './configurator-cta'
 import { ConfiguratorErrorBoundary } from './configurator-error-boundary'
 
 interface ConfiguratorWrapperProps {
@@ -181,8 +181,11 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
         {/* Progress bar */}
         <ConfiguratorProgress embedded />
 
+        {/* Navigation - under progress bar */}
+        <ConfiguratorNavigation embedded />
+
         {/* Main content */}
-        <main className="container mx-auto px-4 py-6 pb-24">
+        <main className="container mx-auto px-4 py-6">
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Step content */}
             <div className="lg:col-span-2">
@@ -205,9 +208,6 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
             )}
           </div>
         </main>
-
-        {/* Sticky bottom CTA */}
-        <ConfiguratorCTA embedded />
       </div>
     )
   }
@@ -259,8 +259,11 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       {/* Progress bar */}
       <ConfiguratorProgress />
 
+      {/* Navigation - under progress bar */}
+      <ConfiguratorNavigation />
+
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8 pb-28 relative z-10">
+      <main className="container mx-auto px-4 py-8 relative z-10">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Step content */}
           <div className="lg:col-span-2">
@@ -300,20 +303,6 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
           )}
         </div>
       </main>
-
-      {/* Sticky bottom CTA */}
-      <ConfiguratorCTA />
-
-      {/* Footer decoration - visible on larger screens */}
-      <div className="hidden lg:block fixed bottom-4 left-4 opacity-50">
-        <Image
-          src="/maskot.png"
-          alt=""
-          width={60}
-          height={60}
-          className="opacity-30"
-        />
-      </div>
     </div>
   )
 }

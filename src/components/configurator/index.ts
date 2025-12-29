@@ -1,5 +1,6 @@
 export { ConfiguratorWrapper } from './configurator-wrapper'
 export { ConfiguratorProgress } from './configurator-progress'
+export { ConfiguratorNavigation } from './configurator-navigation'
 export { ConfiguratorSummary } from './configurator-summary'
 export { StepLayout, OptionCard, OptionTag } from './step-layout'
 export * from './steps'

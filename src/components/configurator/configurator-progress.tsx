@@ -1,9 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Check, ArrowLeft } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { STEPS } from '@/lib/constants/configurator'
 
@@ -16,7 +15,6 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
   const canProceed = useConfiguratorStore((state) => state.canProceed)
   const shouldSkipStep = useConfiguratorStore((state) => state.shouldSkipStep)
   const setStep = useConfiguratorStore((state) => state.setStep)
-  const prevStep = useConfiguratorStore((state) => state.prevStep)
   const isSubmitted = useConfiguratorStore((state) => state.isSubmitted)
 
   // Filter out skipped steps
@@ -53,8 +51,6 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
     }
   }
 
-  const isFirstStep = currentStep === 1
-
   // Po odeslání formuláře skryjeme celý progress bar
   if (isSubmitted) {
     return null
@@ -68,32 +64,15 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
       <div className="container mx-auto px-4 py-3">
         {/* Desktop layout */}
         <div className="hidden md:block">
-          {/* Top row: Back button + step info */}
-          <div className="flex items-center gap-4 mb-3">
-            {/* Back button */}
-            <motion.div whileHover={{ x: -2 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="ghost"
-                onClick={prevStep}
-                disabled={isFirstStep}
-                size="sm"
-                className="gap-1.5 text-slate-600 hover:text-[#01384B] hover:bg-[#48A9A6]/10 disabled:opacity-0 disabled:pointer-events-none"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Zpět</span>
-              </Button>
-            </motion.div>
-
-            {/* Step info */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <p className="text-sm font-semibold text-[#01384B]">
-                  {visibleSteps[currentIndex]?.title}
-                </p>
-                <span className="text-xs text-slate-400">
-                  Krok {currentIndex + 1} z {totalSteps}
-                </span>
-              </div>
+          {/* Step title */}
+          <div className="mb-3">
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-semibold text-[#01384B]">
+                {visibleSteps[currentIndex]?.title}
+              </p>
+              <span className="text-xs text-slate-400">
+                Krok {currentIndex + 1} z {totalSteps}
+              </span>
             </div>
           </div>
 
@@ -163,40 +142,24 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
           </div>
         </div>
 
-        {/* Mobile layout - Back + Progress */}
+        {/* Mobile layout - Progress only */}
         <div className="md:hidden">
-          <div className="flex items-center gap-3">
-            {/* Back button */}
-            <Button
-              variant="ghost"
-              onClick={prevStep}
-              disabled={isFirstStep}
-              size="sm"
-              className="w-9 h-9 p-0 text-slate-600 hover:text-[#01384B] hover:bg-[#48A9A6]/10 disabled:opacity-0 disabled:pointer-events-none"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-
-            {/* Center: Progress info */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-semibold text-[#01384B]">
-                  {visibleSteps[currentIndex]?.title}
-                </p>
-                <span className="text-xs text-slate-400">
-                  {currentIndex + 1}/{totalSteps}
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <motion.div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#48A9A6] to-[#01384B] rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.4, ease: 'easeOut' }}
-                />
-              </div>
-            </div>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-semibold text-[#01384B]">
+              {visibleSteps[currentIndex]?.title}
+            </p>
+            <span className="text-xs text-slate-400">
+              {currentIndex + 1}/{totalSteps}
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <motion.div
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#48A9A6] to-[#01384B] rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+            />
           </div>
         </div>
       </div>
