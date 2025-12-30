@@ -274,13 +274,24 @@ export async function submitConfiguration(
       throw validationError
     }
 
-    // 3. Verify Turnstile (optional - we have rate limiting + idempotency as backup)
-    // TODO: Re-enable after Cloudflare Turnstile domain config is fixed for iframe embedding
+    // 3. Verify Turnstile
+    // In production, Turnstile token is REQUIRED to prevent bot spam
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+      if (!validatedData.turnstileToken) {
+        return {
+          success: false,
+          message: 'Ověření nebylo dokončeno. Obnovte stránku a zkuste to znovu.',
+        }
+      }
+    }
+
     if (validatedData.turnstileToken) {
       const isValidTurnstile = await verifyTurnstile(validatedData.turnstileToken)
       if (!isValidTurnstile) {
-        console.warn('Turnstile verification failed, but continuing (other protections in place)')
-        // Don't block - we have rate limiting and idempotency
+        return {
+          success: false,
+          message: 'Ověření selhalo. Zkuste to prosím znovu.',
+        }
       }
     }
 

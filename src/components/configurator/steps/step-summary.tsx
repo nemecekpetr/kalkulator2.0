@@ -376,9 +376,8 @@ export function StepSummary() {
             </CardContent>
           </Card>
 
-          {/* Turnstile widget - temporarily disabled due to iframe domain issues */}
-          {/* TODO: Re-enable when Cloudflare Turnstile is properly configured for iframe embedding */}
-          {false && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+          {/* Turnstile widget - security verification */}
+          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
             <Card className={`p-4 ${turnstileToken ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex flex-col items-center gap-3">
                 <p className="text-sm font-medium text-[#01384B]">
