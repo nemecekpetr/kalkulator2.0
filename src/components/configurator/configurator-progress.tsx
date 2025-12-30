@@ -31,22 +31,19 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
   const roofing = useConfiguratorStore((state) => state.roofing)
   const contact = useConfiguratorStore((state) => state.contact)
   const canProceed = useConfiguratorStore((state) => state.canProceed)
+  const isStepCompleted = useConfiguratorStore((state) => state.isStepCompleted)
+  const visitedSteps = useConfiguratorStore((state) => state.visitedSteps)
 
-  // Mark these as used to avoid lint warnings
+  // Mark these as used to avoid lint warnings (needed for reactivity)
   void shape; void type; void dimensions; void color; void stairs;
   void technology; void lighting; void counterflow; void waterTreatment;
-  void heating; void roofing; void contact;
+  void heating; void roofing; void contact; void visitedSteps;
 
   // Filter out skipped steps
   const visibleSteps = STEPS.filter(step => !shouldSkipStep(step.number))
   const totalSteps = visibleSteps.length
   const currentIndex = visibleSteps.findIndex(step => step.number === currentStep)
   const progress = totalSteps > 1 ? (currentIndex / (totalSteps - 1)) * 100 : 100
-
-  // Check if a step is completed
-  const isStepCompleted = (stepNumber: number) => {
-    return canProceed(stepNumber)
-  }
 
   // Check if a step is clickable
   const isStepClickable = (stepNumber: number, stepIndex: number) => {

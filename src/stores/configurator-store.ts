@@ -23,6 +23,10 @@ export interface ConfiguratorState {
   // Current step (1-11)
   currentStep: number
 
+  // Track which steps user has visited (for progress bar)
+  // Steps with default values should not show as "completed" until visited
+  visitedSteps: number[]
+
   // Step 1: Shape
   shape: PoolShape | null
 
@@ -89,13 +93,17 @@ export interface ConfiguratorActions {
   // Utils
   reset: () => void
   canProceed: (step: number) => boolean
+  isStepCompleted: (step: number) => boolean
   getCompletedSteps: () => number[]
   getTotalSteps: () => number
   shouldSkipStep: (step: number) => boolean
+  markStepVisited: (step: number) => void
+  hasVisitedStep: (step: number) => boolean
 }
 
 const initialState: ConfiguratorState = {
   currentStep: 1,
+  visitedSteps: [1], // Start with step 1 as visited
   shape: null,
   type: null,
   // Default dimensions for rectangle pool (6x3x1.5m)
@@ -121,10 +129,16 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       ...initialState,
 
       // Navigation
-      setStep: (step) => set({ currentStep: step }),
+      setStep: (step) => {
+        const { visitedSteps } = get()
+        set({
+          currentStep: step,
+          visitedSteps: visitedSteps.includes(step) ? visitedSteps : [...visitedSteps, step]
+        })
+      },
 
       nextStep: () => {
-        const { currentStep, shouldSkipStep } = get()
+        const { currentStep, shouldSkipStep, visitedSteps } = get()
         let nextStep = currentStep + 1
 
         // Skip stairs step (5) for circle pools
@@ -133,7 +147,10 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         }
 
         if (nextStep <= 11) {
-          set({ currentStep: nextStep })
+          set({
+            currentStep: nextStep,
+            visitedSteps: visitedSteps.includes(nextStep) ? visitedSteps : [...visitedSteps, nextStep]
+          })
         }
       },
 
@@ -148,6 +165,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
 
         if (prevStep >= 1) {
           set({ currentStep: prevStep })
+          // No need to add to visitedSteps - it should already be there
         }
       },
 
@@ -233,9 +251,28 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         const state = get()
         const completed: number[] = []
 
+        // A step is "completed" only if ALL previous steps are also completed
+        // This prevents showing steps as completed when they have default values
+        // but user hasn't actually progressed through the wizard
         for (let step = 1; step <= 11; step++) {
-          if (!state.shouldSkipStep(step) && state.canProceed(step)) {
+          if (state.shouldSkipStep(step)) continue
+
+          // Check if this step can proceed
+          if (!state.canProceed(step)) break
+
+          // Check if all previous non-skipped steps are completed
+          let allPreviousCompleted = true
+          for (let prevStep = 1; prevStep < step; prevStep++) {
+            if (!state.shouldSkipStep(prevStep) && !state.canProceed(prevStep)) {
+              allPreviousCompleted = false
+              break
+            }
+          }
+
+          if (allPreviousCompleted) {
             completed.push(step)
+          } else {
+            break
           }
         }
 
@@ -252,6 +289,46 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         const { shape } = get()
         // Skip stairs step (5) for circle pools
         return step === 5 && shape === 'circle'
+      },
+
+      // Check if user has visited a step
+      hasVisitedStep: (step) => {
+        return get().visitedSteps.includes(step)
+      },
+
+      // Mark a step as visited
+      markStepVisited: (step) => {
+        const { visitedSteps } = get()
+        if (!visitedSteps.includes(step)) {
+          set({ visitedSteps: [...visitedSteps, step] })
+        }
+      },
+
+      // A step is "completed" only if:
+      // 1. User has visited it (or all previous steps)
+      // 2. AND it has valid values
+      // 3. AND all previous steps are also completed
+      isStepCompleted: (step) => {
+        const state = get()
+
+        // Can't be completed if it doesn't have valid values
+        if (!state.canProceed(step)) return false
+
+        // Check all previous non-skipped steps are completed
+        for (let prevStep = 1; prevStep < step; prevStep++) {
+          if (state.shouldSkipStep(prevStep)) continue
+          if (!state.canProceed(prevStep)) return false
+          // Previous step must have been visited
+          if (!state.visitedSteps.includes(prevStep)) return false
+        }
+
+        // This step must have been visited (unless it's step 11 summary which just needs all previous)
+        if (step === 11) {
+          // Summary is "completed" if all previous are completed
+          return true
+        }
+
+        return state.visitedSteps.includes(step)
       }
     }),
     {
@@ -274,6 +351,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           heating: state.heating,
           roofing: state.roofing,
           currentStep: state.currentStep,
+          visitedSteps: state.visitedSteps,
           // contact: excluded - sensitive data should not persist
         }) as ConfiguratorState,
       // Skip SSR storage to avoid hydration mismatch
