@@ -376,14 +376,21 @@ export function StepSummary() {
             </CardContent>
           </Card>
 
-          {/* Turnstile widget */}
+          {/* Turnstile widget - security verification */}
           {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-            <div className="flex justify-center">
-              <Turnstile
-                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                onVerify={handleTurnstileVerify}
-              />
-            </div>
+            <Card className={`p-4 ${turnstileToken ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm font-medium text-[#01384B]">
+                  {turnstileToken ? '✓ Ověření dokončeno' : 'Pro odeslání dokončete ověření:'}
+                </p>
+                {!turnstileToken && (
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    onVerify={handleTurnstileVerify}
+                  />
+                )}
+              </div>
+            </Card>
           )}
 
           {/* Price note */}

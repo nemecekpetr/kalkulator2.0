@@ -61,25 +61,25 @@ export const POOL_TYPES = [
   }
 ] as const
 
-// Pool colors
+// Pool colors (surface colors)
 export const POOL_COLORS = [
   {
     id: 'blue',
-    label: 'Modrá',
+    label: 'Modrý povrch',
     description: 'Klasická modrá barva bazénu',
     hex: '#0077b6',
     waterColor: '#48cae4'
   },
   {
     id: 'white',
-    label: 'Bílá',
+    label: 'Bílý povrch',
     description: 'Čistý, elegantní vzhled',
     hex: '#f8f9fa',
     waterColor: '#90e0ef'
   },
   {
     id: 'gray',
-    label: 'Šedivá',
+    label: 'Šedý povrch',
     description: 'Moderní, sofistikovaný design',
     hex: '#6c757d',
     waterColor: '#0096c7'

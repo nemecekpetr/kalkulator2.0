@@ -152,7 +152,7 @@ export function StepColor() {
   return (
     <StepLayout
       title="V jaké barvě má být Váš bazén?"
-      description="Barva fólie ovlivňuje vjem barvy vody"
+      description="Barva povrchu ovlivňuje vjem barvy vody"
     >
       <div className="space-y-6">
         {/* 3D Pool preview with selected color */}
@@ -169,9 +169,11 @@ export function StepColor() {
                 shape={shape || 'rectangle_sharp'}
               />
             </motion.div>
-            {/* Color name label */}
+            {/* Color name label - dynamic water color description */}
             <p className="text-center text-sm font-medium text-[#01384B] mt-2">
-              {selectedColor?.label ?? 'Vyberte barvu'}
+              {selectedColor
+                ? `Orientační barva vody při použití: ${selectedColor.label}`
+                : 'Vyberte barvu povrchu'}
             </p>
           </div>
         </div>
@@ -217,7 +219,7 @@ export function StepColor() {
             <div>
               <h4 className="font-semibold text-[#01384B] text-sm mb-1">Tip k výběru barvy</h4>
               <p className="text-sm text-slate-600">
-                Modrá fólie vytvoří klasickou modrou vodu, šedá fólie azurově modrou a bílá fólie světle tyrkysovou.
+                Modrý povrch vytvoří klasickou modrou vodu, šedý povrch azurově modrou a bílý povrch světle tyrkysovou.
               </p>
             </div>
           </div>
