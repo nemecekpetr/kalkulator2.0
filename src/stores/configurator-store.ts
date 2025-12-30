@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useShallow } from 'zustand/react/shallow'
 import { createSafeStorage } from '@/lib/storage'
 import { isValidEmail, isValidPhone, isValidName } from '@/lib/validations/contact'
 import {
@@ -289,16 +290,20 @@ export const useDimensions = () => useConfiguratorStore((state) => state.dimensi
 export const usePoolColor = () => useConfiguratorStore((state) => state.color)
 export const useStairs = () => useConfiguratorStore((state) => state.stairs)
 export const useTechnology = () => useConfiguratorStore((state) => state.technology)
-export const useAccessories = () => useConfiguratorStore((state) => ({
-  lighting: state.lighting,
-  counterflow: state.counterflow,
-  waterTreatment: state.waterTreatment
-}))
+export const useAccessories = () => useConfiguratorStore(
+  useShallow((state) => ({
+    lighting: state.lighting,
+    counterflow: state.counterflow,
+    waterTreatment: state.waterTreatment
+  }))
+)
 export const useHeating = () => useConfiguratorStore((state) => state.heating)
 export const useRoofing = () => useConfiguratorStore((state) => state.roofing)
 export const useContact = () => useConfiguratorStore((state) => state.contact)
-export const useSubmissionState = () => useConfiguratorStore((state) => ({
-  isSubmitting: state.isSubmitting,
-  isSubmitted: state.isSubmitted,
-  submitError: state.submitError
-}))
+export const useSubmissionState = () => useConfiguratorStore(
+  useShallow((state) => ({
+    isSubmitting: state.isSubmitting,
+    isSubmitted: state.isSubmitted,
+    submitError: state.submitError
+  }))
+)

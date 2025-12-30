@@ -18,8 +18,10 @@ export function isValidEmail(email: string): boolean {
   if (!email || typeof email !== 'string') return false
   if (email.length > 254) return false
 
-  // Standard email regex - same pattern used everywhere
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  // Standard email regex - requires at least 2 characters for TLD
+  // Rejects: test@test.c (1-char TLD)
+  // Accepts: test@test.cz, test@test.com
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
   return emailRegex.test(email.trim())
 }
 

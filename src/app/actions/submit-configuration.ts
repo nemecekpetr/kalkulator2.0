@@ -39,6 +39,12 @@ interface SubmitResult {
   configurationId?: string
 }
 
+// Length of idempotency key hash (SHA-256 truncated)
+const IDEMPOTENCY_KEY_LENGTH = 32
+
+// Idempotency window in minutes (prevent duplicate submits within this time)
+const IDEMPOTENCY_WINDOW_MINUTES = 5
+
 // Generate idempotency key from form data
 function generateIdempotencyKey(data: {
   email: string
@@ -52,11 +58,8 @@ function generateIdempotencyKey(data: {
     type: data.type,
     dimensions: data.dimensions,
   })
-  return crypto.createHash('sha256').update(payload).digest('hex').slice(0, 32)
+  return crypto.createHash('sha256').update(payload).digest('hex').slice(0, IDEMPOTENCY_KEY_LENGTH)
 }
-
-// Idempotency window in minutes (prevent duplicate submits within this time)
-const IDEMPOTENCY_WINDOW_MINUTES = 5
 
 // Generate deal note with configuration summary
 function generateDealNote(config: Configuration): string {
@@ -239,8 +242,11 @@ export async function submitConfiguration(
 ): Promise<SubmitResult> {
   try {
     // 1. Rate limit check
+    // Railway/Vercel sets x-forwarded-for header from the real client IP
+    // Trust order: x-forwarded-for (first IP) > x-real-ip > 'unknown'
+    // NOTE: If behind multiple proxies, first IP might be spoofed - rely on platform's proxy chain
     const headersList = await headers()
-    const ip = headersList.get('x-forwarded-for')?.split(',')[0] ||
+    const ip = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                headersList.get('x-real-ip') ||
                'unknown'
 
@@ -268,7 +274,17 @@ export async function submitConfiguration(
       throw validationError
     }
 
-    // 3. Verify Turnstile (if token provided)
+    // 3. Verify Turnstile
+    // In production, Turnstile token is REQUIRED to prevent bot spam
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+      if (!validatedData.turnstileToken) {
+        return {
+          success: false,
+          message: 'Ověření nebylo dokončeno. Obnovte stránku a zkuste to znovu.',
+        }
+      }
+    }
+
     if (validatedData.turnstileToken) {
       const isValidTurnstile = await verifyTurnstile(validatedData.turnstileToken)
       if (!isValidTurnstile) {
@@ -358,6 +374,17 @@ export async function submitConfiguration(
       .single()
 
     if (insertError || !configuration) {
+      // Handle unique constraint violation (race condition fallback)
+      // PostgreSQL error code 23505 = unique_violation
+      if (insertError?.code === '23505') {
+        console.warn(`Race condition duplicate caught by DB constraint: ${idempotencyKey}`)
+        return {
+          success: true,
+          message: 'Konfigurace byla úspěšně odeslána!',
+          // Don't expose internal key to user
+        }
+      }
+
       console.error('Database insert failed:', insertError)
       return {
         success: false,

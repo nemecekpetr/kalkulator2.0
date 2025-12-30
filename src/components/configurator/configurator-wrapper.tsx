@@ -115,7 +115,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     let timeoutId: ReturnType<typeof setTimeout> | null = null
     const debouncedSendHeight = () => {
       if (timeoutId) clearTimeout(timeoutId)
-      timeoutId = setTimeout(sendHeight, 100)
+      // 150ms debounce to prevent flickering on slower devices
+      timeoutId = setTimeout(sendHeight, 150)
     }
 
     const observer = new ResizeObserver(debouncedSendHeight)

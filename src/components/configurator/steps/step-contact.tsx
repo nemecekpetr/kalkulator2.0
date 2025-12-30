@@ -60,7 +60,9 @@ export function StepContact() {
               className={`h-12 ${emailError ? 'border-destructive' : ''}`}
             />
             {emailError && (
-              <p className="text-sm text-destructive">Zadejte platný e-mail</p>
+              <p className="text-sm text-destructive" role="alert" aria-live="polite">
+                Zadejte platný e-mail
+              </p>
             )}
           </div>
 
@@ -79,7 +81,9 @@ export function StepContact() {
               className={`h-12 ${phoneError ? 'border-destructive' : ''}`}
             />
             {phoneError && (
-              <p className="text-sm text-destructive">Zadejte platné telefonní číslo</p>
+              <p className="text-sm text-destructive" role="alert" aria-live="polite">
+                Zadejte platné telefonní číslo
+              </p>
             )}
           </div>
 
