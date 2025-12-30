@@ -25,8 +25,8 @@ function PoolTypeSVG({ typeId }: { typeId: string }) {
         {/* Arrow showing water flow to skimmer */}
         <path d="M140,38 L158,38" stroke={strokeColor} strokeWidth="1.5" fill="none" markerEnd="url(#arrowhead)" />
         {/* Gap indicator */}
-        <line x1="185" y1="20" x2="185" y2="35" stroke={strokeColor} strokeWidth="2" />
-        <text x="188" y="18" fontSize="14" fontWeight="600" fill={strokeColor}>15cm</text>
+        <line x1="182" y1="20" x2="182" y2="35" stroke={strokeColor} strokeWidth="2" />
+        <text x="165" y="16" fontSize="11" fontWeight="600" fill={strokeColor}>15 cm</text>
         {/* Arrow marker */}
         <defs>
           <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
