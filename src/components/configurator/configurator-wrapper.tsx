@@ -189,7 +189,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Step content */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8">
+              <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 configurator-content">
                 <ConfiguratorErrorBoundary>
                   <AnimatePresence mode="wait">
                     {renderStep()}
@@ -263,11 +263,11 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       <ConfiguratorNavigation />
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8 relative z-10">
+      <main className="container mx-auto px-4 py-4 relative z-10">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Step content */}
           <div className="lg:col-span-2">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-[#01384B]/5 border border-white/50 p-6 md:p-8">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-[#01384B]/5 border border-white/50 p-4 md:p-6 configurator-content">
               <ConfiguratorErrorBoundary>
                 <AnimatePresence mode="wait">
                   {renderStep()}

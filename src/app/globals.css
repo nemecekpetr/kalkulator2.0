@@ -220,3 +220,25 @@
 .animate-ripple {
   animation: ripple 2s ease-out infinite;
 }
+
+/* Configurator - larger text for better readability */
+.configurator-content {
+  font-size: 1.0625rem; /* 17px base instead of 16px */
+  line-height: 1.6;
+}
+
+.configurator-content h2 {
+  font-size: 2rem; /* 32px */
+}
+
+.configurator-content h3 {
+  font-size: 1.25rem; /* 20px */
+}
+
+.configurator-content .text-sm {
+  font-size: 0.9375rem; /* 15px instead of 14px */
+}
+
+.configurator-content .text-xs {
+  font-size: 0.8125rem; /* 13px instead of 12px */
+}

@@ -101,16 +101,20 @@ export function StepContact() {
         </Card>
 
         {/* Privacy note */}
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-[#48A9A6]/5 border border-[#48A9A6]/20">
-          <Shield className="w-5 h-5 text-[#48A9A6] flex-shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-[#01384B]">Vaše údaje jsou v bezpečí</p>
-            <p className="text-muted-foreground mt-1">
-              Údaje použijeme pouze pro zaslání kalkulace a kontaktování naším specialistou.
-              Nikdy je neposkytneme třetím stranám.
-            </p>
+        <Card className="p-4 bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200/50">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
+              <Shield className="w-4 h-4 text-teal-600" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-[#01384B] text-sm mb-1">Vaše údaje jsou v bezpečí</h4>
+              <p className="text-sm text-slate-600">
+                Údaje použijeme pouze pro zaslání kalkulace a kontaktování naším specialistou.
+                Nikdy je neposkytneme třetím stranám.
+              </p>
+            </div>
           </div>
-        </div>
+        </Card>
 
       </div>
     </StepLayout>

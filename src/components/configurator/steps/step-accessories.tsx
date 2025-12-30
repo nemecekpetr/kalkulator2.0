@@ -1,6 +1,6 @@
 'use client'
 
-import { Lightbulb, Waves, Droplets } from 'lucide-react'
+import { Lightbulb as LightbulbIcon, Waves, Droplets, Lightbulb } from 'lucide-react'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import {
   LIGHTING_OPTIONS,
@@ -9,6 +9,7 @@ import {
 } from '@/lib/constants/configurator'
 import { StepLayout, OptionCard, OptionTag } from '../step-layout'
 import { Separator } from '@/components/ui/separator'
+import { Card } from '@/components/ui/card'
 
 export function StepAccessories() {
   const lighting = useConfiguratorStore((state) => state.lighting)
@@ -23,11 +24,11 @@ export function StepAccessories() {
       title="Jaké příslušenství si přejete?"
       description="Vyberte doplňky, které zvýší komfort Vašeho bazénu"
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Lighting */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Lightbulb className="w-5 h-5 text-[#FF8621]" />
+            <LightbulbIcon className="w-5 h-5 text-[#FF8621]" />
             <h3 className="font-semibold text-foreground">Osvětlení</h3>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -130,13 +131,20 @@ export function StepAccessories() {
           </div>
         </div>
 
-        {/* Info note */}
-        <div className="p-4 rounded-lg bg-[#48A9A6]/5 border border-[#48A9A6]/20 text-sm">
-          <strong className="text-[#01384B]">Slaná voda:</strong>{' '}
-          <span className="text-muted-foreground">
-            Elektrolýza soli je šetrnější k pokožce a očím. Voda je měkčí a přirozeně čistící.
-          </span>
-        </div>
+        {/* Info tip */}
+        <Card className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <Lightbulb className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-[#01384B] text-sm mb-1">Tip pro úpravu vody</h4>
+              <p className="text-sm text-slate-600">
+                Elektrolýza soli je šetrnější k pokožce a očím. Voda je měkčí a přirozeně čistící.
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
     </StepLayout>
   )

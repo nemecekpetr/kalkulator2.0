@@ -87,10 +87,10 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
           {/* Step title */}
           <div className="mb-3">
             <div className="flex items-center gap-3">
-              <p className="text-sm font-semibold text-[#01384B]">
+              <p className="text-base font-semibold text-[#01384B]">
                 {visibleSteps[currentIndex]?.title}
               </p>
-              <span className="text-xs text-slate-400">
+              <span className="text-sm text-slate-400">
                 Krok {currentIndex + 1} z {totalSteps}
               </span>
             </div>
@@ -147,7 +147,7 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
                   </motion.div>
                   <span
                     className={cn(
-                      'text-[10px] font-medium transition-colors text-center leading-tight',
+                      'text-xs font-medium transition-colors text-center leading-tight',
                       isCurrent && 'text-[#01384B] font-semibold',
                       isPast && isCompleted && 'text-[#48A9A6]',
                       !isCurrent && !isPast && isCompleted && 'text-[#48A9A6]',
@@ -165,10 +165,10 @@ export function ConfiguratorProgress({ embedded = false }: ConfiguratorProgressP
         {/* Mobile layout - Progress only */}
         <div className="md:hidden">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-semibold text-[#01384B]">
+            <p className="text-base font-semibold text-[#01384B]">
               {visibleSteps[currentIndex]?.title}
             </p>
-            <span className="text-xs text-slate-400">
+            <span className="text-sm text-slate-400">
               {currentIndex + 1}/{totalSteps}
             </span>
           </div>

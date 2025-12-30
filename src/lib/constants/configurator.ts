@@ -19,7 +19,7 @@ export const POOL_SHAPES = [
     id: 'circle',
     label: 'Kruhový',
     description: 'Kruhový design pro menší zahrady',
-    benefits: ['Ideální pro relaxaci', 'Snadná údržba', 'Úsporné řešení'],
+    benefits: ['Ideální pro relaxaci', 'Úsporné řešení'],
     tag: 'Nejlevnější',
     icon: 'circle'
   },
@@ -27,7 +27,7 @@ export const POOL_SHAPES = [
     id: 'rectangle_rounded',
     label: 'Obdélník se zaoblenými rohy',
     description: 'Měkčí zakončení, elegantní vzhled',
-    benefits: ['Nejoblíbenější volba', 'Elegantní design'],
+    benefits: ['Přirozený vzhled', 'Elegantní design'],
     tag: 'Tradiční',
     icon: 'rounded-rectangle'
   },
@@ -35,7 +35,7 @@ export const POOL_SHAPES = [
     id: 'rectangle_sharp',
     label: 'Obdélník s ostrými rohy',
     description: 'Klasické pravoúhlé hranice',
-    benefits: ['Nejprodávanější', 'Maximální využití plochy', 'Moderní vzhled'],
+    benefits: ['Nejprodávanější', 'Moderní vzhled'],
     tag: 'Moderní',
     icon: 'rectangle'
   }

@@ -17,7 +17,7 @@ export function StepLayout({ title, description, children, className }: StepLayo
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className={cn('space-y-6', className)}
+      className={cn('space-y-4', className)}
       role="region"
       aria-label={title}
     >
@@ -27,7 +27,7 @@ export function StepLayout({ title, description, children, className }: StepLayo
       </div>
 
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         <motion.div
           className="flex items-center gap-3"
           initial={{ opacity: 0, y: -10 }}
@@ -71,9 +71,11 @@ interface OptionCardProps {
   className?: string
   disabled?: boolean
   label?: string
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
-export function OptionCard({ selected, onClick, children, className, disabled, label }: OptionCardProps) {
+export function OptionCard({ selected, onClick, children, className, disabled, label, onMouseEnter, onMouseLeave }: OptionCardProps) {
   return (
     <motion.button
       type="button"
@@ -81,6 +83,8 @@ export function OptionCard({ selected, onClick, children, className, disabled, l
       disabled={disabled}
       aria-pressed={selected}
       aria-label={label}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       whileHover={{ scale: disabled ? 1 : 1.02, y: disabled ? 0 : -2 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       className={cn(

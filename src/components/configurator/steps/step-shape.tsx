@@ -1,79 +1,197 @@
 'use client'
 
-import Image from 'next/image'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Lightbulb } from 'lucide-react'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { POOL_SHAPES } from '@/lib/constants/configurator'
 import { StepLayout, OptionCard, OptionTag } from '../step-layout'
 import { Card } from '@/components/ui/card'
 
-// Map shape types to image paths
-const SHAPE_IMAGES: Record<string, string> = {
-  'circle': '/images/pools/circle.svg',
-  'rectangle_rounded': '/images/pools/rectangle-rounded.png',
-  'rectangle_sharp': '/images/pools/rectangle-sharp.svg'
+// SVG Pool Shape Component with water animation
+function PoolShapeSVG({ shapeId, isHovered }: { shapeId: string; isHovered: boolean }) {
+  const waterColor = '#7BC4C1'
+  const strokeColor = '#01384B'
+
+  // Wave animation - only when hovered
+  const waveVariants = {
+    idle: { d: 'M0,8 Q25,8 50,8 T100,8 L100,20 L0,20 Z' },
+    animated: {
+      d: [
+        'M0,8 Q25,4 50,8 T100,8 L100,20 L0,20 Z',
+        'M0,8 Q25,12 50,8 T100,8 L100,20 L0,20 Z',
+        'M0,8 Q25,4 50,8 T100,8 L100,20 L0,20 Z',
+      ],
+      transition: {
+        duration: 1.5,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      },
+    },
+  }
+
+  if (shapeId === 'circle') {
+    // Circle uses same viewBox width as rectangles for consistent sizing
+    // Circle is centered within the wider viewBox
+    return (
+      <svg viewBox="0 0 160 80" className="w-full h-20" aria-hidden="true">
+        <defs>
+          <clipPath id="circleClip">
+            <circle cx="80" cy="40" r="35" />
+          </clipPath>
+        </defs>
+        {/* Pool base - centered circle */}
+        <circle cx="80" cy="40" r="35" fill={waterColor} stroke={strokeColor} strokeWidth="3" />
+        {/* Water wave effect */}
+        <g clipPath="url(#circleClip)">
+          <motion.path
+            fill="rgba(255,255,255,0.3)"
+            initial="idle"
+            animate={isHovered ? 'animated' : 'idle'}
+            variants={{
+              idle: { d: 'M45,40 Q62,40 80,40 T115,40 L115,75 L45,75 Z' },
+              animated: {
+                d: [
+                  'M45,40 Q62,35 80,40 T115,40 L115,75 L45,75 Z',
+                  'M45,40 Q62,45 80,40 T115,40 L115,75 L45,75 Z',
+                  'M45,40 Q62,35 80,40 T115,75 L115,75 L45,75 Z',
+                ],
+                transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
+              },
+            }}
+          />
+        </g>
+      </svg>
+    )
+  }
+
+  // Shared dimensions for all rectangle shapes (2:1 aspect ratio)
+  const rectX = 5
+  const rectY = 5
+  const rectWidth = 150
+  const rectHeight = 70
+
+  if (shapeId === 'rectangle_sharp') {
+    return (
+      <svg viewBox="0 0 160 80" className="w-full h-20" aria-hidden="true">
+        <defs>
+          <clipPath id="rectSharpClip">
+            <rect x={rectX} y={rectY} width={rectWidth} height={rectHeight} rx="2" />
+          </clipPath>
+        </defs>
+        {/* Pool base */}
+        <rect x={rectX} y={rectY} width={rectWidth} height={rectHeight} rx="2" fill={waterColor} stroke={strokeColor} strokeWidth="3" />
+        {/* Water wave effect */}
+        <g clipPath="url(#rectSharpClip)">
+          <motion.path
+            fill="rgba(255,255,255,0.3)"
+            initial="idle"
+            animate={isHovered ? 'animated' : 'idle'}
+            variants={{
+              idle: { d: 'M5,40 Q40,40 80,40 T155,40 L155,75 L5,75 Z' },
+              animated: {
+                d: [
+                  'M5,40 Q40,35 80,40 T155,40 L155,75 L5,75 Z',
+                  'M5,40 Q40,45 80,40 T155,40 L155,75 L5,75 Z',
+                  'M5,40 Q40,35 80,40 T155,40 L155,75 L5,75 Z',
+                ],
+                transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
+              },
+            }}
+          />
+        </g>
+      </svg>
+    )
+  }
+
+  // rectangle_rounded
+  return (
+    <svg viewBox="0 0 160 80" className="w-full h-20" aria-hidden="true">
+      <defs>
+        <clipPath id="rectRoundedClip">
+          <rect x={rectX} y={rectY} width={rectWidth} height={rectHeight} rx="20" />
+        </clipPath>
+      </defs>
+      {/* Pool base */}
+      <rect x={rectX} y={rectY} width={rectWidth} height={rectHeight} rx="20" fill={waterColor} stroke={strokeColor} strokeWidth="3" />
+      {/* Water wave effect */}
+      <g clipPath="url(#rectRoundedClip)">
+        <motion.path
+          fill="rgba(255,255,255,0.3)"
+          initial="idle"
+          animate={isHovered ? 'animated' : 'idle'}
+          variants={{
+            idle: { d: 'M5,40 Q40,40 80,40 T155,40 L155,75 L5,75 Z' },
+            animated: {
+              d: [
+                'M5,40 Q40,35 80,40 T155,40 L155,75 L5,75 Z',
+                'M5,40 Q40,45 80,40 T155,40 L155,75 L5,75 Z',
+                'M5,40 Q40,35 80,40 T155,40 L155,75 L5,75 Z',
+              ],
+              transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
+            },
+          }}
+        />
+      </g>
+    </svg>
+  )
 }
 
 export function StepShape() {
   const shape = useConfiguratorStore((state) => state.shape)
   const setShape = useConfiguratorStore((state) => state.setShape)
+  const [hoveredShape, setHoveredShape] = useState<string | null>(null)
 
   return (
     <StepLayout
       title="Jaký tvar bazénu preferujete?"
       description="Vyberte základní tvar Vašeho nového bazénu"
     >
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 items-stretch">
         {POOL_SHAPES.map((poolShape) => (
           <OptionCard
             key={poolShape.id}
             selected={shape === poolShape.id}
             onClick={() => setShape(poolShape.id as 'circle' | 'rectangle_rounded' | 'rectangle_sharp')}
             label={poolShape.label}
+            onMouseEnter={() => setHoveredShape(poolShape.id)}
+            onMouseLeave={() => setHoveredShape(null)}
+            className="flex flex-col"
           >
-            <div className="flex flex-col items-center text-center pt-2">
-              <div className="mb-4 aspect-[2/1] w-full rounded-xl bg-gradient-to-b from-[#48A9A6]/10 to-[#01384B]/10 overflow-hidden relative flex items-center justify-center p-4">
-                {poolShape.id === 'circle' ? (
-                  <svg viewBox="0 0 100 100" className="w-20 h-20" aria-hidden="true">
-                    <circle cx="50" cy="50" r="45" fill="#7BC4C1" stroke="#01384B" strokeWidth="3" />
-                  </svg>
-                ) : poolShape.id === 'rectangle_sharp' ? (
-                  <svg viewBox="0 0 200 100" className="w-full h-16" aria-hidden="true">
-                    <rect x="5" y="5" width="190" height="90" rx="4" fill="#7BC4C1" stroke="#01384B" strokeWidth="3" />
-                  </svg>
-                ) : (
-                  <Image
-                    src={SHAPE_IMAGES[poolShape.id]}
-                    alt={poolShape.label}
-                    fill
-                    className="object-contain p-2"
-                    sizes="(max-width: 640px) 100vw, 33vw"
-                  />
-                )}
+            <div className="flex flex-col items-center text-center pt-2 h-full">
+              {/* Unified SVG visualization - fixed height container */}
+              <div className="mb-4 h-24 w-full rounded-xl bg-gradient-to-b from-[#48A9A6]/10 to-[#01384B]/10 overflow-hidden flex items-center justify-center p-4">
+                <PoolShapeSVG
+                  shapeId={poolShape.id}
+                  isHovered={hoveredShape === poolShape.id || shape === poolShape.id}
+                />
               </div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap justify-center">
-                <h3 className="font-semibold text-foreground">
-                  {poolShape.label}
-                </h3>
+
+              {/* Title - fixed height for alignment */}
+              <h3 className="font-semibold text-foreground text-center min-h-[48px] flex items-center justify-center">
+                {poolShape.label}
+              </h3>
+
+              {/* Benefits - larger, dark text */}
+              <p className="text-sm text-foreground mb-3 text-center flex-grow flex items-center justify-center">
+                {poolShape.benefits.join(' • ')}
+              </p>
+
+              {/* Tag - at bottom, aligned */}
+              <div className="h-7 flex items-center justify-center mt-auto">
                 {poolShape.tag && (
-                  <OptionTag variant={poolShape.tag === 'Nejlevnější' ? 'recommended' : 'default'}>
+                  <OptionTag
+                    variant={
+                      poolShape.id === 'circle'
+                        ? 'recommended'
+                        : poolShape.id === 'rectangle_sharp'
+                          ? 'premium'
+                          : 'default'
+                    }
+                  >
                     {poolShape.tag}
                   </OptionTag>
                 )}
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                {poolShape.description}
-              </p>
-              {/* Benefits */}
-              <div className="flex flex-wrap gap-1 justify-center">
-                {poolShape.benefits.map((benefit, index) => (
-                  <span
-                    key={index}
-                    className="text-xs text-[#48A9A6] bg-[#48A9A6]/10 px-2 py-0.5 rounded-full"
-                  >
-                    {benefit}
-                  </span>
-                ))}
               </div>
             </div>
           </OptionCard>

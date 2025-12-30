@@ -97,8 +97,10 @@ const initialState: ConfiguratorState = {
   currentStep: 1,
   shape: null,
   type: null,
-  dimensions: null,
-  color: null,
+  // Default dimensions for rectangle pool (6x3x1.5m)
+  dimensions: { length: 6, width: 3, depth: 1.5 },
+  // Default color is white
+  color: 'white',
   stairs: null,
   technology: null,
   lighting: null,

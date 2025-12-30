@@ -4,9 +4,9 @@ import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Circle, Droplets, Ruler, Palette, Footprints,
-  Settings, Lightbulb, Waves, Thermometer, Home,
+  Settings, Lightbulb as LightbulbIcon, Waves, Thermometer, Home,
   User, Mail, Phone, MapPin, Check, Clock,
-  Plus, Edit2
+  Plus, Edit2, Lightbulb, HelpCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
@@ -304,7 +304,7 @@ export function StepSummary() {
               {/* Accessories */}
               {lighting && lighting !== 'none' && (
                 <SummaryRow
-                  icon={<Lightbulb className="w-4 h-4" />}
+                  icon={<LightbulbIcon className="w-4 h-4" />}
                   label="Osvětlení"
                   value={getLightingLabel(lighting)}
                 />
@@ -387,16 +387,21 @@ export function StepSummary() {
           )}
 
           {/* Price note */}
-          <div className="p-4 rounded-lg bg-gradient-to-r from-[#FF8621]/10 to-[#ED6663]/10 border border-[#FF8621]/20">
-            <h4 className="font-semibold text-[#01384B] mb-1">
-              Proč se nezobrazuje cena?
-            </h4>
-            <p className="text-sm text-muted-foreground">
-              Cena závisí na dopravě, podloží a aktuální ceně materiálu.
-              Přesnou nabídku Vám spočítáme ručně, abychom garantovali její platnost.
-              Kalkulaci obdržíte do 24 hodin.
-            </p>
-          </div>
+          <Card className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <HelpCircle className="w-4 h-4 text-amber-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-[#01384B] text-sm mb-1">Proč se nezobrazuje cena?</h4>
+                <p className="text-sm text-slate-600">
+                  Cena závisí na dopravě, podloží a aktuální ceně materiálu.
+                  Přesnou nabídku Vám spočítáme ručně, abychom garantovali její platnost.
+                  Kalkulaci obdržíte do 24 hodin.
+                </p>
+              </div>
+            </div>
+          </Card>
 
           {/* What happens next - info section */}
           <Card className="border border-[#48A9A6]/30 bg-gradient-to-br from-[#48A9A6]/5 to-[#01384B]/5">

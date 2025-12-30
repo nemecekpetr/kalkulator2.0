@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { STAIRS_TYPES } from '@/lib/constants/configurator'
 import { StepLayout, OptionCard, OptionTag } from '../step-layout'
+import { Card } from '@/components/ui/card'
+import { Lightbulb } from 'lucide-react'
 
 // Map stair types to image paths
 const STAIRS_IMAGES: Record<string, string> = {
@@ -71,11 +73,20 @@ export function StepStairs() {
         ))}
       </div>
 
-      {/* Info note */}
-      <div className="mt-6 p-4 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-        <strong className="text-foreground">Tip:</strong> Schodiště zabírá část prostoru bazénu.
-        Románské schodiště je nejoblíbenější volbou pro rodinné bazény.
-      </div>
+      {/* Info tip */}
+      <Card className="mt-4 p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <Lightbulb className="w-4 h-4 text-amber-600" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-[#01384B] text-sm mb-1">Tip pro výběr schodiště</h4>
+            <p className="text-sm text-slate-600">
+              Schodiště zabírá část prostoru bazénu. Románské schodiště je nejoblíbenější volbou pro rodinné bazény.
+            </p>
+          </div>
+        </div>
+      </Card>
     </StepLayout>
   )
 }
