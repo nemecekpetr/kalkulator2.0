@@ -5,7 +5,7 @@ import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
 import path from 'path'
-import type { Browser } from 'puppeteer'
+import type { Browser, Page } from 'puppeteer'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -30,52 +30,50 @@ async function getLogoDataUri(): Promise<string> {
   }
 }
 
-// Helper function to generate PDF from a URL using a fresh page
-async function generatePdfFromUrl(
-  browser: Browser,
+// Navigate to URL and generate PDF with retry logic
+async function generatePdf(
+  page: Page,
   url: string,
   options: {
     headerTemplate?: string
     footerTemplate?: string
     displayHeaderFooter?: boolean
     margin?: { top: string; right: string; bottom: string; left: string }
-  } = {}
+  } = {},
+  retries = 2
 ): Promise<Uint8Array> {
-  const page = await browser.newPage()
-
-  try {
-    // Set viewport for A4
-    await page.setViewport({
-      width: 794,
-      height: 1123,
-      deviceScaleFactor: 1,
-    })
-
-    await page.goto(url, {
-      waitUntil: 'domcontentloaded',
-      timeout: 60000,
-    })
-
-    // Wait for page to stabilize
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: options.displayHeaderFooter ?? false,
-      headerTemplate: options.headerTemplate ?? '',
-      footerTemplate: options.footerTemplate ?? '',
-      margin: options.margin ?? { top: '0', right: '0', bottom: '0', left: '0' },
-    })
-
-    return pdfBuffer
-  } finally {
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      await page.close()
-    } catch {
-      // Ignore errors if browser already closed
+      // Navigate with shorter timeout
+      await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
+      })
+
+      // Wait for content to render
+      await new Promise((resolve) => setTimeout(resolve, 300))
+
+      // Generate PDF
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        displayHeaderFooter: options.displayHeaderFooter ?? false,
+        headerTemplate: options.headerTemplate ?? '',
+        footerTemplate: options.footerTemplate ?? '',
+        margin: options.margin ?? { top: '0', right: '0', bottom: '0', left: '0' },
+      })
+
+      return pdfBuffer
+    } catch (error) {
+      console.error(`PDF generation attempt ${attempt} failed:`, error)
+      if (attempt === retries) {
+        throw error
+      }
+      // Wait before retry
+      await new Promise((resolve) => setTimeout(resolve, 500))
     }
   }
+  throw new Error('PDF generation failed after retries')
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
@@ -83,6 +81,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   if (isAuthError(auth)) return auth.error
 
   let browser: Browser | null = null
+  let page: Page | null = null
 
   try {
     const { id } = await params
@@ -117,6 +116,16 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Get a new browser instance for this request
     browser = await getBrowser()
 
+    // Create a single page and reuse it
+    page = await browser.newPage()
+
+    // Set viewport for A4
+    await page.setViewport({
+      width: 794,
+      height: 1123,
+      deviceScaleFactor: 1,
+    })
+
     // Get logo as base64 data URI
     const logoDataUri = await getLogoDataUri()
 
@@ -136,17 +145,21 @@ export async function GET(request: Request, { params }: RouteParams) {
     `
 
     const contentMargin = { top: '100px', right: '0', bottom: '50px', left: '0' }
+    const contentOptions = {
+      displayHeaderFooter: true,
+      headerTemplate,
+      footerTemplate,
+      margin: contentMargin,
+    }
+
+    // Create merged PDF
+    const mergedPdf = await PDFDocument.create()
 
     // Step 1: Generate title page PDF (no header/footer)
     const titlePageUrl = `${baseUrl}/quotes/${id}/print?page=title`
     console.log('Generating title page from:', titlePageUrl)
 
-    const titlePdfBuffer = await generatePdfFromUrl(browser, titlePageUrl)
-
-    // Create merged PDF
-    const mergedPdf = await PDFDocument.create()
-
-    // Copy title page
+    const titlePdfBuffer = await generatePdf(page, titlePageUrl)
     const titlePdf = await PDFDocument.load(titlePdfBuffer)
     const [titlePage] = await mergedPdf.copyPages(titlePdf, [0])
     mergedPdf.addPage(titlePage)
@@ -165,14 +178,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         const variantPageUrl = `${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`
         console.log('Generating variant page:', variant.variant_name)
 
-        const variantPdfBuffer = await generatePdfFromUrl(browser, variantPageUrl, {
-          displayHeaderFooter: true,
-          headerTemplate,
-          footerTemplate,
-          margin: contentMargin,
-        })
-
-        // Copy variant pages
+        const variantPdfBuffer = await generatePdf(page, variantPageUrl, contentOptions)
         const variantPdf = await PDFDocument.load(variantPdfBuffer)
         const variantPageCount = variantPdf.getPageCount()
         for (let i = 0; i < variantPageCount; i++) {
@@ -185,14 +191,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       const comparisonPageUrl = `${baseUrl}/quotes/${id}/print?page=comparison`
       console.log('Generating comparison page')
 
-      const comparisonPdfBuffer = await generatePdfFromUrl(browser, comparisonPageUrl, {
-        displayHeaderFooter: true,
-        headerTemplate,
-        footerTemplate,
-        margin: contentMargin,
-      })
-
-      // Copy comparison pages
+      const comparisonPdfBuffer = await generatePdf(page, comparisonPageUrl, contentOptions)
       const comparisonPdf = await PDFDocument.load(comparisonPdfBuffer)
       const comparisonPageCount = comparisonPdf.getPageCount()
       for (let i = 0; i < comparisonPageCount; i++) {
@@ -204,14 +203,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       const contentPageUrl = `${baseUrl}/quotes/${id}/print?page=content`
       console.log('Generating content pages from:', contentPageUrl)
 
-      const contentPdfBuffer = await generatePdfFromUrl(browser, contentPageUrl, {
-        displayHeaderFooter: true,
-        headerTemplate,
-        footerTemplate,
-        margin: contentMargin,
-      })
-
-      // Copy all content pages
+      const contentPdfBuffer = await generatePdf(page, contentPageUrl, contentOptions)
       const contentPdf = await PDFDocument.load(contentPdfBuffer)
       const contentPageCount = contentPdf.getPageCount()
       for (let i = 0; i < contentPageCount; i++) {
@@ -241,7 +233,14 @@ export async function GET(request: Request, { params }: RouteParams) {
       { status: 500 }
     )
   } finally {
-    // Close browser instance
+    // Close page first, then browser
+    if (page) {
+      try {
+        await page.close()
+      } catch {
+        // Ignore page close errors
+      }
+    }
     if (browser) {
       await closeBrowser(browser)
     }
