@@ -1,19 +1,20 @@
 import puppeteer, { Browser } from 'puppeteer'
 
-// Determine if we're in production (Railway) or development
-const isProduction = process.env.NODE_ENV === 'production'
-
-// Puppeteer launch options - more aggressive in production, stable in dev
+// Puppeteer launch options for containerized environments
 const LAUNCH_OPTIONS = {
   headless: true,
   executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+  // Use pipe instead of WebSocket for more stable connection
+  pipe: true,
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
-    // Only use single-process mode in production containers
-    ...(isProduction ? ['--single-process', '--no-zygote'] : []),
+    '--disable-software-rasterizer',
+    '--disable-extensions',
+    // Memory optimization for containers
+    '--js-flags=--max-old-space-size=256',
   ],
 }
 
