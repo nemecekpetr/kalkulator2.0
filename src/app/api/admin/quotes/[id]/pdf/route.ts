@@ -5,7 +5,7 @@ import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
 import path from 'path'
-import type { Browser } from 'puppeteer'
+import type { Browser, Page } from 'puppeteer'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -30,12 +30,21 @@ async function getLogoDataUri(): Promise<string> {
   }
 }
 
+// Helper function to navigate and wait for page to be ready
+async function navigateAndWait(page: Page, url: string): Promise<void> {
+  await page.goto(url, {
+    waitUntil: 'load',
+    timeout: 60000,
+  })
+  // Wait for page to stabilize
+  await new Promise((resolve) => setTimeout(resolve, 1000))
+}
+
 export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireAdmin()
   if (isAuthError(auth)) return auth.error
 
   let browser: Browser | null = null
-  let page = null
 
   try {
     const { id } = await params
@@ -69,7 +78,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Get a new browser instance for this request
     browser = await getBrowser()
-    page = await browser.newPage()
+    const page = await browser.newPage()
 
     // Set viewport for A4
     await page.setViewport({
@@ -100,15 +109,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const titlePageUrl = `${baseUrl}/quotes/${id}/print?page=title`
     console.log('Generating title page from:', titlePageUrl)
 
-    await page.goto(titlePageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000,
-    })
-
-    await page.waitForSelector('img', { timeout: 5000 }).catch(() => {
-      console.log('No images found or timeout')
-    })
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await navigateAndWait(page, titlePageUrl)
 
     const titlePdfBuffer = await page.pdf({
       format: 'A4',
@@ -138,15 +139,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         const variantPageUrl = `${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`
         console.log('Generating variant page:', variant.variant_name)
 
-        await page.goto(variantPageUrl, {
-          waitUntil: 'networkidle0',
-          timeout: 30000,
-        })
-
-        await page.waitForSelector('img', { timeout: 5000 }).catch(() => {
-          console.log('No images found or timeout')
-        })
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        await navigateAndWait(page, variantPageUrl)
 
         const variantPdfBuffer = await page.pdf({
           format: 'A4',
@@ -175,15 +168,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       const comparisonPageUrl = `${baseUrl}/quotes/${id}/print?page=comparison`
       console.log('Generating comparison page')
 
-      await page.goto(comparisonPageUrl, {
-        waitUntil: 'networkidle0',
-        timeout: 30000,
-      })
-
-      await page.waitForSelector('img', { timeout: 5000 }).catch(() => {
-        console.log('No images found or timeout')
-      })
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await navigateAndWait(page, comparisonPageUrl)
 
       const comparisonPdfBuffer = await page.pdf({
         format: 'A4',
@@ -211,15 +196,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       const contentPageUrl = `${baseUrl}/quotes/${id}/print?page=content`
       console.log('Generating content pages from:', contentPageUrl)
 
-      await page.goto(contentPageUrl, {
-        waitUntil: 'networkidle0',
-        timeout: 30000,
-      })
-
-      await page.waitForSelector('img', { timeout: 5000 }).catch(() => {
-        console.log('No images found or timeout')
-      })
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await navigateAndWait(page, contentPageUrl)
 
       const contentPdfBuffer = await page.pdf({
         format: 'A4',
@@ -246,7 +223,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     const mergedPdfBytes = await mergedPdf.save()
 
-    console.log('PDF generated, size:', mergedPdfBytes.length)
+    console.log('PDF generated successfully, size:', mergedPdfBytes.length)
 
     // Return PDF
     return new NextResponse(Buffer.from(mergedPdfBytes), {
