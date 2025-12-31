@@ -1,6 +1,9 @@
 import puppeteer, { Browser } from 'puppeteer'
 
-// Puppeteer launch options optimized for Railway/containerized environments
+// Determine if we're in production (Railway) or development
+const isProduction = process.env.NODE_ENV === 'production'
+
+// Puppeteer launch options - more aggressive in production, stable in dev
 const LAUNCH_OPTIONS = {
   headless: true,
   executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
@@ -9,8 +12,8 @@ const LAUNCH_OPTIONS = {
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-gpu',
-    '--single-process',
-    '--no-zygote',
+    // Only use single-process mode in production containers
+    ...(isProduction ? ['--single-process', '--no-zygote'] : []),
   ],
 }
 

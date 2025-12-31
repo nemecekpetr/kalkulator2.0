@@ -5,7 +5,7 @@ import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
 import path from 'path'
-import type { Browser, Page } from 'puppeteer'
+import type { Browser } from 'puppeteer'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -30,14 +30,52 @@ async function getLogoDataUri(): Promise<string> {
   }
 }
 
-// Helper function to navigate and wait for page to be ready
-async function navigateAndWait(page: Page, url: string): Promise<void> {
-  await page.goto(url, {
-    waitUntil: 'load',
-    timeout: 60000,
-  })
-  // Wait for page to stabilize
-  await new Promise((resolve) => setTimeout(resolve, 1000))
+// Helper function to generate PDF from a URL using a fresh page
+async function generatePdfFromUrl(
+  browser: Browser,
+  url: string,
+  options: {
+    headerTemplate?: string
+    footerTemplate?: string
+    displayHeaderFooter?: boolean
+    margin?: { top: string; right: string; bottom: string; left: string }
+  } = {}
+): Promise<Uint8Array> {
+  const page = await browser.newPage()
+
+  try {
+    // Set viewport for A4
+    await page.setViewport({
+      width: 794,
+      height: 1123,
+      deviceScaleFactor: 1,
+    })
+
+    await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
+    })
+
+    // Wait for page to stabilize
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: options.displayHeaderFooter ?? false,
+      headerTemplate: options.headerTemplate ?? '',
+      footerTemplate: options.footerTemplate ?? '',
+      margin: options.margin ?? { top: '0', right: '0', bottom: '0', left: '0' },
+    })
+
+    return pdfBuffer
+  } finally {
+    try {
+      await page.close()
+    } catch {
+      // Ignore errors if browser already closed
+    }
+  }
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
@@ -78,14 +116,6 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Get a new browser instance for this request
     browser = await getBrowser()
-    const page = await browser.newPage()
-
-    // Set viewport for A4
-    await page.setViewport({
-      width: 794, // A4 width at 96 DPI
-      height: 1123, // A4 height at 96 DPI
-      deviceScaleFactor: 1, // Standard quality for smaller file size
-    })
 
     // Get logo as base64 data URI
     const logoDataUri = await getLogoDataUri()
@@ -105,17 +135,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       </div>
     `
 
+    const contentMargin = { top: '100px', right: '0', bottom: '50px', left: '0' }
+
     // Step 1: Generate title page PDF (no header/footer)
     const titlePageUrl = `${baseUrl}/quotes/${id}/print?page=title`
     console.log('Generating title page from:', titlePageUrl)
 
-    await navigateAndWait(page, titlePageUrl)
-
-    const titlePdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
-    })
+    const titlePdfBuffer = await generatePdfFromUrl(browser, titlePageUrl)
 
     // Create merged PDF
     const mergedPdf = await PDFDocument.create()
@@ -139,20 +165,11 @@ export async function GET(request: Request, { params }: RouteParams) {
         const variantPageUrl = `${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`
         console.log('Generating variant page:', variant.variant_name)
 
-        await navigateAndWait(page, variantPageUrl)
-
-        const variantPdfBuffer = await page.pdf({
-          format: 'A4',
-          printBackground: true,
+        const variantPdfBuffer = await generatePdfFromUrl(browser, variantPageUrl, {
           displayHeaderFooter: true,
           headerTemplate,
           footerTemplate,
-          margin: {
-            top: '100px',
-            right: '0',
-            bottom: '50px',
-            left: '0',
-          },
+          margin: contentMargin,
         })
 
         // Copy variant pages
@@ -168,20 +185,11 @@ export async function GET(request: Request, { params }: RouteParams) {
       const comparisonPageUrl = `${baseUrl}/quotes/${id}/print?page=comparison`
       console.log('Generating comparison page')
 
-      await navigateAndWait(page, comparisonPageUrl)
-
-      const comparisonPdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
+      const comparisonPdfBuffer = await generatePdfFromUrl(browser, comparisonPageUrl, {
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate,
-        margin: {
-          top: '100px',
-          right: '0',
-          bottom: '50px',
-          left: '0',
-        },
+        margin: contentMargin,
       })
 
       // Copy comparison pages
@@ -196,20 +204,11 @@ export async function GET(request: Request, { params }: RouteParams) {
       const contentPageUrl = `${baseUrl}/quotes/${id}/print?page=content`
       console.log('Generating content pages from:', contentPageUrl)
 
-      await navigateAndWait(page, contentPageUrl)
-
-      const contentPdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
+      const contentPdfBuffer = await generatePdfFromUrl(browser, contentPageUrl, {
         displayHeaderFooter: true,
         headerTemplate,
         footerTemplate,
-        margin: {
-          top: '100px',
-          right: '0',
-          bottom: '50px',
-          left: '0',
-        },
+        margin: contentMargin,
       })
 
       // Copy all content pages
