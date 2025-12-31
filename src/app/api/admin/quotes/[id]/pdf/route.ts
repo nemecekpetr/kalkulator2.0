@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
-import { getBrowser, releaseBrowser } from '@/lib/puppeteer-pool'
+import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
 import path from 'path'
+import type { Browser } from 'puppeteer'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -33,6 +34,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireAdmin()
   if (isAuthError(auth)) return auth.error
 
+  let browser: Browser | null = null
   let page = null
 
   try {
@@ -65,8 +67,8 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     console.log('Generating PDF for quote:', quote.quote_number, hasVariants ? `with ${variants?.length} variants` : 'without variants')
 
-    // Get browser from pool (reuses existing instance)
-    const browser = await getBrowser()
+    // Get a new browser instance for this request
+    browser = await getBrowser()
     page = await browser.newPage()
 
     // Set viewport for A4
@@ -263,15 +265,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       { status: 500 }
     )
   } finally {
-    // Close the page (not browser - it's pooled)
-    if (page) {
-      try {
-        await page.close()
-      } catch (closeError) {
-        console.error('Error closing page:', closeError)
-      }
+    // Close browser instance
+    if (browser) {
+      await closeBrowser(browser)
     }
-    // Release browser back to pool
-    releaseBrowser()
   }
 }
