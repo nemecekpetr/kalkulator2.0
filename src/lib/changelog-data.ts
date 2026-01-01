@@ -26,7 +26,7 @@ export const changelogVersions: ChangelogVersion[] = [
         {
           type: 'feature',
           scope: 'ui',
-          description: 'Vylepšený katalog produktů s tlačítkem \'+\" a hover efektem",
+          description: 'Vylepšený katalog produktů s tlačítkem "+" a hover efektem',
           userDescription: 'Procházení produktů je nyní pohodlnější díky vylepšenému vzhledu a snadnému přidávání tlačítkem.'
         },
         {
