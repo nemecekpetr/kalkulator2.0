@@ -1,0 +1,40 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "type-enum": [
+      2,
+      "always",
+      [
+        "feat",
+        "fix",
+        "perf",
+        "refactor",
+        "docs",
+        "style",
+        "test",
+        "build",
+        "ci",
+        "chore",
+        "revert"
+      ]
+    ],
+    "scope-enum": [
+      1,
+      "always",
+      [
+        "nabidky",
+        "konfigurace",
+        "objednavky",
+        "vyroba",
+        "produkty",
+        "auth",
+        "dashboard",
+        "api",
+        "ui",
+        "db"
+      ]
+    ],
+    "subject-case": [0],
+    "body-max-line-length": [0]
+  }
+}

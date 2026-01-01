@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 import { RecentConfigurations } from '@/components/admin/recent-configurations'
 import { DashboardCharts } from '@/components/admin/dashboard-charts'
 import { DashboardKpi } from '@/components/admin/dashboard-kpi'
+import { ChangelogWidget } from '@/components/admin/changelog-widget'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface PageProps {
@@ -160,10 +161,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         />
       </Suspense>
 
-      {/* Charts */}
-      <Suspense fallback={<ChartsLoading />}>
-        <DashboardCharts data={chartData} />
-      </Suspense>
+      {/* Charts and Changelog Widget */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <Suspense fallback={<ChartsLoading />}>
+            <DashboardCharts data={chartData} />
+          </Suspense>
+        </div>
+        <div>
+          <ChangelogWidget />
+        </div>
+      </div>
     </div>
   )
 }

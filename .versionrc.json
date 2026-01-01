@@ -1,0 +1,19 @@
+{
+  "types": [
+    { "type": "feat", "section": "Novinky", "hidden": false },
+    { "type": "fix", "section": "Opravy", "hidden": false },
+    { "type": "perf", "section": "Vylepšení", "hidden": false },
+    { "type": "refactor", "section": "Refaktoring", "hidden": true },
+    { "type": "docs", "section": "Dokumentace", "hidden": true },
+    { "type": "style", "hidden": true },
+    { "type": "test", "hidden": true },
+    { "type": "build", "hidden": true },
+    { "type": "ci", "hidden": true },
+    { "type": "chore", "hidden": true },
+    { "type": "revert", "section": "Vrácené změny", "hidden": false }
+  ],
+  "commitUrlFormat": "{{host}}/{{owner}}/{{repository}}/commit/{{hash}}",
+  "compareUrlFormat": "{{host}}/{{owner}}/{{repository}}/compare/{{previousTag}}...{{currentTag}}",
+  "header": "# Changelog\n\nVšechny důležité změny v aplikaci jsou zaznamenány zde.\n",
+  "releaseCommitMessageFormat": "chore(release): {{currentTag}}"
+}

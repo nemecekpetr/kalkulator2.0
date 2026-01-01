@@ -2,6 +2,23 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +48,7 @@ import {
   Sparkles,
   Search,
   Pencil,
+  GripVertical,
 } from 'lucide-react'
 import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey } from '@/lib/supabase/types'
 import {
@@ -106,6 +124,139 @@ const VARIANT_LABELS: Record<QuoteVariantKey, string> = {
   premiova: 'Prémiová',
 }
 
+// Sortable item component for drag and drop
+interface SortableItemProps {
+  item: QuoteItem
+  variants: QuoteVariantState[]
+  updateItem: (id: string, updates: Partial<QuoteItem>) => void
+  removeItem: (id: string) => void
+  toggleItemVariant: (itemId: string, variantKey: QuoteVariantKey) => void
+  formatPrice: (price: number) => string
+}
+
+function SortableQuoteItem({
+  item,
+  variants,
+  updateItem,
+  removeItem,
+  toggleItemVariant,
+  formatPrice,
+}: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex flex-col gap-3 p-4 rounded-lg border bg-background ${isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded touch-none"
+            title="Přetáhněte pro změnu pořadí"
+          >
+            <GripVertical className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <Input
+            value={item.name}
+            onChange={(e) => updateItem(item.id, { name: e.target.value })}
+            placeholder="Název položky"
+            className="font-medium"
+          />
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => removeItem(item.id)}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-4">
+        <Select
+          value={item.category}
+          onValueChange={(value) =>
+            updateItem(item.id, { category: value as QuoteItemCategory })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2">
+          <Input
+            type="number"
+            value={item.quantity}
+            onChange={(e) =>
+              updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })
+            }
+            min={0}
+            step={1}
+            className="w-20"
+          />
+          <Input
+            value={item.unit}
+            onChange={(e) => updateItem(item.id, { unit: e.target.value })}
+            className="w-16"
+          />
+        </div>
+        <Input
+          type="number"
+          value={item.unit_price}
+          onChange={(e) =>
+            updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })
+          }
+          min={0}
+          placeholder="Cena/ks"
+        />
+        <div className="flex items-center justify-end font-semibold">
+          {formatPrice(item.total_price)}
+        </div>
+      </div>
+      {/* Variant checkboxes */}
+      <div className="flex items-center gap-4 pt-2 border-t">
+        <span className="text-sm text-muted-foreground">Ve variantách:</span>
+        {variants.map((v) => (
+          <label
+            key={v.key}
+            className="flex items-center gap-2 text-sm cursor-pointer"
+          >
+            <Checkbox
+              checked={item.variant_keys.includes(v.key)}
+              onCheckedChange={() => toggleItemVariant(item.id, v.key)}
+            />
+            {v.name}
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function QuoteEditor({
   quoteNumber,
   products,
@@ -162,21 +313,56 @@ export function QuoteEditor({
   // Items with variant associations
   const [items, setItems] = useState<QuoteItem[]>(() => {
     if (existingQuote?.items) {
-      // Build variant_key map from existing data
+      // Build variant_key map from existing data (for legacy variant_ids support)
       const variantIdToKey: Record<string, QuoteVariantKey> = {}
       existingQuote.variants?.forEach((v) => {
         variantIdToKey[v.id] = v.variant_key
       })
 
-      return existingQuote.items.map((item) => ({
-        ...item,
-        variant_keys: (item.variant_ids || [])
-          .map((id) => variantIdToKey[id])
-          .filter(Boolean) as QuoteVariantKey[],
-      }))
+      return existingQuote.items.map((item) => {
+        // If variant_keys are already provided directly, use them
+        if (item.variant_keys && item.variant_keys.length > 0) {
+          return {
+            ...item,
+            variant_keys: item.variant_keys,
+          }
+        }
+        // Otherwise, map from variant_ids (legacy support)
+        return {
+          ...item,
+          variant_keys: (item.variant_ids || [])
+            .map((id) => variantIdToKey[id])
+            .filter(Boolean) as QuoteVariantKey[],
+        }
+      })
     }
     return []
   })
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Handle drag end for reordering items
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      setItems((prev) => {
+        const oldIndex = prev.findIndex((item) => item.id === active.id)
+        const newIndex = prev.findIndex((item) => item.id === over.id)
+        return arrayMove(prev, oldIndex, newIndex)
+      })
+    }
+  }, [])
 
   // Update variant name
   const updateVariantName = useCallback((key: QuoteVariantKey, name: string) => {
@@ -195,7 +381,7 @@ export function QuoteEditor({
     []
   )
 
-  // Add product to active variant
+  // Add product to active variant (at the beginning)
   const addProduct = useCallback(
     (product: Product) => {
       const newItem: QuoteItem = {
@@ -210,12 +396,12 @@ export function QuoteEditor({
         total_price: product.unit_price,
         variant_keys: [activeVariant],
       }
-      setItems((prev) => [...prev, newItem])
+      setItems((prev) => [newItem, ...prev])
     },
     [activeVariant]
   )
 
-  // Add custom item to active variant
+  // Add custom item to active variant (at the beginning)
   const addCustomItem = useCallback(() => {
     const newItem: QuoteItem = {
       id: crypto.randomUUID(),
@@ -229,7 +415,7 @@ export function QuoteEditor({
       total_price: 0,
       variant_keys: [activeVariant],
     }
-    setItems((prev) => [...prev, newItem])
+    setItems((prev) => [newItem, ...prev])
   }, [activeVariant])
 
   // Update item
@@ -885,7 +1071,7 @@ export function QuoteEditor({
                     </Button>
                   </div>
 
-                  {/* Items list */}
+                  {/* Items list with drag and drop */}
                   <div className="space-y-3">
                     {generating ? (
                       <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
@@ -899,93 +1085,28 @@ export function QuoteEditor({
                           : 'Zatím žádné položky. Přidejte produkty z katalogu vpravo.'}
                       </p>
                     ) : (
-                      activeVariantItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex flex-col gap-3 p-4 rounded-lg border bg-background"
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={activeVariantItems.map((item) => item.id)}
+                          strategy={verticalListSortingStrategy}
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <Input
-                              value={item.name}
-                              onChange={(e) => updateItem(item.id, { name: e.target.value })}
-                              placeholder="Název položky"
-                              className="font-medium"
+                          {activeVariantItems.map((item) => (
+                            <SortableQuoteItem
+                              key={item.id}
+                              item={item}
+                              variants={variants}
+                              updateItem={updateItem}
+                              removeItem={removeItem}
+                              toggleItemVariant={toggleItemVariant}
+                              formatPrice={formatPrice}
                             />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeItem(item.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <div className="grid gap-3 sm:grid-cols-4">
-                            <Select
-                              value={item.category}
-                              onValueChange={(value) =>
-                                updateItem(item.id, { category: value as QuoteItemCategory })
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <div className="flex gap-2">
-                              <Input
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  updateItem(item.id, { quantity: parseFloat(e.target.value) || 0 })
-                                }
-                                min={0}
-                                step={1}
-                                className="w-20"
-                              />
-                              <Input
-                                value={item.unit}
-                                onChange={(e) => updateItem(item.id, { unit: e.target.value })}
-                                className="w-16"
-                              />
-                            </div>
-                            <Input
-                              type="number"
-                              value={item.unit_price}
-                              onChange={(e) =>
-                                updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })
-                              }
-                              min={0}
-                              placeholder="Cena/ks"
-                            />
-                            <div className="flex items-center justify-end font-semibold">
-                              {formatPrice(item.total_price)}
-                            </div>
-                          </div>
-                          {/* Variant checkboxes */}
-                          <div className="flex items-center gap-4 pt-2 border-t">
-                            <span className="text-sm text-muted-foreground">Ve variantách:</span>
-                            {variants.map((v) => (
-                              <label
-                                key={v.key}
-                                className="flex items-center gap-2 text-sm cursor-pointer"
-                              >
-                                <Checkbox
-                                  checked={item.variant_keys.includes(v.key)}
-                                  onCheckedChange={() => toggleItemVariant(item.id, v.key)}
-                                />
-                                {v.name}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))
+                          ))}
+                        </SortableContext>
+                      </DndContext>
                     )}
                   </div>
 
@@ -1095,10 +1216,10 @@ export function QuoteEditor({
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Package className="w-5 h-5" />
-              Přidat produkty
+              Katalog produktů
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Kliknutím přidáte do varianty "{variants.find((v) => v.key === activeVariant)?.name}"
+              Přidá do varianty „{variants.find((v) => v.key === activeVariant)?.name}"
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1119,16 +1240,30 @@ export function QuoteEditor({
                   </h4>
                   <div className="space-y-1">
                     {categoryProducts.map((product) => (
-                      <button
+                      <div
                         key={product.id}
+                        className="group flex items-center justify-between p-2 rounded-lg hover:bg-muted/80 hover:shadow-sm transition-all cursor-pointer border border-transparent hover:border-border"
                         onClick={() => addProduct(product)}
-                        className="w-full text-left p-2 rounded-lg hover:bg-muted transition-colors text-sm"
                       >
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-muted-foreground">
-                          {formatPrice(product.unit_price)} / {product.unit}
+                        <div className="flex-1 min-w-0 text-sm">
+                          <div className="font-medium truncate">{product.name}</div>
+                          <div className="text-muted-foreground">
+                            {formatPrice(product.unit_price)} / {product.unit}
+                          </div>
                         </div>
-                      </button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2 text-primary hover:text-primary hover:bg-primary/10"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            addProduct(product)
+                          }}
+                          title="Přidat do nabídky"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>

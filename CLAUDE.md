@@ -16,6 +16,20 @@ npx supabase db push     # Apply database migrations
 
 This is a pool configurator application for Rentmil (Czech pool manufacturer) built with Next.js 16.1 App Router, Supabase, and TypeScript.
 
+**Language**: Czech application - UI texts, URL slugs (`/admin/uzivatele`, `/admin/objednavky`), and database values are in Czech.
+
+### Data Flow (Lifecycle)
+
+```
+Konfigurace → Nabídka → Objednávka → Výroba
+(Configuration)  (Quote)    (Order)     (Production)
+```
+
+1. Customer submits pool configuration via public wizard
+2. Admin creates quote (nabídka) from configuration with line items
+3. Accepted quote converts to order (objednávka)
+4. Order triggers production tracking (výroba) with checklist
+
 ### Core Components
 
 **Public Configurator** (`/`)
@@ -112,9 +126,9 @@ Located in `src/app/api/`:
 ### Deployment
 
 Deployed on Railway using Nixpacks:
-- `railway.json`: Build and deploy configuration
+- `railway.json`: Build and deploy configuration with health checks
 - `nixpacks.toml`: System dependencies (Node.js 20, Chromium for Puppeteer)
-- Puppeteer uses system Chromium (`PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium`)
+- Puppeteer uses Nix Chromium (`PUPPETEER_EXECUTABLE_PATH=/nix/var/nix/profiles/default/bin/chromium`)
 
 ### Key Integrations
 

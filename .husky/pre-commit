@@ -1,0 +1,2 @@
+# Run type check before commit
+npm run lint

@@ -26,6 +26,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import type { UserProfile, UserRole } from '@/lib/supabase/types'
+import { ChangelogDropdown } from './changelog-dropdown'
 
 interface NavItem {
   name: string
@@ -153,6 +154,9 @@ export function AdminHeader() {
 
       {/* Page title */}
       <h1 className="text-lg font-semibold flex-1">{getPageTitle()}</h1>
+
+      {/* Changelog dropdown */}
+      <ChangelogDropdown />
 
       {/* User menu */}
       <DropdownMenu>
