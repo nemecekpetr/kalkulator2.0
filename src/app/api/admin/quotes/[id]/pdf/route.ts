@@ -137,10 +137,12 @@ export async function GET(request: Request, { params }: RouteParams) {
       </div>
     `
 
-    // Footer template with company info
+    // Footer template with company info and page numbers
     const footerTemplate = `
-      <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; text-align: center; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
-        Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz | www.rentmil.cz
+      <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
+        <span style="flex: 1;">Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň</span>
+        <span style="flex: 1; text-align: center;">+420 737 222 004 | bazeny@rentmil.cz | www.rentmil.cz</span>
+        <span style="flex: 0; text-align: right; color: #01384B; font-weight: 500;">Strana <span class="pageNumber"></span> z <span class="totalPages"></span></span>
       </div>
     `
 
@@ -173,6 +175,8 @@ export async function GET(request: Request, { params }: RouteParams) {
         orderedVariants = [sortedVariants[0], sortedVariants[2], sortedVariants[1]]
       }
 
+      const hasMultipleVariants = orderedVariants.length > 1
+
       // Generate PDF for each variant
       for (const variant of orderedVariants) {
         const variantPageUrl = `${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`
@@ -187,16 +191,18 @@ export async function GET(request: Request, { params }: RouteParams) {
         }
       }
 
-      // Generate comparison page
-      const comparisonPageUrl = `${baseUrl}/quotes/${id}/print?page=comparison`
-      console.log('Generating comparison page')
+      // Generate comparison page only if more than 1 variant
+      if (hasMultipleVariants) {
+        const comparisonPageUrl = `${baseUrl}/quotes/${id}/print?page=comparison`
+        console.log('Generating comparison page')
 
-      const comparisonPdfBuffer = await generatePdf(page, comparisonPageUrl, contentOptions)
-      const comparisonPdf = await PDFDocument.load(comparisonPdfBuffer)
-      const comparisonPageCount = comparisonPdf.getPageCount()
-      for (let i = 0; i < comparisonPageCount; i++) {
-        const [comparisonPage] = await mergedPdf.copyPages(comparisonPdf, [i])
-        mergedPdf.addPage(comparisonPage)
+        const comparisonPdfBuffer = await generatePdf(page, comparisonPageUrl, contentOptions)
+        const comparisonPdf = await PDFDocument.load(comparisonPdfBuffer)
+        const comparisonPageCount = comparisonPdf.getPageCount()
+        for (let i = 0; i < comparisonPageCount; i++) {
+          const [comparisonPage] = await mergedPdf.copyPages(comparisonPdf, [i])
+          mergedPdf.addPage(comparisonPage)
+        }
       }
     } else {
       // Classic single-variant PDF generation
@@ -210,6 +216,19 @@ export async function GET(request: Request, { params }: RouteParams) {
         const [contentPage] = await mergedPdf.copyPages(contentPdf, [i])
         mergedPdf.addPage(contentPage)
       }
+    }
+
+    // Always generate closing page as the last page
+    // This page contains: 7 důvodů, business terms, validity, CTA, slogan
+    const closingPageUrl = `${baseUrl}/quotes/${id}/print?page=closing`
+    console.log('Generating closing page')
+
+    const closingPdfBuffer = await generatePdf(page, closingPageUrl, contentOptions)
+    const closingPdf = await PDFDocument.load(closingPdfBuffer)
+    const closingPageCount = closingPdf.getPageCount()
+    for (let i = 0; i < closingPageCount; i++) {
+      const [closingPage] = await mergedPdf.copyPages(closingPdf, [i])
+      mergedPdf.addPage(closingPage)
     }
 
     const mergedPdfBytes = await mergedPdf.save()

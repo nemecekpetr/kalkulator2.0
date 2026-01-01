@@ -4,7 +4,7 @@ import type { Quote, QuoteItem, QuoteItemCategory, UserProfile, QuoteVariant } f
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; variant?: string }>
+  searchParams: Promise<{ page?: string; variant?: string; last?: string }>
 }
 
 const CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
@@ -117,75 +117,103 @@ function PrintBlock({ children, className = '' }: { children: React.ReactNode; c
   )
 }
 
-// Title page component - no header/footer needed
+// Title page component - WOW effect with hero photo
 function TitlePage({ quote }: { quote: QuoteWithCreator }) {
   return (
-    <div className="w-[210mm] h-[297mm] mx-auto bg-white relative overflow-hidden">
-      {/* Hero Image */}
-      <div className="relative h-[180mm]">
+    <div className="w-[210mm] h-[297mm] mx-auto relative overflow-hidden">
+      {/* Hero background photo */}
+      <div className="absolute inset-0">
         <img
-          src="/bazen-hero.jpg"
+          src="/pool-hero.jpg"
           alt="Bazén Rentmil"
           className="w-full h-full object-cover"
         />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#01384B]/90 via-[#01384B]/30 to-transparent" />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#01384B]/80 via-[#01384B]/50 to-[#01384B]/90" />
+      </div>
 
-        {/* Glassmorphism box */}
-        <div className="absolute top-8 left-8 right-8">
-          <div className="backdrop-blur-md bg-white/80 rounded-2xl p-6 shadow-xl border border-white/50">
-            <div className="flex items-center justify-between">
-              <img src="/logo-transparent.svg" alt="Rentmil" className="h-24 object-contain" />
-              <div className="text-right">
-                <p className="text-sm text-gray-500 mb-1">Číslo kalkulace</p>
-                <p className="text-2xl font-bold text-[#01384B]">{quote.quote_number}</p>
-                <p className="text-sm text-gray-500">{formatDate(quote.created_at)}</p>
-              </div>
-            </div>
+      {/* Top section - Logo and quote number */}
+      <div className="relative z-10 p-10">
+        <div className="flex items-start justify-between">
+          {/* Logo - large and prominent */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
+            <img src="/logo-transparent.svg" alt="Rentmil" className="h-20 object-contain" />
           </div>
-        </div>
 
-        {/* Title box at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 p-8">
-          <h1 className="text-5xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-display)' }}>
-            Cenová nabídka
-          </h1>
-          <p className="text-xl text-[#48A9A6]">
-            Pro: {quote.customer_name}
-          </p>
+          {/* Quote info badge */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 text-right">
+            <p className="text-[#48A9A6] text-sm font-medium uppercase tracking-wider mb-1">Nabídka č.</p>
+            <p className="text-3xl font-bold text-white">{quote.quote_number}</p>
+            <p className="text-white/70 text-sm mt-1">{formatDate(quote.created_at)}</p>
+          </div>
         </div>
       </div>
 
-      {/* Bottom section with mascot and customer info */}
+      {/* Center section - Main title */}
+      <div className="relative z-10 flex flex-col items-center justify-center mt-12">
+        <div className="text-center">
+          <p className="text-[#48A9A6] text-xl font-medium uppercase tracking-[0.3em] mb-4">
+            Cenová nabídka
+          </p>
+          <h1 className="text-6xl font-bold text-white mb-6 leading-tight drop-shadow-lg" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            Váš vysněný bazén
+          </h1>
+          <div className="w-32 h-1 bg-gradient-to-r from-[#FF8621] to-[#ED6663] mx-auto rounded-full mb-8" />
+
+          {/* Customer name highlight */}
+          <div className="inline-block">
+            <p className="text-white/80 text-lg mb-2 drop-shadow">Připraveno pro</p>
+            <div className="bg-white/15 backdrop-blur-md rounded-xl px-8 py-4 border border-white/30">
+              <p className="text-3xl font-bold text-white drop-shadow-lg">{quote.customer_name}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom section - Mascot and customer details */}
       <div className="absolute bottom-0 left-0 right-0 p-8">
-        <div className="grid grid-cols-2 gap-8 items-center">
-          {/* Left: Holding Mascot - HQ version */}
-          <div className="flex items-center justify-start">
+        <div className="flex items-end justify-between">
+          {/* Mascot - large and friendly */}
+          <div className="relative">
             <img
               src="/maskot-holding-hq.png"
               alt="Bazénový mistr"
-              className="h-96 object-contain"
+              className="h-72 object-contain drop-shadow-2xl"
             />
           </div>
 
-          {/* Right: Customer info - centered vertically with mascot */}
-          <div className="flex items-center">
-            <div className="backdrop-blur-md bg-white/90 rounded-2xl p-8 shadow-xl border border-white/50 w-full">
-              <h3 className="text-lg font-semibold text-[#48A9A6] uppercase tracking-wider mb-4">
-                Vážený zákazník
+          {/* Customer details card + Slogan */}
+          <div className="flex flex-col items-end gap-6">
+            {/* Customer info card */}
+            <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs">
+              <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
+                Kontaktní údaje
               </h3>
-              <div className="space-y-2">
-                <p className="text-2xl font-bold text-[#01384B]">{quote.customer_name}</p>
+              <div className="space-y-1.5">
+                <p className="text-lg font-bold text-[#01384B]">{quote.customer_name}</p>
                 {quote.customer_email && (
-                  <p className="text-gray-600 text-base">{quote.customer_email}</p>
+                  <p className="text-gray-600 text-sm flex items-center gap-2">
+                    <span className="text-[#48A9A6]">email:</span> {quote.customer_email}
+                  </p>
                 )}
                 {quote.customer_phone && (
-                  <p className="text-gray-600 text-base">{quote.customer_phone}</p>
+                  <p className="text-gray-600 text-sm flex items-center gap-2">
+                    <span className="text-[#48A9A6]">tel:</span> {quote.customer_phone}
+                  </p>
                 )}
                 {quote.customer_address && (
-                  <p className="text-gray-600 text-base">{quote.customer_address}</p>
+                  <p className="text-gray-600 text-sm flex items-center gap-2">
+                    <span className="text-[#48A9A6]">adresa:</span> {quote.customer_address}
+                  </p>
                 )}
               </div>
+            </div>
+
+            {/* Slogan */}
+            <div className="text-right">
+              <p className="text-2xl font-semibold text-white italic drop-shadow-lg" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                &bdquo;Vy zenujete, my bazénujeme.&ldquo;
+              </p>
             </div>
           </div>
         </div>
@@ -218,32 +246,35 @@ function ItemsSection({
     {} as Record<string, QuoteItemWithVariantIds[]>
   )
 
+  // Calculate total savings
+  const totalSavings = (subtotal * (discountPercent / 100)) + discountAmount
+
   return (
     <div className="mb-8">
       {/* Items by category */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {Object.entries(itemsByCategory).map(([category, categoryItems]) => (
           <PrintBlock key={category}>
-            <div className="rounded-lg border border-gray-200 overflow-hidden">
+            <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               {/* Category header */}
-              <div className="bg-[#01384B] text-white px-3 py-1.5">
-                <span className="font-semibold text-xs">{CATEGORY_LABELS[category as QuoteItemCategory]}</span>
+              <div className="bg-[#01384B] text-white px-4 py-2">
+                <span className="font-semibold text-sm">{CATEGORY_LABELS[category as QuoteItemCategory]}</span>
               </div>
               {/* Items */}
               <div className="divide-y divide-gray-100">
                 {categoryItems.map((item) => (
-                  <div key={item.id} className="px-3 py-1.5 flex items-center justify-between">
+                  <div key={item.id} className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
                     <div className="flex-1">
-                      <p className="font-medium text-[#01384B] text-xs">{item.name}</p>
+                      <p className="font-medium text-[#01384B] text-sm">{item.name}</p>
                       {item.description && (
-                        <p className="text-[10px] text-gray-500 leading-tight">{item.description}</p>
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5">{item.description}</p>
                       )}
                     </div>
                     <div className="text-right ml-4">
-                      <p className="text-[10px] text-gray-500">
+                      <p className="text-xs text-gray-500">
                         {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
                       </p>
-                      <p className="font-semibold text-[#01384B] text-xs">{formatPrice(item.total_price)}</p>
+                      <p className="font-semibold text-[#01384B] text-sm">{formatPrice(item.total_price)}</p>
                     </div>
                   </div>
                 ))}
@@ -254,32 +285,49 @@ function ItemsSection({
       </div>
 
       {/* Totals */}
-      <PrintBlock className="mt-4 flex justify-end">
-        <div className="w-56">
-          <div className="space-y-1 text-xs">
-            <div className="flex justify-between py-1">
+      <PrintBlock className="mt-6 flex justify-end">
+        <div className="w-72">
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between py-1.5 border-b border-gray-100">
               <span className="text-gray-600">Mezisoučet</span>
-              <span className="font-medium">{formatPrice(subtotal)}</span>
+              <span className="font-medium text-gray-800">{formatPrice(subtotal)}</span>
             </div>
-            {discountPercent > 0 && (
-              <div className="flex justify-between py-1 text-green-600">
-                <span>Sleva {discountPercent}%</span>
-                <span>-{formatPrice(subtotal * (discountPercent / 100))}</span>
-              </div>
-            )}
-            {discountAmount > 0 && (
-              <div className="flex justify-between py-1 text-green-600">
-                <span>Sleva</span>
-                <span>-{formatPrice(discountAmount)}</span>
+
+            {/* Savings highlight box */}
+            {(discountPercent > 0 || discountAmount > 0) && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 my-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-green-700 text-sm">Vaše úspora</span>
+                </div>
+                {discountPercent > 0 && (
+                  <div className="flex justify-between text-green-600 text-sm">
+                    <span>Sleva {discountPercent} %</span>
+                    <span className="font-semibold">-{formatPrice(subtotal * (discountPercent / 100))}</span>
+                  </div>
+                )}
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-green-600 text-sm">
+                    <span>Dodatečná sleva</span>
+                    <span className="font-semibold">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
+                {(discountPercent > 0 && discountAmount > 0) && (
+                  <div className="flex justify-between text-green-700 font-bold text-sm mt-1 pt-1 border-t border-green-200">
+                    <span>Celková úspora</span>
+                    <span>-{formatPrice(totalSavings)}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
+
           {/* Grand total */}
-          <div className="mt-2 rounded-lg bg-gradient-to-r from-[#FF8621] to-[#ED6663] p-3 text-white">
+          <div className="mt-3 rounded-xl bg-gradient-to-r from-[#FF8621] to-[#ED6663] p-4 text-white shadow-lg">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-semibold">Celkem</span>
-              <span className="text-lg font-bold">{formatPrice(totalPrice)}</span>
+              <span className="text-base font-semibold">Celkem k úhradě</span>
+              <span className="text-2xl font-bold">{formatPrice(totalPrice)}</span>
             </div>
+            <p className="text-white/80 text-xs mt-1">včetně DPH</p>
           </div>
         </div>
       </PrintBlock>
@@ -292,20 +340,17 @@ function VariantContentPages({ quote, variant }: { quote: QuoteWithCreator; vari
   // Get items for this variant
   const variantItems = quote.items.filter((item) => item.variant_ids?.includes(variant.id))
 
-  // Calculate validity date (30 days from creation if not set)
-  const validUntil = quote.valid_until
-    ? new Date(quote.valid_until)
-    : new Date(new Date(quote.created_at).getTime() + 30 * 24 * 60 * 60 * 1000)
-
   return (
-    <div className="w-[210mm] mx-auto bg-white px-10">
+    <div className="w-[210mm] mx-auto bg-white px-10 pt-6">
       {/* Variant Title */}
       <div className="mb-6 text-center">
-        <h2 className="text-2xl font-bold text-[#01384B] mb-1">
-          {variant.variant_name}
-        </h2>
-        <div className="inline-block bg-[#48A9A6]/10 rounded-full px-4 py-1">
-          <span className="text-[#48A9A6] font-semibold">{formatPrice(variant.total_price)}</span>
+        <div className="inline-block bg-gradient-to-r from-[#48A9A6]/20 to-[#48A9A6]/10 rounded-2xl px-8 py-4 border border-[#48A9A6]/30">
+          <h2 className="text-2xl font-bold text-[#01384B] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            {variant.variant_name}
+          </h2>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-3xl font-bold text-[#48A9A6]">{formatPrice(variant.total_price)}</span>
+          </div>
         </div>
       </div>
 
@@ -323,49 +368,221 @@ function VariantContentPages({ quote, variant }: { quote: QuoteWithCreator; vari
         />
       </div>
 
-      {/* Terms Section - only on last variant page or non-variant */}
-      <PrintBlock className="mb-12">
-        {/* Notes */}
-        {quote.notes && (
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-[#01384B] mb-4">
-              Poznámky
-            </h3>
-            <div className="bg-[#FEF3C7] rounded-xl p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{quote.notes}</p>
+      {/* Notes */}
+      {quote.notes && (
+        <PrintBlock className="mb-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <h4 className="font-semibold text-amber-800 mb-2">
+              Poznámky k nabídce
+            </h4>
+            <p className="text-gray-700 whitespace-pre-wrap text-sm">{quote.notes}</p>
+          </div>
+        </PrintBlock>
+      )}
+    </div>
+  )
+}
+
+// Closing page component - always last, fits on one page
+// Varianta 3: Moderní asymetrický layout s foto pozadím v CTA
+// Designed to fit within header (100px) and footer (50px) margins on A4
+function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
+  // Calculate validity date (30 days from creation if not set)
+  const validUntil = quote.valid_until
+    ? new Date(quote.valid_until)
+    : new Date(new Date(quote.created_at).getTime() + 30 * 24 * 60 * 60 * 1000)
+
+  return (
+    <div className="w-[210mm] mx-auto bg-white px-10 pt-4 pb-4">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <p className="text-[#48A9A6] text-xs font-semibold uppercase tracking-widest mb-1">Proč právě my?</p>
+          <h2 className="text-2xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>7 důvodů pro Rentmil</h2>
+        </div>
+      </div>
+
+      {/* Two column layout */}
+      <div className="grid grid-cols-5 gap-6 mb-4">
+        {/* Left column - 7 důvodů */}
+        <div className="col-span-3 space-y-2">
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">1</div>
+            <p className="font-semibold text-[#01384B] text-sm">Showroom s ukázkami bazénů</p>
+          </div>
+
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">2</div>
+            <p className="font-semibold text-[#01384B] text-sm">Široký výběr tvarů a velikostí</p>
+          </div>
+
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">3</div>
+            <p className="font-semibold text-[#01384B] text-sm">Zastřešení pro celoroční koupání</p>
+          </div>
+
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">4</div>
+            <p className="font-semibold text-[#01384B] text-sm">Celoroční servis a údržba</p>
+          </div>
+
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">5</div>
+            <p className="font-semibold text-[#01384B] text-sm">Příslušenství na jednom místě</p>
+          </div>
+
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">6</div>
+            <p className="font-semibold text-[#01384B] text-sm">Realizace bazénu na klíč *</p>
+          </div>
+
+          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
+            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">7</div>
+            <p className="font-semibold text-[#01384B] text-sm">Profesionální poradenství zdarma</p>
+          </div>
+        </div>
+
+        {/* Right column - Conditions card */}
+        <div className="col-span-2">
+          <div className="bg-[#01384B] rounded-2xl p-4 text-white h-full">
+            <h3 className="text-sm font-bold mb-3 text-[#48A9A6]">Obchodní podmínky v kostce</h3>
+
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/70">Ceny</span>
+                <span className="font-semibold">vč. DPH</span>
+              </div>
+              <div className="h-px bg-white/10"></div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/70">Záruka konstrukce</span>
+                <span className="font-semibold text-[#48A9A6]">10 let</span>
+              </div>
+              <div className="h-px bg-white/10"></div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/70">Záruka technologie</span>
+                <span className="font-semibold">2 roky</span>
+              </div>
+              <div className="h-px bg-white/10"></div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/70">Materiál</span>
+                <span className="font-semibold">Polystone P</span>
+              </div>
+              <div className="h-px bg-white/10"></div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/70">Dodání</span>
+                <span className="font-semibold">4–8 týdnů</span>
+              </div>
+              <div className="h-px bg-white/10"></div>
+
+              <div className="text-xs">
+                <span className="text-white/70">Platba: </span>
+                <span className="font-semibold">50 % záloha</span>
+              </div>
+            </div>
+
+            {/* Validity badge inside */}
+            <div className="mt-4 pt-3 border-t border-white/10">
+              <div className="bg-white/10 rounded-lg p-2.5 text-center">
+                <p className="text-[10px] text-white/60 uppercase">Platnost nabídky</p>
+                <p className="text-lg font-bold">{formatDate(validUntil.toISOString())}</p>
+              </div>
+            </div>
+
+            {/* Link to full terms */}
+            <div className="mt-3 text-center">
+              <a href="https://www.rentmil.cz/obchodni-podminky" className="text-[#48A9A6] text-[10px] hover:underline">
+                Kompletní obchodní podmínky →
+              </a>
             </div>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Terms */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-[#01384B] mb-4">
-            Obchodní podmínky
-          </h3>
-          <div className="bg-gray-50 rounded-xl p-6 space-y-3 text-sm text-gray-700">
-            <p>• Ceny jsou uvedeny včetně DPH</p>
-            <p>• Cena nezahrnuje zemní práce a přípravu podloží</p>
-            <p>• Dodací lhůta: 4-8 týdnů od objednání</p>
-            <p>• Platební podmínky: záloha 50% při objednání, doplatek při předání</p>
-            <p>• Záruka na bazénovou konstrukci: 10 let</p>
-            <p>• Záruka na technologii: 2 roky</p>
-            <p>• Materiál: kvalitní plast Polystone P od německého výrobce Röchling</p>
-          </div>
+      {/* Stats row */}
+      <div className="grid grid-cols-4 gap-4 mb-4 py-3 border-y border-gray-100">
+        <div className="text-center">
+          <p className="text-3xl font-bold text-[#48A9A6]">24</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Let zkušeností</p>
+        </div>
+        <div className="text-center">
+          <p className="text-3xl font-bold text-[#48A9A6]">10</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Let záruka</p>
+        </div>
+        <div className="text-center">
+          <p className="text-3xl font-bold text-[#48A9A6]">2000+</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Realizací po celé ČR</p>
+        </div>
+        <div className="text-center">
+          <p className="text-3xl font-bold text-[#48A9A6]">4-8</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Týdnů dodání</p>
+        </div>
+      </div>
+
+      {/* Footnote */}
+      <p className="text-[9px] text-gray-400 mb-3">* po předchozí domluvě</p>
+
+      {/* CTA Section with photo background - larger with mascot and slogan inside */}
+      <div className="relative rounded-2xl overflow-hidden">
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img src="/pool-hero.jpg" alt="Bazén" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#01384B]/95 via-[#01384B]/85 to-[#01384B]/70"></div>
         </div>
 
-        {/* Validity */}
-        <div className="mb-8 flex justify-center">
-          <div className="inline-block rounded-xl border-2 border-[#48A9A6] px-8 py-4 text-center">
-            <p className="text-sm text-gray-500 mb-1">Platnost nabídky do</p>
-            <p className="text-2xl font-bold text-[#01384B]">{formatDate(validUntil.toISOString())}</p>
+        {/* Content */}
+        <div className="relative p-6 flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Připraveni začít?</h3>
+            <p className="text-white/70 text-base mb-4">Ozvěte se nám a probereme vaše požadavky</p>
+
+            <div className="flex items-center gap-8 mb-5">
+              {quote.creator && (
+                <>
+                  <div>
+                    <p className="text-[#48A9A6] text-xs uppercase tracking-wider mb-1">Váš specialista</p>
+                    <p className="text-white font-bold text-lg">{quote.creator.full_name}</p>
+                  </div>
+                  <div className="h-12 w-px bg-white/20"></div>
+                </>
+              )}
+              <div className="space-y-1 text-base">
+                <p className="text-white/90 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[#48A9A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                  </svg>
+                  {quote.creator?.phone || '+420 601 588 453'}
+                </p>
+                <p className="text-white/90 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-[#48A9A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
+                  {quote.creator?.email || 'info@rentmil.cz'}
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Mascot with slogan */}
+          <div className="flex flex-col items-center">
+            <img src="/maskot-hq.png" alt="Maskot" className="h-40 object-contain drop-shadow-2xl mb-2" />
+            {/* Slogan next to mascot */}
+            <div className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-xl px-5 py-2.5 shadow-lg">
+              <p className="text-base font-bold text-white italic whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>&bdquo;Vy zenujete, my bazénujeme.&ldquo;</p>
+            </div>
           </div>
         </div>
-      </PrintBlock>
+      </div>
     </div>
   )
 }
 
 // Comparison page component - shows all variants side by side
+// Closing sections are on separate ClosingPage
 function ComparisonPage({ quote }: { quote: QuoteWithCreator }) {
   const variants = quote.variants || []
   const items = quote.items
@@ -374,24 +591,27 @@ function ComparisonPage({ quote }: { quote: QuoteWithCreator }) {
   const sortedVariants = [...variants].sort((a, b) => a.total_price - b.total_price)
 
   return (
-    <div className="w-[210mm] mx-auto bg-white px-10">
+    <div className="w-[210mm] mx-auto bg-white px-10 pt-6">
       {/* Title */}
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-[#01384B] mb-2">
+        <h2 className="text-2xl font-bold text-[#01384B] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
           Porovnání variant
         </h2>
-        <p className="text-gray-600">Přehled položek a cen jednotlivých variant nabídky</p>
+        <p className="text-gray-600 text-sm">Přehled položek a cen jednotlivých variant nabídky</p>
       </div>
 
-      {/* Comparison Table */}
-      <div className="mb-8 overflow-hidden rounded-lg border border-gray-200">
+      {/* Comparison Table - improved */}
+      <div className="mb-8 overflow-hidden rounded-xl border border-gray-200 shadow-sm">
         {/* Header */}
-        <div className="bg-[#01384B] text-white">
+        <div className="bg-gradient-to-r from-[#01384B] to-[#024959] text-white">
           <div className="grid" style={{ gridTemplateColumns: `2fr ${sortedVariants.map(() => '1fr').join(' ')}` }}>
-            <div className="px-3 py-2 font-semibold text-xs">Položka</div>
-            {sortedVariants.map((v) => (
-              <div key={v.id} className="px-3 py-2 font-semibold text-xs text-center border-l border-white/20">
-                {v.variant_name}
+            <div className="px-4 py-3 font-semibold text-sm">Položka</div>
+            {sortedVariants.map((v, idx) => (
+              <div key={v.id} className="px-4 py-3 font-semibold text-sm text-center border-l border-white/20">
+                <span className="block">{v.variant_name}</span>
+                {idx === sortedVariants.length - 1 && (
+                  <span className="text-xs text-[#48A9A6] font-normal">Doporučujeme</span>
+                )}
               </div>
             ))}
           </div>
@@ -402,16 +622,18 @@ function ComparisonPage({ quote }: { quote: QuoteWithCreator }) {
           {items.map((item, index) => (
             <div
               key={item.id}
-              className={`grid ${index % 2 === 1 ? 'bg-gray-50' : ''}`}
+              className={`grid ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
               style={{ gridTemplateColumns: `2fr ${sortedVariants.map(() => '1fr').join(' ')}` }}
             >
-              <div className="px-3 py-2 text-xs text-[#01384B]">
+              <div className="px-4 py-2.5 text-sm text-[#01384B]">
                 {item.name}
               </div>
               {sortedVariants.map((v) => (
-                <div key={v.id} className="px-3 py-2 text-center border-l border-gray-100">
+                <div key={v.id} className="px-4 py-2.5 text-center border-l border-gray-100">
                   {item.variant_ids?.includes(v.id) ? (
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 text-green-600">
+                      <span className="text-sm font-bold">✓</span>
+                    </span>
                   ) : (
                     <span className="text-gray-300">—</span>
                   )}
@@ -426,278 +648,50 @@ function ComparisonPage({ quote }: { quote: QuoteWithCreator }) {
           className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] text-white grid"
           style={{ gridTemplateColumns: `2fr ${sortedVariants.map(() => '1fr').join(' ')}` }}
         >
-          <div className="px-3 py-3 font-bold text-sm">CELKEM</div>
+          <div className="px-4 py-4 font-bold text-base">Celková cena</div>
           {sortedVariants.map((v) => (
-            <div key={v.id} className="px-3 py-3 font-bold text-sm text-center border-l border-white/20">
+            <div key={v.id} className="px-4 py-4 font-bold text-lg text-center border-l border-white/20">
               {formatPrice(v.total_price)}
             </div>
           ))}
         </div>
       </div>
-
-      {/* Last Section - 7 důvodů, specialista, maskot */}
-      <PrintBlock>
-        {/* 7 důvodů pro náš bazén */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-[#01384B] mb-3">
-            7 důvodů pro bazén od Rentmilu
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Prohlídka showroomu</p>
-              <p className="text-[10px] text-gray-600 leading-tight">V našem showroomu v Plzni si můžete prohlédnout modely bazénů včetně zastřešení.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Široký výběr</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Dostupné i luxusní bazény v různých tvarech a velikostech pro každého.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Bazénové zastřešení</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Koupání až 7 měsíců v roce bez ohledu na počasí.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Kompletní servis</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Údržba, zazimování a jarní zprovoznění bazénu.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Bazénové příslušenství</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Filtrace, ohřev, LED osvětlení, protiproudy a další.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Bazény na klíč</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Kompletní výroba, instalace a doporučení stavebních firem.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Profesionální poradenství</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Pomoc s výběrem místa a technologií pro údržbu vody.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Bazénový specialista kontakt */}
-        {quote.creator && (
-          <div className="mb-6 flex justify-center">
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 w-80">
-              <p className="text-sm text-[#48A9A6] uppercase tracking-wider mb-1">Váš bazénový specialista</p>
-              <p className="text-xl font-bold text-[#01384B] mb-2">{quote.creator.full_name}</p>
-              <div className="flex gap-8 text-sm text-gray-600">
-                {quote.creator.phone && <span>{quote.creator.phone}</span>}
-                {quote.creator.email && <span>{quote.creator.email}</span>}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Large mascot with tagline */}
-        <div className="flex flex-col items-center justify-center py-8">
-          <img
-            src="/maskot-hq.png"
-            alt="Bazénový mistr"
-            className="w-72 h-72 object-contain mb-3"
-          />
-          <p className="text-2xl font-semibold text-[#01384B] italic text-center">
-            „Vy zenujete, my bazénujeme."
-          </p>
-        </div>
-      </PrintBlock>
     </div>
   )
 }
 
-// Content pages component - header/footer will be added by Puppeteer
+// Content pages component - only items, no closing sections
+// Closing sections are on separate ClosingPage
 function ContentPages({ quote }: { quote: QuoteWithCreator }) {
-  // Group items by category
-  const itemsByCategory = quote.items.reduce(
-    (acc, item) => {
-      if (!acc[item.category]) acc[item.category] = []
-      acc[item.category].push(item)
-      return acc
-    },
-    {} as Record<string, QuoteItemWithVariantIds[]>
-  )
-
-  // Calculate validity date (30 days from creation if not set)
-  const validUntil = quote.valid_until
-    ? new Date(quote.valid_until)
-    : new Date(new Date(quote.created_at).getTime() + 30 * 24 * 60 * 60 * 1000)
-
   return (
-    <div className="w-[210mm] mx-auto bg-white px-10">
+    <div className="w-[210mm] mx-auto bg-white px-10 pt-6">
       {/* Items Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-bold text-[#01384B] mb-4 text-center">
+        <h2 className="text-xl font-bold text-[#01384B] mb-4 text-center" style={{ fontFamily: 'Nunito, sans-serif' }}>
           Položky nabídky
         </h2>
 
-        {/* Items by category */}
-        <div className="space-y-3">
-          {Object.entries(itemsByCategory).map(([category, items]) => (
-            <PrintBlock key={category}>
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                {/* Category header */}
-                <div className="bg-[#01384B] text-white px-3 py-1.5">
-                  <span className="font-semibold text-xs">{CATEGORY_LABELS[category as QuoteItemCategory]}</span>
-                </div>
-                {/* Items */}
-                <div className="divide-y divide-gray-100">
-                  {items.map((item) => (
-                    <div key={item.id} className="px-3 py-1.5 flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-[#01384B] text-xs">{item.name}</p>
-                        {item.description && (
-                          <p className="text-[10px] text-gray-500 leading-tight">{item.description}</p>
-                        )}
-                      </div>
-                      <div className="text-right ml-4">
-                        <p className="text-[10px] text-gray-500">
-                          {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                        </p>
-                        <p className="font-semibold text-[#01384B] text-xs">{formatPrice(item.total_price)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PrintBlock>
-          ))}
-        </div>
-
-        {/* Totals */}
-        <PrintBlock className="mt-4 flex justify-end">
-          <div className="w-56">
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600">Mezisoučet</span>
-                <span className="font-medium">{formatPrice(quote.subtotal)}</span>
-              </div>
-              {quote.discount_percent > 0 && (
-                <div className="flex justify-between py-1 text-green-600">
-                  <span>Sleva {quote.discount_percent}%</span>
-                  <span>-{formatPrice(quote.subtotal * (quote.discount_percent / 100))}</span>
-                </div>
-              )}
-              {quote.discount_amount > 0 && (
-                <div className="flex justify-between py-1 text-green-600">
-                  <span>Sleva</span>
-                  <span>-{formatPrice(quote.discount_amount)}</span>
-                </div>
-              )}
-            </div>
-            {/* Grand total */}
-            <div className="mt-2 rounded-lg bg-gradient-to-r from-[#FF8621] to-[#ED6663] p-3 text-white">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-semibold">Celkem</span>
-                <span className="text-lg font-bold">{formatPrice(quote.total_price)}</span>
-              </div>
-            </div>
-          </div>
-        </PrintBlock>
+        {/* Use ItemsSection component for consistency */}
+        <ItemsSection
+          items={quote.items}
+          subtotal={quote.subtotal}
+          discountPercent={quote.discount_percent}
+          discountAmount={quote.discount_amount}
+          totalPrice={quote.total_price}
+        />
       </div>
 
-      {/* Terms Section */}
-      <PrintBlock className="mb-12">
-        {/* Notes */}
-        {quote.notes && (
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-[#01384B] mb-4">
-              Poznámky
-            </h3>
-            <div className="bg-[#FEF3C7] rounded-xl p-4">
-              <p className="text-gray-700 whitespace-pre-wrap">{quote.notes}</p>
-            </div>
+      {/* Notes */}
+      {quote.notes && (
+        <PrintBlock className="mb-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <h4 className="font-semibold text-amber-800 mb-2">
+              Poznámky k nabídce
+            </h4>
+            <p className="text-gray-700 whitespace-pre-wrap text-sm">{quote.notes}</p>
           </div>
-        )}
-
-        {/* Terms */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-[#01384B] mb-4">
-            Obchodní podmínky
-          </h3>
-          <div className="bg-gray-50 rounded-xl p-6 space-y-3 text-sm text-gray-700">
-            <p>• Ceny jsou uvedeny včetně DPH</p>
-            <p>• Cena nezahrnuje zemní práce a přípravu podloží</p>
-            <p>• Dodací lhůta: 4-8 týdnů od objednání</p>
-            <p>• Platební podmínky: záloha 50% při objednání, doplatek při předání</p>
-            <p>• Záruka na bazénovou konstrukci: 10 let</p>
-            <p>• Záruka na technologii: 2 roky</p>
-            <p>• Materiál: kvalitní plast Polystone P od německého výrobce Röchling</p>
-          </div>
-        </div>
-
-        {/* Validity */}
-        <div className="mb-8 flex justify-center">
-          <div className="inline-block rounded-xl border-2 border-[#48A9A6] px-8 py-4 text-center">
-            <p className="text-sm text-gray-500 mb-1">Platnost nabídky do</p>
-            <p className="text-2xl font-bold text-[#01384B]">{formatDate(validUntil.toISOString())}</p>
-          </div>
-        </div>
-      </PrintBlock>
-
-      {/* Last Section - 7 důvodů, specialista, maskot */}
-      <PrintBlock>
-        {/* 7 důvodů pro náš bazén */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-[#01384B] mb-3">
-            7 důvodů pro bazén od Rentmilu
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Prohlídka showroomu</p>
-              <p className="text-[10px] text-gray-600 leading-tight">V našem showroomu v Plzni si můžete prohlédnout modely bazénů včetně zastřešení.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Široký výběr</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Dostupné i luxusní bazény v různých tvarech a velikostech pro každého.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Bazénové zastřešení</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Koupání až 7 měsíců v roce bez ohledu na počasí.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Kompletní servis</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Údržba, zazimování a jarní zprovoznění bazénu.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Bazénové příslušenství</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Filtrace, ohřev, LED osvětlení, protiproudy a další.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Bazény na klíč</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Kompletní výroba, instalace a doporučení stavebních firem.</p>
-            </div>
-            <div className="bg-gradient-to-br from-[#48A9A6]/10 to-[#48A9A6]/5 rounded-lg p-3 border border-[#48A9A6]/20">
-              <p className="font-semibold text-[#01384B] text-xs mb-0.5">Profesionální poradenství</p>
-              <p className="text-[10px] text-gray-600 leading-tight">Pomoc s výběrem místa a technologií pro údržbu vody.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Bazénový specialista kontakt */}
-        {quote.creator && (
-          <div className="mb-6 flex justify-center">
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 w-80">
-              <p className="text-sm text-[#48A9A6] uppercase tracking-wider mb-1">Váš bazénový specialista</p>
-              <p className="text-xl font-bold text-[#01384B] mb-2">{quote.creator.full_name}</p>
-              <div className="flex gap-8 text-sm text-gray-600">
-                {quote.creator.phone && <span>{quote.creator.phone}</span>}
-                {quote.creator.email && <span>{quote.creator.email}</span>}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Large mascot with tagline */}
-        <div className="flex flex-col items-center justify-center py-8">
-          <img
-            src="/maskot-hq.png"
-            alt="Bazénový mistr"
-            className="w-72 h-72 object-contain mb-3"
-          />
-          <p className="text-2xl font-semibold text-[#01384B] italic text-center">
-            „Vy zenujete, my bazénujeme."
-          </p>
-        </div>
-      </PrintBlock>
+        </PrintBlock>
+      )}
     </div>
   )
 }
@@ -749,6 +743,15 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
     return (
       <div className="min-h-screen bg-white">
         <ContentPages quote={quote} />
+      </div>
+    )
+  }
+
+  // Render closing page - always last page in document
+  if (page === 'closing') {
+    return (
+      <div className="min-h-screen bg-white">
+        <ClosingPage quote={quote} />
       </div>
     )
   }
