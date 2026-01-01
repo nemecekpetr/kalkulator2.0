@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Search, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -19,6 +20,7 @@ export function ConfigurationsFilters() {
 
   const [search, setSearch] = useState(searchParams.get('search') || '')
   const status = searchParams.get('status') || 'all'
+  const pipedrive = searchParams.get('pipedrive') || 'all'
 
   // Debounced search
   useEffect(() => {
@@ -27,9 +29,10 @@ export function ConfigurationsFilters() {
     }, 300)
 
     return () => clearTimeout(timeout)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
 
-  const updateFilters = (updates: { status?: string; search?: string }) => {
+  const updateFilters = (updates: { status?: string; pipedrive?: string; search?: string }) => {
     const params = new URLSearchParams(searchParams.toString())
 
     if (updates.status !== undefined) {
@@ -37,6 +40,14 @@ export function ConfigurationsFilters() {
         params.delete('status')
       } else {
         params.set('status', updates.status)
+      }
+    }
+
+    if (updates.pipedrive !== undefined) {
+      if (updates.pipedrive === 'all') {
+        params.delete('pipedrive')
+      } else {
+        params.set('pipedrive', updates.pipedrive)
       }
     }
 
@@ -59,43 +70,90 @@ export function ConfigurationsFilters() {
     router.push('/admin/konfigurace')
   }
 
-  const hasActiveFilters = search || status !== 'all'
+  const hasActiveFilters = search || status !== 'all' || pipedrive !== 'all'
+
+  // Get label for active status filter
+  const getStatusLabel = (value: string) => {
+    switch (value) {
+      case 'new': return 'Nové'
+      case 'processed': return 'Zpracované'
+      default: return null
+    }
+  }
+
+  // Get label for active pipedrive filter
+  const getPipedriveLabel = (value: string) => {
+    switch (value) {
+      case 'success': return 'Odesláno'
+      case 'pending': return 'Čekající'
+      case 'error': return 'Chyba'
+      default: return null
+    }
+  }
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4">
-      {/* Search */}
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Hledat podle jména, emailu, telefonu..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Hledat podle jména, emailu, telefonu..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Pipedrive status filter */}
+        <Select
+          value={pipedrive}
+          onValueChange={(value) => updateFilters({ pipedrive: value })}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Pipedrive status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všechny statusy</SelectItem>
+            <SelectItem value="success">Odesláno</SelectItem>
+            <SelectItem value="pending">Čekající</SelectItem>
+            <SelectItem value="error">Chyba</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Actions */}
+        {hasActiveFilters && (
+          <Button variant="outline" onClick={clearFilters}>
+            <X className="w-4 h-4 mr-2" />
+            Zrušit filtry
+          </Button>
+        )}
       </div>
 
-      {/* Status filter */}
-      <Select
-        value={status}
-        onValueChange={(value) => updateFilters({ status: value })}
-      >
-        <SelectTrigger className="w-full sm:w-48">
-          <SelectValue placeholder="Pipedrive status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Všechny statusy</SelectItem>
-          <SelectItem value="success">Odesláno</SelectItem>
-          <SelectItem value="pending">Čekající</SelectItem>
-          <SelectItem value="error">Chyba</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {/* Actions */}
-      {hasActiveFilters && (
-        <Button variant="outline" onClick={clearFilters}>
-          <X className="w-4 h-4 mr-2" />
-          Zrušit filtry
-        </Button>
+      {/* Active filter badges */}
+      {(status !== 'all' || pipedrive !== 'all') && (
+        <div className="flex flex-wrap gap-2">
+          {status !== 'all' && (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer hover:bg-secondary/80"
+              onClick={() => updateFilters({ status: 'all' })}
+            >
+              Stav: {getStatusLabel(status)}
+              <X className="w-3 h-3 ml-1" />
+            </Badge>
+          )}
+          {pipedrive !== 'all' && (
+            <Badge
+              variant="secondary"
+              className="cursor-pointer hover:bg-secondary/80"
+              onClick={() => updateFilters({ pipedrive: 'all' })}
+            >
+              Pipedrive: {getPipedriveLabel(pipedrive)}
+              <X className="w-3 h-3 ml-1" />
+            </Badge>
+          )}
+        </div>
       )}
     </div>
   )

@@ -10,6 +10,14 @@ npm run build            # Production build
 npm run lint             # Run ESLint
 npm run start            # Start production server
 npx supabase db push     # Apply database migrations
+
+# Release management (standard-version)
+npm run release:patch    # Bump patch version (0.0.x)
+npm run release:minor    # Bump minor version (0.x.0)
+npm run release:major    # Bump major version (x.0.0)
+
+# Changelog translation
+npm run changelog:translate  # Auto-translate CHANGELOG.md entries to Czech user descriptions
 ```
 
 ## Architecture
@@ -54,6 +62,8 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - `/admin/uzivatele` is admin-only (role check in middleware)
 - `/admin/produkty/mapovani`: Product mapping rules editor
 - `/admin/produkty/cenik-bazenu`: Pool base prices editor
+- `/admin/nastaveni`: Settings hub with sub-pages for products and users
+- `/admin/novinky`: Changelog page showing version history with user-friendly Czech descriptions
 
 **Quotes System**
 - Creates formal quotes from configurations with line items
@@ -175,6 +185,20 @@ Zod schemas in `src/lib/validations/configuration.ts` define all pool configurat
 Located in `supabase/migrations/`:
 - Run `npx supabase db push` to apply migrations to local/remote database
 - Migrations are numbered by date (e.g., `20251225000001_product_mapping.sql`)
+
+### Changelog System
+
+User-friendly changelog displayed in admin at `/admin/novinky`:
+- `src/lib/changelog.ts`: Parses CHANGELOG.md
+- `src/lib/changelog-data.ts`: Stores user-friendly Czech descriptions per version
+- `scripts/generate-user-descriptions.ts`: Uses Claude API to auto-translate technical commits to Czech user descriptions
+- Run `npm run changelog:translate` after releases to generate descriptions (requires `ANTHROPIC_API_KEY`)
+
+### Git Workflow
+
+- Husky pre-commit hooks with commitlint
+- Commit format: `type(scope): description` (e.g., `feat(quotes): add PDF export`)
+- Standard-version for automatic versioning and CHANGELOG.md generation
 
 ## Environment Variables
 

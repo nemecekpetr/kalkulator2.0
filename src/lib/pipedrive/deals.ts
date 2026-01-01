@@ -76,7 +76,28 @@ export interface CreateDealData {
   value?: number
   currency?: string
   visible_to?: 1 | 3 | 5 | 7 // 1=owner, 3=owner's group, 5=entire company, 7=everyone
+  source?: number // Custom field for deal source (enum option ID)
 }
+
+// Pipedrive custom field API keys
+const PIPEDRIVE_CUSTOM_FIELDS = {
+  // "Zdroj" field - where the deal came from (enum type)
+  source: '07bb20cb4f4ab20a15d40490c2a96b2ce50267d4',
+} as const
+
+// Pipedrive enum option IDs for "Zdroj" field
+export const PIPEDRIVE_SOURCE_OPTIONS = {
+  POPTAVKA_WEB: 43,
+  KONFIGURATOR: 112,
+  PRODEJNA: 46,
+  TELEFON_EMAIL: 97,
+  DOPORUCENI: 44,
+  FB_LEADS: 49,
+  GOOGLE_LEADS: 50,
+  OPTIMONK: 61,
+  AAA_POPTAVKY: 57,
+  E_POPTAVKY: 58,
+} as const
 
 export interface AddProductToDealData {
   product_id: number
@@ -283,17 +304,28 @@ class PipedriveDealsClient {
    * Create a new deal
    */
   async createDeal(data: CreateDealData): Promise<PipedriveDeal> {
+    // Build request body with optional custom fields
+    const body: Record<string, unknown> = {
+      title: data.title,
+      person_id: data.person_id,
+      pipeline_id: data.pipeline_id,
+      stage_id: data.stage_id,
+      value: data.value,
+      currency: data.currency || 'CZK',
+      visible_to: data.visible_to || 3,
+    }
+
+    // Add source custom field if provided (enum ID)
+    if (data.source !== undefined) {
+      body[PIPEDRIVE_CUSTOM_FIELDS.source] = data.source
+      console.log('[Pipedrive] Adding source field:', PIPEDRIVE_CUSTOM_FIELDS.source, '=', data.source)
+    }
+
+    console.log('[Pipedrive] Creating deal with body:', JSON.stringify(body, null, 2))
+
     const response = await this.fetch<PipedriveDeal>('/deals', {
       method: 'POST',
-      body: JSON.stringify({
-        title: data.title,
-        person_id: data.person_id,
-        pipeline_id: data.pipeline_id,
-        stage_id: data.stage_id,
-        value: data.value,
-        currency: data.currency || 'CZK',
-        visible_to: data.visible_to || 3,
-      }),
+      body: JSON.stringify(body),
     })
 
     return response.data

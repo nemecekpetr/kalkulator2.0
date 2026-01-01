@@ -12,7 +12,7 @@ import {
   generateConfigurationEmailHtml,
   generateConfigurationEmailText,
 } from '@/lib/email/templates/configuration-confirmation'
-import { createPipedriveDealsClient } from '@/lib/pipedrive/deals'
+import { createPipedriveDealsClient, PIPEDRIVE_SOURCE_OPTIONS } from '@/lib/pipedrive/deals'
 import { generateQuoteItemsFromConfiguration } from '@/lib/quote-generator'
 import { isPipedriveConfigured } from '@/lib/env'
 import {
@@ -137,6 +137,7 @@ async function processPipedrive(
       pipeline_id: pipelineId,
       stage_id: stageId,
       visible_to: 3, // Owner's visibility group
+      source: PIPEDRIVE_SOURCE_OPTIONS.KONFIGURATOR, // Set deal source to "Konfigurátor" (enum ID: 112)
     })
 
     // 4. Add note with configuration details
@@ -218,11 +219,11 @@ async function processEmail(
     const text = generateConfigurationEmailText(emailData)
 
     const result = await sendEmail({
-      to: config.contact_email,
+      to: [config.contact_email, 'bazeny@rentmil.cz'],
       subject: 'Vaše konfigurace bazénu - Rentmil',
       html,
       text,
-      replyTo: 'info@rentmil.cz',
+      replyTo: 'bazeny@rentmil.cz',
     })
 
     if (!result.success) {

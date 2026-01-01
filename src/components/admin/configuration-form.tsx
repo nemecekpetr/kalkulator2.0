@@ -289,7 +289,13 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
                     <FormItem>
                       <FormLabel>Průměr (m) *</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.1" {...field} />
+                        <Input
+                          type="number"
+                          step="0.1"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -304,7 +310,13 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
                       <FormItem>
                         <FormLabel>Délka (m) *</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.1" {...field} />
+                          <Input
+                            type="number"
+                            step="0.1"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -317,7 +329,13 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
                       <FormItem>
                         <FormLabel>Šířka (m) *</FormLabel>
                         <FormControl>
-                          <Input type="number" step="0.1" {...field} />
+                          <Input
+                            type="number"
+                            step="0.1"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -332,7 +350,13 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
                   <FormItem>
                     <FormLabel>Hloubka (m) *</FormLabel>
                     <FormControl>
-                      <Input type="number" step="0.1" {...field} />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        {...field}
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

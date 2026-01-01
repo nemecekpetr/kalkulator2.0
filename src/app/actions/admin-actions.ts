@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/require-role'
 import { revalidatePath } from 'next/cache'
-import { createPipedriveDealsClient } from '@/lib/pipedrive/deals'
+import { createPipedriveDealsClient, PIPEDRIVE_SOURCE_OPTIONS } from '@/lib/pipedrive/deals'
 import { generateQuoteItemsFromConfiguration } from '@/lib/quote-generator'
 import { sendEmail } from '@/lib/email/client'
 import {
@@ -139,6 +139,7 @@ export async function retryPipedriveSync(id: string) {
         pipeline_id: pipelineId,
         stage_id: stageId,
         visible_to: 3,
+        source: PIPEDRIVE_SOURCE_OPTIONS.KONFIGURATOR, // Set deal source to "Konfigurátor" (enum ID: 112)
       })
 
       // 4. Add note with configuration details

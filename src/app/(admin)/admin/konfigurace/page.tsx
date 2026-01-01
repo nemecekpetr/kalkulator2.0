@@ -12,6 +12,7 @@ import Link from 'next/link'
 interface PageProps {
   searchParams: Promise<{
     status?: string
+    pipedrive?: string
     search?: string
     page?: string
   }>
@@ -19,6 +20,7 @@ interface PageProps {
 
 async function getConfigurations(filters: {
   status?: string
+  pipedrive?: string
   search?: string
   page?: string
 }) {
@@ -33,9 +35,14 @@ async function getConfigurations(filters: {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  // Apply status filter
+  // Apply configuration status filter (new/processed)
   if (filters.status && filters.status !== 'all') {
-    query = query.eq('pipedrive_status', filters.status)
+    query = query.eq('status', filters.status)
+  }
+
+  // Apply pipedrive status filter (success/error/pending)
+  if (filters.pipedrive && filters.pipedrive !== 'all') {
+    query = query.eq('pipedrive_status', filters.pipedrive)
   }
 
   // Apply search filter
