@@ -107,10 +107,7 @@ export function ChangelogDropdown() {
                   </Badge>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm leading-snug">
-                      {item.change.scope && (
-                        <span className="font-medium">{item.change.scope}: </span>
-                      )}
-                      {item.change.description}
+                      {item.change.userDescription || item.change.description}
                     </p>
                   </div>
                 </div>

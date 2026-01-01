@@ -7,6 +7,8 @@ export interface Change {
   type: ChangeType
   scope?: string
   description: string
+  /** User-friendly description in plain Czech for non-technical users */
+  userDescription?: string
 }
 
 export interface ChangelogVersion {

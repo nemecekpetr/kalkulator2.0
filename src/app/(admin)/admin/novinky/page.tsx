@@ -144,15 +144,8 @@ export default function NovinkyPage() {
                       <Badge className={`shrink-0 ${getTypeColor(change.type)}`}>
                         {getTypeLabel(change.type)}
                       </Badge>
-                      <span className="text-sm">
-                        {change.scope && (
-                          <span className="font-medium text-foreground">
-                            {change.scope}:{' '}
-                          </span>
-                        )}
-                        <span className="text-muted-foreground">
-                          {change.description}
-                        </span>
+                      <span className="text-sm text-muted-foreground">
+                        {change.userDescription || change.description}
                       </span>
                     </li>
                   ))}

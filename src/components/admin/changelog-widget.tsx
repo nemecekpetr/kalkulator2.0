@@ -72,13 +72,8 @@ export function ChangelogWidget() {
                 >
                   {getTypeLabel(item.change.type)}
                 </Badge>
-                <span className="text-muted-foreground line-clamp-1">
-                  {item.change.scope && (
-                    <span className="font-medium text-foreground">
-                      {item.change.scope}:{' '}
-                    </span>
-                  )}
-                  {item.change.description}
+                <span className="text-muted-foreground line-clamp-2">
+                  {item.change.userDescription || item.change.description}
                 </span>
               </div>
             ))}
