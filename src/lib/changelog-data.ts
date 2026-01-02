@@ -4,9 +4,39 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.1'
+export const CURRENT_VERSION = '0.2.2'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.2',
+      date: '2026-01-03',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'bezpecnost',
+          description: 'Přidána autentizace na všechny admin API endpointy',
+          userDescription: 'Všechny administrátorské funkce jsou nyní chráněny přihlášením pro vyšší bezpečnost.'
+        },
+        {
+          type: 'feature',
+          scope: 'pdf',
+          description: 'Browser pooling pro rychlejší generování PDF',
+          userDescription: 'PDF dokumenty se nyní generují výrazně rychleji díky optimalizaci na pozadí.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Oprava validace datumových polí při ukládání objednávky',
+          userDescription: 'Opravili jsme chybu, kdy nešlo uložit objednávku s vyplněnými daty.'
+        },
+        {
+          type: 'fix',
+          scope: 'ui',
+          description: 'Oprava výšky postranního menu v administraci',
+          userDescription: 'Postranní menu v administraci se nyní správně zobrazuje na celou výšku obrazovky.'
+        }
+      ]
+    },
     {
       version: '0.2.1',
       date: '2026-01-02',
