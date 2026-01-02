@@ -4,6 +4,16 @@ import { z } from 'zod'
  * API Request validation schemas
  */
 
+// Date string validator - accepts YYYY-MM-DD or ISO datetime
+const dateString = z.string().refine((val) => {
+  if (!val) return true
+  // Accept YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return true
+  // Accept ISO datetime format
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) return true
+  return false
+}, { message: 'Invalid date format' })
+
 // Order update schema
 export const OrderUpdateSchema = z.object({
   customer_name: z.string().min(1).max(255).optional(),
@@ -12,12 +22,12 @@ export const OrderUpdateSchema = z.object({
   customer_address: z.string().max(500).optional().nullable(),
   customer_ico: z.string().max(20).optional().nullable(),
   customer_dic: z.string().max(20).optional().nullable(),
-  contract_date: z.string().datetime().optional().nullable(),
-  delivery_date: z.string().datetime().optional().nullable(),
+  contract_date: dateString.optional().nullable(),
+  delivery_date: dateString.optional().nullable(),
   delivery_address: z.string().max(500).optional().nullable(),
   deposit_amount: z.number().min(0).optional().nullable(),
-  deposit_paid_at: z.string().datetime().optional().nullable(),
-  final_payment_at: z.string().datetime().optional().nullable(),
+  deposit_paid_at: dateString.optional().nullable(),
+  final_payment_at: dateString.optional().nullable(),
   notes: z.string().max(5000).optional().nullable(),
   internal_notes: z.string().max(5000).optional().nullable(),
 }).strict()
