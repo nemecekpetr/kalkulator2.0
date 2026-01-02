@@ -4,9 +4,45 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.0'
+export const CURRENT_VERSION = '0.2.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.1',
+      date: '2026-01-02',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Rozšířená pole produktů (dodavatel, nákupní cena, marže)',
+          userDescription: 'U produktů nyní evidujete dodavatele, nákupní cenu a marži pro lepší přehled o nákladech.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Vylepšená synchronizace s Pipedrive',
+          userDescription: 'Produkty se nyní synchronizují z Pipedrive přesněji včetně všech důležitých údajů.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Nový design tiskové verze objednávky',
+          userDescription: 'Tisková verze objednávky má nový, přehlednější vzhled.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Nové kategorie produktů (zastřešení, doprava, služby)',
+          userDescription: 'Produkty lze nyní třídit do nových kategorií jako zastřešení, doprava nebo služby.'
+        },
+        {
+          type: 'fix',
+          scope: 'dokumentace',
+          description: 'Aktualizace CLAUDE.md dokumentace',
+          userDescription: 'Aktualizovali jsme interní dokumentaci projektu.'
+        }
+      ]
+    },
     {
       version: '0.2.0',
       date: '2026-01-01',
