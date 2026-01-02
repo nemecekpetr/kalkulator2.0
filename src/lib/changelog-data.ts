@@ -4,12 +4,42 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.1.0'
+export const CURRENT_VERSION = '0.2.0'
 
 export const changelogVersions: ChangelogVersion[] = [
     {
+      version: '0.2.0',
+      date: '2026-01-01',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'novinky',
+          description: 'Sekce Novinky v admin panelu s přehledem změn v aplikaci',
+          userDescription: 'Prohlédněte si přehledně všechny novinky a změny v aplikaci v nové sekci Novinky.'
+        },
+        {
+          type: 'feature',
+          scope: 'changelog',
+          description: 'Automatický překlad technických popisů do srozumitelné češtiny pomocí AI',
+          userDescription: 'Čtěte popisy změn v aplikaci v jednoduché češtině místo složitých technických pojmů.'
+        },
+        {
+          type: 'fix',
+          scope: 'pdf',
+          description: 'Stabilizace generování PDF na Railway (retry logika, pipe mód)',
+          userDescription: 'Opravili jsme problémy s vytvářením PDF souborů, které se nyní generují spolehlivěji.'
+        },
+        {
+          type: 'fix',
+          scope: 'pdf',
+          description: 'Použití Nix Chromium pro Puppeteer na Railway',
+          userDescription: 'Vylepšili jsme technické zázemí pro rychlejší a stabilnější vytváření PDF dokumentů.'
+        }
+      ]
+    },
+    {
       version: '0.1.0',
-      date: '2025-01-01',
+      date: '2025-12-30',
       changes: [
         {
           type: 'feature',
@@ -26,7 +56,7 @@ export const changelogVersions: ChangelogVersion[] = [
         {
           type: 'feature',
           scope: 'ui',
-          description: 'Vylepšený katalog produktů s tlačítkem "+" a hover efektem',
+          description: 'Vylepšený katalog produktů s tlačítkem + a hover efektem',
           userDescription: 'Procházení produktů je nyní pohodlnější díky vylepšenému vzhledu a snadnému přidávání tlačítkem.'
         },
         {
