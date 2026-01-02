@@ -78,10 +78,11 @@ export async function GET(request: Request, { params }: RouteParams) {
       </div>
     `
 
-    // Footer template
+    // Footer template with page numbers
     const footerTemplate = `
-      <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; text-align: center; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
-        Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz | www.rentmil.cz
+      <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
+        <span>Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz</span>
+        <span>Strana <span class="pageNumber"></span></span>
       </div>
     `
 

@@ -8,6 +8,7 @@ import {
   Font,
 } from '@react-pdf/renderer'
 import type { QuoteWithItems, QuoteItemCategory, QuoteVariant, QuoteItem } from '@/lib/supabase/types'
+import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 // Register Roboto font with Czech diacritics support
 Font.register({
@@ -417,14 +418,7 @@ const styles = StyleSheet.create({
   },
 })
 
-const CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
-  bazeny: 'Bazeny',
-  prislusenstvi: 'Prislusenstvi',
-  sluzby: 'Sluzby',
-  prace: 'Prace',
-  doprava: 'Doprava',
-  jine: 'Jine',
-}
+const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 interface QuoteItemWithVariantIds extends QuoteItem {
   variant_ids?: string[]

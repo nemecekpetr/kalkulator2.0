@@ -2,8 +2,33 @@
 
 const PIPEDRIVE_API_URL = 'https://api.pipedrive.com/v1'
 
-// Custom field key for "Kategorie produktu" in Pipedrive
-const PIPEDRIVE_CATEGORY_FIELD_KEY = '0bdc4ee4b33bf097f3dd7f3721cccabdad38fb24'
+// Custom field keys for Pipedrive products
+const PIPEDRIVE_FIELD_KEYS = {
+  // Old category field (deprecated)
+  OLD_CATEGORY: '0bdc4ee4b33bf097f3dd7f3721cccabdad38fb24',
+  // New custom fields (2026-01-02)
+  OLD_CODE: 'd70e3d375f86b3ca8d8aeac11c11bdec2ba07d5f',      // Starý kód
+  SUBCATEGORY: 'eb7b2f0715eb0bd4f4edc787a7453650479070c4',   // Subkategorie
+  MANUFACTURER: '8ee82611e1c0ff865111c813e90bb5a779ca59a2',  // Výrobce
+} as const
+
+// Manufacturer enum mapping (ID -> label)
+const MANUFACTURER_MAP: Record<number, string> = {
+  123: 'Rentmil',
+  124: 'AZUR',
+  125: 'BRILIX',
+  126: 'HANSKCRAFT',
+  127: 'VA',
+  128: 'NORM',
+  129: 'RAPID',
+  130: 'SEKO',
+  131: 'ZODIAC',
+  132: 'AUTOCHLOR',
+  133: 'VOYAGER',
+  134: 'VEKTRO',
+  135: 'ALUKOV',
+  136: 'ALUPOL',
+}
 
 interface PipedriveProduct {
   id: number
@@ -113,7 +138,10 @@ export function mapPipedriveProduct(product: PipedriveProduct): {
   pipedrive_id: number
   name: string
   code: string | null
+  old_code: string | null
   description: string | null
+  subcategory: string | null
+  manufacturer: string | null
   unit: string
   unit_price: number
   active: boolean
@@ -124,11 +152,40 @@ export function mapPipedriveProduct(product: PipedriveProduct): {
     ?? product.prices?.[0]?.price
     ?? 0
 
+  // Get custom fields
+  const oldCode = product[PIPEDRIVE_FIELD_KEYS.OLD_CODE]
+  const subcategory = product[PIPEDRIVE_FIELD_KEYS.SUBCATEGORY]
+  const manufacturerId = product[PIPEDRIVE_FIELD_KEYS.MANUFACTURER]
+
+  // Resolve manufacturer from enum ID
+  // Pipedrive returns enum values as string numbers (e.g., "123")
+  let manufacturer: string | null = null
+  if (manufacturerId != null) {
+    let mfgId: number | undefined
+    if (typeof manufacturerId === 'string') {
+      const parsed = parseInt(manufacturerId, 10)
+      if (!isNaN(parsed)) {
+        mfgId = parsed
+      } else {
+        // If it's a non-numeric string, use it directly (label)
+        manufacturer = manufacturerId
+      }
+    } else if (typeof manufacturerId === 'number') {
+      mfgId = manufacturerId
+    }
+    if (mfgId !== undefined && MANUFACTURER_MAP[mfgId]) {
+      manufacturer = MANUFACTURER_MAP[mfgId]
+    }
+  }
+
   return {
     pipedrive_id: product.id,
     name: product.name,
     code: product.code,
+    old_code: typeof oldCode === 'string' ? oldCode : null,
     description: product.description,
+    subcategory: typeof subcategory === 'string' ? subcategory : null,
+    manufacturer,
     unit: product.unit || 'ks',
     unit_price: price,
     active: product.active_flag,
@@ -136,18 +193,10 @@ export function mapPipedriveProduct(product: PipedriveProduct): {
   }
 }
 
-// Get product category from custom field "Kategorie produktu"
+// Get product category from standard category field
 export function getProductCategory(product: PipedriveProduct): string | null {
-  const categoryValue = product[PIPEDRIVE_CATEGORY_FIELD_KEY]
-
-  // Custom field can be string or null
-  if (typeof categoryValue === 'string') {
-    return categoryValue
-  }
-
-  // Fallback to standard category field
   return product.category
 }
 
 export type { PipedriveProduct }
-export { PIPEDRIVE_CATEGORY_FIELD_KEY }
+export { PIPEDRIVE_FIELD_KEYS, MANUFACTURER_MAP }

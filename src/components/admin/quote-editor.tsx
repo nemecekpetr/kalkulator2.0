@@ -59,6 +59,7 @@ import {
   getTechnologyLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
+import { QUOTE_CATEGORY_LABELS, QUOTE_CATEGORY_ORDER } from '@/lib/constants/categories'
 
 interface QuoteItem {
   id: string
@@ -103,14 +104,8 @@ interface QuoteEditorProps {
   }
 }
 
-const CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
-  bazeny: 'Bazény',
-  prislusenstvi: 'Příslušenství',
-  sluzby: 'Služby',
-  prace: 'Práce',
-  doprava: 'Doprava',
-  jine: 'Jiné',
-}
+// Use centralized category labels from constants
+const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 const DEFAULT_VARIANTS: QuoteVariantState[] = [
   { key: 'ekonomicka', name: 'Ekonomická', discount_percent: 0, discount_amount: 0 },
@@ -200,9 +195,9 @@ function SortableQuoteItem({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
+            {QUOTE_CATEGORY_ORDER.map((category) => (
+              <SelectItem key={category} value={category}>
+                {CATEGORY_LABELS[category]}
               </SelectItem>
             ))}
           </SelectContent>

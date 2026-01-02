@@ -30,7 +30,7 @@ import {
 } from 'lucide-react'
 import { OrderStatusBadge } from '@/components/admin/order-status-badge'
 import { CreateProductionButton } from '@/components/admin/create-production-button'
-import type { Order, OrderItem, QuoteItemCategory, PoolDimensions, OrderStatus } from '@/lib/supabase/types'
+import type { Order, OrderItem, PoolDimensions } from '@/lib/supabase/types'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -41,6 +41,7 @@ import {
   getRoofingLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
+import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,14 +60,8 @@ interface PoolConfig {
   roofing?: string
 }
 
-const CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
-  bazeny: 'Bazeny',
-  prislusenstvi: 'Prislusenstvi',
-  sluzby: 'Sluzby',
-  prace: 'Prace',
-  doprava: 'Doprava',
-  jine: 'Jine',
-}
+// Use centralized category labels (with proper Czech diacritics)
+const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 async function getOrder(id: string) {
   const supabase = await createAdminClient()

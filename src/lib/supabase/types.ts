@@ -13,8 +13,24 @@ export type ConfigurationSource = 'web' | 'manual' | 'phone'
 export type UserRole = 'admin' | 'user'
 
 // Quote types
-export type ProductCategory = 'bazeny' | 'prislusenstvi' | 'sluzby' | 'doprava'
-export type QuoteItemCategory = 'bazeny' | 'prislusenstvi' | 'sluzby' | 'prace' | 'doprava' | 'jine'
+export type ProductCategory =
+  | 'bazeny'
+  | 'zastreseni'
+  | 'sluzby'
+  | 'doprava'
+  | 'prislusenstvi'
+  | 'schodiste'
+  | 'uprava_vody'
+  | 'protiproud'
+  | 'technologie'
+  | 'material'
+  | 'ohrev'
+  | 'osvetleni'
+  | 'cisteni'
+  | 'chemie'
+  | 'jine'
+  | 'sety'
+export type QuoteItemCategory = ProductCategory | 'prace'
 
 // Configuration status - lifecycle of a configuration
 export type ConfigurationStatus = 'new' | 'processed'
@@ -215,8 +231,11 @@ export interface Product {
   pipedrive_synced_at: string | null
   name: string
   code: string | null
+  old_code: string | null
   description: string | null
   category: ProductCategory
+  subcategory: string | null
+  manufacturer: string | null
   unit_price: number
   unit: string
   image_url: string | null
@@ -229,8 +248,11 @@ export interface ProductInsert {
   pipedrive_synced_at?: string | null
   name: string
   code?: string | null
+  old_code?: string | null
   description?: string | null
   category: ProductCategory
+  subcategory?: string | null
+  manufacturer?: string | null
   unit_price?: number
   unit?: string
   image_url?: string | null
@@ -242,8 +264,11 @@ export interface ProductUpdate {
   pipedrive_synced_at?: string | null
   name?: string
   code?: string | null
+  old_code?: string | null
   description?: string | null
   category?: ProductCategory
+  subcategory?: string | null
+  manufacturer?: string | null
   unit_price?: number
   unit?: string
   image_url?: string | null

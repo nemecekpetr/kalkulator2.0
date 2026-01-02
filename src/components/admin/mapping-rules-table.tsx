@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { AlertCircle, Check, Loader2, Package, Wand2 } from 'lucide-react'
+import { AlertCircle, Check, Loader2, Package, Plus, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/utils'
 import type { ProductMappingRule, Product } from '@/lib/supabase/types'
@@ -125,9 +125,33 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
   const [active, setActive] = useState<boolean>(true)
   const [saving, setSaving] = useState(false)
   const [autoAssigning, setAutoAssigning] = useState(false)
+  const [seeding, setSeeding] = useState(false)
 
   // Count rules without products
   const rulesWithoutProducts = rules.filter(r => !r.product_id).length
+
+  const handleSeedRules = async () => {
+    setSeeding(true)
+    try {
+      const response = await fetch('/api/admin/mapping-rules/seed', {
+        method: 'POST',
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success(result.message)
+        router.refresh()
+      } else {
+        toast.error(result.error || 'Chyba při vytváření pravidel')
+      }
+    } catch (err) {
+      console.error('Seed error:', err)
+      toast.error('Chyba připojení')
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   const handleAutoAssign = async () => {
     setAutoAssigning(true)
@@ -225,6 +249,35 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
     prislusenstvi: 'Příslušenství',
     sluzby: 'Služby',
     doprava: 'Doprava',
+  }
+
+  // If no rules exist, show seed button
+  if (rules.length === 0) {
+    return (
+      <div className="p-8 text-center border-2 border-dashed border-gray-300 rounded-lg">
+        <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Žádná pravidla mapování
+        </h3>
+        <p className="text-gray-500 mb-6">
+          Pravidla mapování propojují volby z konfigurátoru s produkty v nabídce.
+          <br />
+          Klikněte na tlačítko pro vytvoření výchozích pravidel.
+        </p>
+        <Button
+          onClick={handleSeedRules}
+          disabled={seeding}
+          size="lg"
+        >
+          {seeding ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4 mr-2" />
+          )}
+          Vytvořit výchozí pravidla
+        </Button>
+      </div>
+    )
   }
 
   return (

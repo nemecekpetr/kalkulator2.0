@@ -3,13 +3,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import type { QuoteVariantKey } from '@/lib/supabase/types'
+import { QUOTE_CATEGORIES } from '@/lib/constants/categories'
 
 const QuoteItemSchema = z.object({
   id: z.string().optional(), // For tracking during edit
   product_id: z.string().nullable(),
   name: z.string().min(1),
   description: z.string().optional(),
-  category: z.enum(['bazeny', 'prislusenstvi', 'sluzby', 'prace', 'doprava', 'jine']),
+  category: z.enum(QUOTE_CATEGORIES as [string, ...string[]]),
   quantity: z.number().min(0),
   unit: z.string(),
   unit_price: z.number().min(0),

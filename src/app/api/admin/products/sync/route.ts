@@ -4,16 +4,28 @@ import { createPipedriveClient, mapPipedriveProduct } from '@/lib/pipedrive/clie
 import type { ProductCategory } from '@/lib/supabase/types'
 
 // Map Pipedrive category ID to our categories
-// Pipedrive uses numeric IDs for categories
+// Updated 2026-01-02 with all categories from Pipedrive
 const PIPEDRIVE_CATEGORY_IDS: Record<string, ProductCategory> = {
-  '102': 'bazeny',         // Bazény (skelety)
-  '109': 'sluzby',         // Služby (technologie, montáž)
+  '102': 'bazeny',         // Bazény
+  '108': 'zastreseni',     // Zastřešení
+  '109': 'sluzby',         // Služby
   '110': 'doprava',        // Doprava
-  '111': 'prislusenstvi',  // Příslušenství (schodiště, osvětlení, etc.)
+  '111': 'prislusenstvi',  // Příslušenství
+  '113': 'schodiste',      // Schodiště
+  '114': 'uprava_vody',    // Úprava vody
+  '115': 'protiproud',     // Protiproud
+  '116': 'technologie',    // Technologie
+  '117': 'material',       // Materiál
+  '118': 'ohrev',          // Ohřev
+  '119': 'osvetleni',      // Osvětlení
+  '120': 'cisteni',        // Čištění
+  '121': 'chemie',         // Chemie
+  '122': 'jine',           // Jiné
+  '137': 'sety',           // Sety
 }
 
 function mapCategory(pipedriveCategory: string | null): ProductCategory {
-  if (!pipedriveCategory) return 'prislusenstvi'
+  if (!pipedriveCategory) return 'jine'
 
   const categoryId = pipedriveCategory.trim()
 
@@ -23,7 +35,7 @@ function mapCategory(pipedriveCategory: string | null): ProductCategory {
 
   // Fallback for any new/unknown categories
   console.log('Unknown Pipedrive category ID:', categoryId)
-  return 'prislusenstvi'
+  return 'jine'
 }
 
 export async function POST(request: Request) {

@@ -83,7 +83,7 @@ function LoginForm() {
           {/* Tagline */}
           <div className="mt-8 text-center">
             <p className="text-2xl font-semibold text-white/90 italic">
-              „Vy zenujete, my bazénujeme."
+              &bdquo;Vy zenujete, my bazénujeme.&ldquo;
             </p>
           </div>
         </div>

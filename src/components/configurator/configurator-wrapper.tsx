@@ -94,7 +94,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     }
   }, [embedded, getAllowedOrigins])
 
-  // Handle hydration
+  // Handle hydration - using useLayoutEffect pattern with flushSync alternative
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -297,7 +298,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
                   </div>
                 </div>
                 <p className="text-center text-sm text-[#01384B]/70 italic mt-2">
-                  „Vy zenujete, my bazenujeme."
+                  &bdquo;Vy zenujete, my bazénujeme.&ldquo;
                 </p>
               </div>
             </div>

@@ -19,6 +19,7 @@ npm run release          # Create release (bumps version, updates CHANGELOG.md)
 npm run release:patch    # Patch release (0.0.x)
 npm run release:minor    # Minor release (0.x.0)
 npm run release:major    # Major release (x.0.0)
+npm run release:first    # First release (0.1.0, no version bump)
 npm run changelog:translate  # Auto-translate changelog to user-friendly Czech (requires ANTHROPIC_API_KEY)
 ```
 
@@ -27,11 +28,51 @@ Git hooks enforce lint (pre-commit) and commit message format (commitlint).
 
 ## Architecture
 
-This is a pool configurator application for Rentmil (Czech pool manufacturer) built with Next.js 16.1 App Router, Supabase, and TypeScript.
+This is a pool configurator application for Rentmil (Czech pool manufacturer) built with Next.js 16 App Router, Supabase, and TypeScript.
 
 **Language**: Czech application - UI texts, URL slugs (`/admin/uzivatele`, `/admin/objednavky`), and database values are in Czech.
 
-### Data Flow (Lifecycle)
+## Brand Guidelines
+
+Brandboard: `/graphic/brandboard.pdf`
+
+### Brand Message
+- **Koncept**: "Bazénový Zen" - Rentmil prodává bezstarostný režim na zahradě, ne jen bazény
+- **Hlavní slogan**: "Vy zenujete, my bazénujeme." (slovní hříčka zen + bazén)
+- **Varianty**: "Vy zenujete, my servisujeme / zazimujeme / čistíme"
+- **Tagline**: "Rentmil - Bazénový mistr" nebo "Váš bazénový mistr"
+
+### USP (komunikovat)
+- Klidovost, relaxace
+- Recenze, spokojenost zákazníků
+
+### Nekomunikovat
+- Vodní sporty
+- Dětskost
+
+### Barvy
+- **Rentmil modrá**: `#01384B` (primární, tmavá)
+- **Rentmil vodová**: `#48A9A6` (sekundární, tyrkysová)
+- **Růžová snová**: `#ED6663` (akcent)
+- **Rentmil oranžová**: `#FF8621` (akcent)
+- **Snový gradient**: `#FF8621 → #ED6663` (CTA, důležité prvky)
+
+### Typografie
+- **Nadpisy**: Forma DJR Display
+- **Text**: Nunito Sans
+
+### Vizuální styl
+- **Pohyb**: Pomalá levitace, jakoby na vodě
+- **Kompozice**: Osová souměrnost, Wes Anderson style
+- **Efekty**: Glassmorphism, zasněné obličeje
+- **Maskot**: "Bazénový mistr" - postavička v oranžovém tričku
+
+### Assets
+- Logo: `/public/logo-transparent.svg`
+- Maskot: `/public/maskot-holding-hq.png`, `/public/maskot-hq.png`
+- Hero foto: `/public/pool-hero.jpg`
+
+## Data Flow (Lifecycle)
 
 ```
 Konfigurace → Nabídka → Objednávka → Výroba
@@ -43,7 +84,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 3. Accepted quote converts to order (objednávka)
 4. Order triggers production tracking (výroba) with checklist
 
-### Core Components
+## Core Components
 
 **Public Configurator** (`/`)
 - 11-step wizard for customers to configure pool specifications
@@ -65,8 +106,8 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Dashboard, configurations management, quotes management, products, user management
 - Route groups: `(admin)/admin/` for admin layouts
 - `/admin/uzivatele` is admin-only (role check in middleware)
+- `/admin/profil`: User profile settings
 - `/admin/produkty/mapovani`: Product mapping rules editor
-- `/admin/produkty/cenik-bazenu`: Pool base prices editor
 - `/admin/nastaveni`: Settings hub with sub-pages for products and users
 - `/admin/novinky`: Changelog page showing version history with user-friendly Czech descriptions
 
@@ -88,7 +129,11 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Created from orders, one production per order
 - Production statuses: `pending`, `in_progress`, `completed`, `cancelled`
 - Includes production checklist items for tracking build progress
-- PDF print view for production sheets at `/production/[id]/print`
+
+**Print Views** (public routes for PDF generation)
+- `/quotes/[id]/print`: Quote print view
+- `/orders/[id]/print`: Order print view
+- `/production/[id]/print`: Production sheet print view
 
 **Product Mapping System**
 - Maps configurator choices to products for automatic quote generation
@@ -121,16 +166,16 @@ Located in `src/app/actions/`:
 ### API Routes
 
 Located in `src/app/api/admin/`:
-- **quotes/**: CRUD, PDF generation, versioning, status updates, convert to order
+- **quotes/**: CRUD, PDF generation, versioning, status updates, convert to order, generate-items
 - **orders/**: CRUD, PDF generation, status updates
 - **production/**: CRUD, PDF generation, checklist items
-- **products/**: Pipedrive sync, bulk operations
+- **products/**: Pipedrive sync, bulk operations (bulk-update, bulk-delete)
 - **mapping-rules/**: Product mapping CRUD, auto-assign
+- **sidebar-counts/**: Badge counts for admin sidebar
+- **export/**: Data export
 
 Other routes:
-- `/api/health`: Health check for Railway
-- `/api/admin/sidebar-counts`: Badge counts for admin sidebar
-- `/api/admin/export`: Data export
+- `/api/health`: Health check endpoint for Railway deployment
 
 ### Deployment
 
@@ -184,14 +229,6 @@ Zod schemas in `src/lib/validations/configuration.ts` define all pool configurat
 Located in `supabase/migrations/`:
 - Run `npx supabase db push` to apply migrations to local/remote database
 - Migrations are numbered by date (e.g., `20251225000001_product_mapping.sql`)
-
-### Changelog System
-
-User-friendly changelog displayed in admin at `/admin/novinky`:
-- `src/lib/changelog.ts`: Parses CHANGELOG.md
-- `src/lib/changelog-data.ts`: Stores user-friendly Czech descriptions per version
-- `scripts/generate-user-descriptions.ts`: Uses Claude API to auto-translate technical commits to Czech user descriptions
-- Run `npm run changelog:translate` after releases to generate descriptions (requires `ANTHROPIC_API_KEY`)
 
 ### Git Workflow
 

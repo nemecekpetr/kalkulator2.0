@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 import { QuoteVersions } from '@/components/admin/quote-versions'
 import { QuoteStatusBadge } from '@/components/admin/quote-status-badge'
-import type { Quote, QuoteItem, QuoteItemCategory, PoolDimensions, QuoteVariant, QuoteVariantKey, QuoteStatus } from '@/lib/supabase/types'
+import type { Quote, QuoteItem, PoolDimensions, QuoteVariant, QuoteStatus } from '@/lib/supabase/types'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -47,6 +47,7 @@ import {
   getRoofingLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
+import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -71,14 +72,8 @@ interface QuoteItemWithVariants extends QuoteItem {
   variant_ids: string[]
 }
 
-const CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
-  bazeny: 'Bazény',
-  prislusenstvi: 'Příslušenství',
-  sluzby: 'Služby',
-  prace: 'Práce',
-  doprava: 'Doprava',
-  jine: 'Jiné',
-}
+// Use centralized category labels
+const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 async function getQuote(id: string) {
   const supabase = await createAdminClient()

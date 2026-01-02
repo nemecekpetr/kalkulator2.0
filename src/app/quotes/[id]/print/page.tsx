@@ -1,20 +1,15 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Quote, QuoteItem, QuoteItemCategory, UserProfile, QuoteVariant } from '@/lib/supabase/types'
+import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 interface PageProps {
   params: Promise<{ id: string }>
   searchParams: Promise<{ page?: string; variant?: string; last?: string }>
 }
 
-const CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
-  bazeny: 'Bazény',
-  prislusenstvi: 'Příslušenství',
-  sluzby: 'Služby',
-  prace: 'Práce',
-  doprava: 'Doprava',
-  jine: 'Jiné',
-}
+// Use centralized category labels
+const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 interface QuoteItemWithVariantIds extends QuoteItem {
   variant_ids?: string[]
