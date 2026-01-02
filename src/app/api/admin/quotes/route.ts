@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import type { QuoteVariantKey } from '@/lib/supabase/types'
 import { QUOTE_CATEGORIES } from '@/lib/constants/categories'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 const QuoteItemSchema = z.object({
   id: z.string().optional(), // For tracking during edit
@@ -44,6 +44,9 @@ const QuoteSchema = z.object({
 
 // GET - list all quotes with variants
 export async function GET() {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const supabase = await createAdminClient()
 
@@ -97,13 +100,13 @@ export async function GET() {
 
 // POST - create new quote with variants
 export async function POST(request: Request) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+  const { user } = authResult
+
   try {
     const body = await request.json()
     const validatedData = QuoteSchema.parse(body)
-
-    // Get current user ID for created_by
-    const supabaseClient = await createClient()
-    const { data: { user } } = await supabaseClient.auth.getUser()
 
     const supabase = await createAdminClient()
 
@@ -249,6 +252,9 @@ export async function POST(request: Request) {
 
 // PUT - update existing quote with variants
 export async function PUT(request: Request) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const body = await request.json()
     const validatedData = QuoteSchema.parse(body)

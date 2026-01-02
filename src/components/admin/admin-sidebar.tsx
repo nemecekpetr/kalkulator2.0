@@ -97,7 +97,7 @@ export function AdminSidebar() {
 
   return (
     <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-      <div className="flex min-h-0 flex-1 flex-col bg-gradient-to-br from-[#01384B] via-[#025a6e] to-[#48A9A6] relative overflow-hidden">
+      <div className="flex h-full flex-col bg-gradient-to-br from-[#01384B] via-[#025a6e] to-[#48A9A6] relative overflow-hidden">
         {/* Decorative circles */}
         <div className="absolute top-10 -left-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-40 -right-10 w-60 h-60 bg-[#48A9A6]/20 rounded-full blur-3xl" />
@@ -154,24 +154,24 @@ export function AdminSidebar() {
           })}
         </nav>
 
-        {/* Mascot */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4">
-          <div className="animate-float">
+        {/* Mascot - flexible area that shrinks if needed */}
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 min-h-0 overflow-hidden">
+          <div className="animate-float flex-shrink-0">
             <Image
               src="/maskot-holding.png"
               alt="Rentmil maskot"
-              width={180}
-              height={180}
+              width={120}
+              height={120}
               className="object-contain opacity-90 drop-shadow-lg"
             />
           </div>
-          <p className="mt-4 mb-8 text-lg font-semibold text-white/90 italic text-center leading-tight">
+          <p className="mt-2 text-sm font-semibold text-white/90 italic text-center leading-tight flex-shrink-0">
             „Vy zenujete,<br />my bazénujeme."
           </p>
         </div>
 
-        {/* Footer */}
-        <div className="relative z-10 p-4 border-t border-white/10 space-y-2">
+        {/* Footer - always visible at bottom */}
+        <div className="relative z-10 p-4 border-t border-white/10 space-y-2 flex-shrink-0">
           <Link
             href="/admin/nastaveni"
             className={cn(

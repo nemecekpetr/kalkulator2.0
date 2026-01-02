@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { OrderStatus } from '@/lib/supabase/types'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -9,6 +10,9 @@ interface RouteParams {
 const VALID_STATUSES: OrderStatus[] = ['created', 'sent', 'in_production']
 
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id } = await params
     const body = await request.json()

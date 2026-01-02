@@ -12,16 +12,14 @@ import {
   getRoofingLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const supabase = await createAdminClient()
-
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 })
-    }
 
     // Get filters from query params
     const searchParams = request.nextUrl.searchParams

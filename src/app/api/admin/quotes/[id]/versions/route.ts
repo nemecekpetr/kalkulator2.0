@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { QuoteVersion, Quote, QuoteItem } from '@/lib/supabase/types'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -8,6 +9,9 @@ interface RouteParams {
 
 // GET - list all versions for a quote
 export async function GET(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id } = await params
     const supabase = await createAdminClient()
@@ -32,6 +36,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 // POST - create a new version (snapshot current state)
 export async function POST(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id } = await params
     const body = await request.json()

@@ -1,29 +1,18 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { generateQuoteItemsFromConfiguration } from '@/lib/quote-generator'
 import type { Configuration } from '@/lib/supabase/types'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 /**
  * POST /api/admin/quotes/generate-items
  * Generate quote items from a configuration
  */
 export async function POST(request: Request) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+  const { supabase } = authResult
+
   try {
-    const supabase = await createClient()
-
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    // Parse request body
     const body = await request.json()
     const { configurationId } = body
 

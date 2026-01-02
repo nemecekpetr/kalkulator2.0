@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import puppeteer from 'puppeteer'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
 import path from 'path'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
+import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
+import type { Browser, Page } from 'puppeteer'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -22,7 +24,11 @@ async function getLogoDataUri(): Promise<string> {
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  let browser = null
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
+  let browser: Browser | null = null
+  let page: Page | null = null
 
   try {
     const { id } = await params
@@ -45,20 +51,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     console.log('Generating PDF for order:', order.order_number)
 
-    // Launch Puppeteer (configured for Railway deployment)
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process',
-      ],
-    })
-
-    const page = await browser.newPage()
+    // Get browser from pool
+    browser = await getBrowser()
+    page = await browser.newPage()
 
     // Set viewport for A4
     await page.setViewport({
@@ -204,13 +199,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       { status: 500 }
     )
   } finally {
-    // Always cleanup browser instance
-    if (browser) {
+    // Close page, browser will be reused from pool
+    if (page) {
       try {
-        await browser.close()
-      } catch (closeError) {
-        console.error('Error closing browser:', closeError)
+        await page.close()
+      } catch {
+        // Ignore page close errors
       }
+    }
+    if (browser) {
+      await closeBrowser(browser)
     }
   }
 }

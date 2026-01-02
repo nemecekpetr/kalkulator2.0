@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createPipedriveClient, mapPipedriveProduct } from '@/lib/pipedrive/client'
 import type { ProductCategory } from '@/lib/supabase/types'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 // Map Pipedrive category ID to our categories
 // Updated 2026-01-02 with all categories from Pipedrive
@@ -39,18 +40,25 @@ function mapCategory(pipedriveCategory: string | null): ProductCategory {
 }
 
 export async function POST(request: Request) {
-  try {
-    // Check for authorization (simple API key or session check)
-    const authHeader = request.headers.get('authorization')
-    const expectedKey = process.env.ADMIN_API_KEY
+  // Check for API key auth first, then fall back to session auth
+  const authHeader = request.headers.get('authorization')
+  const expectedKey = process.env.ADMIN_API_KEY
 
-    // If ADMIN_API_KEY is set, validate it
+  // If API key is provided, validate it
+  if (authHeader) {
     if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
       return NextResponse.json(
         { error: 'Neautorizovaný přístup' },
         { status: 401 }
       )
     }
+  } else {
+    // No API key - require session auth
+    const authResult = await requireAuth()
+    if (isAuthError(authResult)) return authResult.error
+  }
+
+  try {
 
     // Check if Pipedrive is configured
     if (!process.env.PIPEDRIVE_API_TOKEN) {
@@ -146,6 +154,9 @@ export async function POST(request: Request) {
 
 // GET to check sync status / last sync time
 export async function GET() {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const supabase = await createAdminClient()
 

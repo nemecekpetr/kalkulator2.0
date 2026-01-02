@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Quote, QuoteItem } from '@/lib/supabase/types'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 interface RouteParams {
   params: Promise<{ id: string; versionId: string }>
@@ -8,6 +9,9 @@ interface RouteParams {
 
 // POST - restore a quote to a specific version
 export async function POST(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id, versionId } = await params
     const supabase = await createAdminClient()

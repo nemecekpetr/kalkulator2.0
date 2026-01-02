@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -7,6 +8,9 @@ interface RouteParams {
 
 // Update item checked status
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id: productionOrderId } = await params
     const body = await request.json()
@@ -55,6 +59,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
 // Add new item to production order
 export async function POST(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id: productionOrderId } = await params
     const body = await request.json()
@@ -101,6 +108,9 @@ export async function POST(request: Request, { params }: RouteParams) {
 
 // Delete item from production order
 export async function DELETE(request: Request, { params }: RouteParams) {
+  const authResult = await requireAuth()
+  if (isAuthError(authResult)) return authResult.error
+
   try {
     const { id: productionOrderId } = await params
     const { searchParams } = new URL(request.url)
