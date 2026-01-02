@@ -62,31 +62,15 @@ import {
   MoreHorizontal,
   Layers,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Product, ProductCategory } from '@/lib/supabase/types'
+import { PRODUCT_CATEGORY_LABELS, PRODUCT_CATEGORY_COLORS } from '@/lib/constants/categories'
 
 interface ProductsTableProps {
   products: Product[]
 }
 
-const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  bazeny: 'Bazény',
-  zastreseni: 'Zastřešení',
-  sluzby: 'Služby',
-  doprava: 'Doprava',
-  prislusenstvi: 'Příslušenství',
-  schodiste: 'Schodiště',
-  uprava_vody: 'Úprava vody',
-  protiproud: 'Protiproud',
-  technologie: 'Technologie',
-  material: 'Materiál',
-  ohrev: 'Ohřev',
-  osvetleni: 'Osvětlení',
-  cisteni: 'Čištění',
-  chemie: 'Chemie',
-  jine: 'Jiné',
-  sety: 'Sety',
-}
-
+// Icons for each category (kept local as these are UI-specific)
 const CATEGORY_ICONS: Record<ProductCategory, typeof Waves> = {
   bazeny: Waves,
   zastreseni: Home,
@@ -104,25 +88,6 @@ const CATEGORY_ICONS: Record<ProductCategory, typeof Waves> = {
   chemie: FlaskConical,
   jine: MoreHorizontal,
   sety: Layers,
-}
-
-const CATEGORY_COLORS: Record<ProductCategory, string> = {
-  bazeny: 'bg-blue-100 text-blue-800',
-  zastreseni: 'bg-slate-100 text-slate-800',
-  sluzby: 'bg-orange-100 text-orange-800',
-  doprava: 'bg-green-100 text-green-800',
-  prislusenstvi: 'bg-purple-100 text-purple-800',
-  schodiste: 'bg-amber-100 text-amber-800',
-  uprava_vody: 'bg-cyan-100 text-cyan-800',
-  protiproud: 'bg-sky-100 text-sky-800',
-  technologie: 'bg-indigo-100 text-indigo-800',
-  material: 'bg-stone-100 text-stone-800',
-  ohrev: 'bg-red-100 text-red-800',
-  osvetleni: 'bg-yellow-100 text-yellow-800',
-  cisteni: 'bg-teal-100 text-teal-800',
-  chemie: 'bg-lime-100 text-lime-800',
-  jine: 'bg-gray-100 text-gray-800',
-  sety: 'bg-violet-100 text-violet-800',
 }
 
 type SortField = 'name' | 'code' | 'category' | 'unit_price' | 'active'
@@ -186,8 +151,8 @@ export function ProductsTable({ products }: ProductsTableProps) {
           comparison = (a.code || '').localeCompare(b.code || '', 'cs')
           break
         case 'category':
-          comparison = CATEGORY_LABELS[a.category].localeCompare(
-            CATEGORY_LABELS[b.category],
+          comparison = PRODUCT_CATEGORY_LABELS[a.category].localeCompare(
+            PRODUCT_CATEGORY_LABELS[b.category],
             'cs'
           )
           break
@@ -240,15 +205,16 @@ export function ProductsTable({ products }: ProductsTableProps) {
       })
 
       if (response.ok) {
+        toast.success('Kategorie změněna')
         setSelectedIds(new Set())
         router.refresh()
       } else {
         const error = await response.json()
-        alert(error.error || 'Chyba při hromadné úpravě')
+        toast.error(error.error || 'Chyba při hromadné úpravě')
       }
     } catch (err) {
       console.error('Bulk update error:', err)
-      alert('Chyba připojení')
+      toast.error('Chyba připojení')
     } finally {
       setBulkUpdating(false)
     }
@@ -269,15 +235,16 @@ export function ProductsTable({ products }: ProductsTableProps) {
       })
 
       if (response.ok) {
+        toast.success(active ? 'Produkty aktivovány' : 'Produkty deaktivovány')
         setSelectedIds(new Set())
         router.refresh()
       } else {
         const error = await response.json()
-        alert(error.error || 'Chyba při hromadné úpravě')
+        toast.error(error.error || 'Chyba při hromadné úpravě')
       }
     } catch (err) {
       console.error('Bulk update error:', err)
-      alert('Chyba připojení')
+      toast.error('Chyba připojení')
     } finally {
       setBulkUpdating(false)
     }
@@ -297,16 +264,17 @@ export function ProductsTable({ products }: ProductsTableProps) {
       })
 
       if (response.ok) {
+        toast.success('Produkty smazány')
         setSelectedIds(new Set())
         setDeleteDialogOpen(false)
         router.refresh()
       } else {
         const error = await response.json()
-        alert(error.error || 'Chyba při mazání produktů')
+        toast.error(error.error || 'Chyba při mazání produktů')
       }
     } catch (err) {
       console.error('Bulk delete error:', err)
-      alert('Chyba připojení')
+      toast.error('Chyba připojení')
     } finally {
       setBulkUpdating(false)
     }
@@ -343,9 +311,9 @@ export function ProductsTable({ products }: ProductsTableProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Všechny kategorie</SelectItem>
-            {(Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((category) => (
+            {(Object.keys(PRODUCT_CATEGORY_LABELS) as ProductCategory[]).map((category) => (
               <SelectItem key={category} value={category}>
-                {CATEGORY_LABELS[category]}
+                {PRODUCT_CATEGORY_LABELS[category]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -369,12 +337,12 @@ export function ProductsTable({ products }: ProductsTableProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {(Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((category) => (
+                {(Object.keys(PRODUCT_CATEGORY_LABELS) as ProductCategory[]).map((category) => (
                   <DropdownMenuItem
                     key={category}
                     onClick={() => handleBulkCategoryChange(category)}
                   >
-                    {CATEGORY_LABELS[category]}
+                    {PRODUCT_CATEGORY_LABELS[category]}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -518,8 +486,8 @@ export function ProductsTable({ products }: ProductsTableProps) {
                       </code>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={CATEGORY_COLORS[product.category]}>
-                        {CATEGORY_LABELS[product.category]}
+                      <Badge variant="secondary" className={PRODUCT_CATEGORY_COLORS[product.category]}>
+                        {PRODUCT_CATEGORY_LABELS[product.category]}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium">

@@ -193,12 +193,12 @@ export async function generateQuoteItemsFromConfiguration(
     }
 
     // Skip rules without assigned products
-    if (!rule.product_id || !rule.product) {
+    const product = rule.product
+    if (!rule.product_id || !product) {
       console.warn(`Mapping rule "${rule.name}" has no product assigned`)
       continue
     }
 
-    const product = rule.product
     const quantity = rule.quantity || 1
     const unitPrice = product.unit_price
     const totalPrice = unitPrice * quantity

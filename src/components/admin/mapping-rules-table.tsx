@@ -33,7 +33,8 @@ import { Switch } from '@/components/ui/switch'
 import { AlertCircle, Check, Loader2, Package, Plus, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/utils'
-import type { ProductMappingRule, Product } from '@/lib/supabase/types'
+import type { ProductMappingRule, Product, ProductCategory } from '@/lib/supabase/types'
+import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 interface MappingRulesTableProps {
   rules: ProductMappingRule[]
@@ -244,12 +245,8 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
     {} as Record<string, Product[]>
   )
 
-  const categoryLabels: Record<string, string> = {
-    bazeny: 'Bazény',
-    prislusenstvi: 'Příslušenství',
-    sluzby: 'Služby',
-    doprava: 'Doprava',
-  }
+  // Use centralized category labels
+  const categoryLabels = PRODUCT_CATEGORY_LABELS
 
   // If no rules exist, show seed button
   if (rules.length === 0) {
@@ -439,7 +436,7 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
                     {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
                       <div key={category}>
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted">
-                          {categoryLabels[category] || category}
+                          {categoryLabels[category as ProductCategory] || category}
                         </div>
                         {categoryProducts.map((product) => (
                           <SelectItem key={product.id} value={product.id}>

@@ -173,9 +173,19 @@ export function mapPipedriveProduct(product: PipedriveProduct): {
     } else if (typeof manufacturerId === 'number') {
       mfgId = manufacturerId
     }
-    if (mfgId !== undefined && MANUFACTURER_MAP[mfgId]) {
-      manufacturer = MANUFACTURER_MAP[mfgId]
+    if (mfgId !== undefined) {
+      if (MANUFACTURER_MAP[mfgId]) {
+        manufacturer = MANUFACTURER_MAP[mfgId]
+      } else {
+        // Log warning for unknown manufacturer IDs - these need to be added to MANUFACTURER_MAP
+        console.warn(`[Pipedrive] Unknown manufacturer ID: ${mfgId} for product "${product.name}" (id: ${product.id}). Add to MANUFACTURER_MAP.`)
+      }
     }
+  }
+
+  // Warn if product has no price
+  if (price === 0 && product.prices?.length === 0) {
+    console.warn(`[Pipedrive] Product "${product.name}" (id: ${product.id}) has no prices defined.`)
   }
 
   return {

@@ -50,6 +50,7 @@ import {
   Pencil,
   GripVertical,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey } from '@/lib/supabase/types'
 import {
   getShapeLabel,
@@ -641,21 +642,24 @@ export function QuoteEditor({
   // Save quote
   const handleSave = async () => {
     if (!customerName.trim()) {
-      alert('Vyplňte jméno zákazníka')
+      toast.error('Vyplňte jméno zákazníka')
       return
     }
 
     // Check if at least one variant has items
     const hasAnyItems = variants.some((v) => getVariantItems(v.key).length > 0)
     if (!hasAnyItems) {
-      alert('Přidejte alespoň jednu položku do některé varianty')
+      toast.error('Přidejte alespoň jednu položku do některé varianty')
       return
     }
 
     // Validate items
     const validation = validateItems()
     if (!validation.valid) {
-      alert('Nelze uložit nabídku:\n\n' + validation.errors.join('\n'))
+      toast.error('Nelze uložit nabídku', {
+        description: validation.errors.join('\n'),
+        duration: 8000,
+      })
       return
     }
 
@@ -717,15 +721,16 @@ export function QuoteEditor({
 
       if (response.ok) {
         const data = await response.json()
+        toast.success('Nabídka uložena')
         router.push(`/admin/nabidky/${data.id}`)
       } else {
         const error = await response.json()
         console.error('Save error:', error)
-        alert(error.error || 'Chyba při ukládání')
+        toast.error(error.error || 'Chyba při ukládání')
       }
     } catch (err) {
       console.error('Connection error:', err)
-      alert('Chyba připojení')
+      toast.error('Chyba připojení')
     } finally {
       setSaving(false)
     }
@@ -734,20 +739,23 @@ export function QuoteEditor({
   // Save and download PDF
   const handleSaveAndDownloadPdf = async () => {
     if (!customerName.trim()) {
-      alert('Vyplňte jméno zákazníka')
+      toast.error('Vyplňte jméno zákazníka')
       return
     }
 
     const hasAnyItems = variants.some((v) => getVariantItems(v.key).length > 0)
     if (!hasAnyItems) {
-      alert('Přidejte alespoň jednu položku do některé varianty')
+      toast.error('Přidejte alespoň jednu položku do některé varianty')
       return
     }
 
     // Validate items
     const validation = validateItems()
     if (!validation.valid) {
-      alert('Nelze uložit nabídku:\n\n' + validation.errors.join('\n'))
+      toast.error('Nelze uložit nabídku', {
+        description: validation.errors.join('\n'),
+        duration: 8000,
+      })
       return
     }
 
@@ -808,16 +816,17 @@ export function QuoteEditor({
 
       if (response.ok) {
         const data = await response.json()
+        toast.success('Nabídka uložena, stahuji PDF...')
         window.open(`/api/admin/quotes/${data.id}/pdf`, '_blank')
         router.push(`/admin/nabidky/${data.id}`)
       } else {
         const error = await response.json()
         console.error('Save error:', error)
-        alert(error.error || 'Chyba při ukládání')
+        toast.error(error.error || 'Chyba při ukládání')
       }
     } catch (err) {
       console.error('Connection error:', err)
-      alert('Chyba připojení')
+      toast.error('Chyba připojení')
     } finally {
       setSaving(false)
     }

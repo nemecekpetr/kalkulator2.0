@@ -74,50 +74,65 @@ export async function POST(request: Request) {
       })
     }
 
-    let created = 0
-    let updated = 0
+    // Fetch existing products to determine creates vs updates
+    const { data: existingProducts } = await supabase
+      .from('products')
+      .select('id, pipedrive_id')
 
-    for (const pProduct of pipedriveProducts) {
-      const mappedProduct = mapPipedriveProduct(pProduct)
+    const existingByPipedriveId = new Map(
+      (existingProducts || []).map(p => [p.pipedrive_id, p.id])
+    )
 
-      // Check if product already exists
-      const { data: existing } = await supabase
-        .from('products')
-        .select('id')
-        .eq('pipedrive_id', pProduct.id)
-        .single()
+    // Prepare products for upsert
+    const productsToUpsert = pipedriveProducts.map(pProduct => {
+      const mapped = mapPipedriveProduct(pProduct)
+      const existingId = existingByPipedriveId.get(pProduct.id)
 
-      if (existing) {
-        // Update existing product
-        const { error } = await supabase
-          .from('products')
-          .update({
-            ...mappedProduct,
-            category: mapCategory(pProduct.category),
-          })
-          .eq('id', existing.id)
-
-        if (!error) updated++
-      } else {
-        // Create new product
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            ...mappedProduct,
-            category: mapCategory(pProduct.category),
-          })
-
-        if (!error) created++
+      return {
+        // Include existing ID if updating, otherwise let DB generate
+        ...(existingId ? { id: existingId } : {}),
+        ...mapped,
+        category: mapCategory(pProduct.category),
       }
+    })
+
+    // Count creates vs updates before upsert
+    const updateCount = productsToUpsert.filter(p => 'id' in p).length
+    const createCount = productsToUpsert.length - updateCount
+
+    // Bulk upsert - single DB operation instead of N+1
+    const { error: upsertError, data: upsertedData } = await supabase
+      .from('products')
+      .upsert(productsToUpsert, {
+        onConflict: 'pipedrive_id',
+        ignoreDuplicates: false
+      })
+      .select('id')
+
+    if (upsertError) {
+      console.error('Bulk upsert error:', upsertError)
+      return NextResponse.json({
+        success: false,
+        error: `Chyba při ukládání: ${upsertError.message}`,
+        stats: {
+          created: 0,
+          updated: 0,
+          failed: pipedriveProducts.length,
+          total: pipedriveProducts.length
+        }
+      }, { status: 500 })
     }
+
+    const actualUpserted = upsertedData?.length || 0
 
     return NextResponse.json({
       success: true,
       message: `Synchronizace dokončena`,
       stats: {
-        created,
-        updated,
-        total: pipedriveProducts.length
+        created: createCount,
+        updated: updateCount,
+        total: pipedriveProducts.length,
+        synced: actualUpserted
       }
     })
   } catch (error) {
