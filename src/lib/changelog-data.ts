@@ -4,9 +4,27 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.2'
+export const CURRENT_VERSION = '0.2.3'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.3',
+      date: '2026-01-03',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Editovatelný termín dodání v nabídce',
+          userDescription: 'V editoru nabídky lze nyní upravit termín dodání, který se zobrazí v PDF dokumentu.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Odstranění pevného textu "50%" u zálohy v PDF objednávky',
+          userDescription: 'V PDF objednávky se u zálohy už nezobrazuje pevný text "50%" - zobrazí se pouze částka.'
+        }
+      ]
+    },
     {
       version: '0.2.2',
       date: '2026-01-03',

@@ -332,6 +332,7 @@ export interface Quote {
   customer_address: string | null
   pool_config: Json | null
   valid_until: string | null
+  delivery_term: string | null
   subtotal: number
   discount_percent: number
   discount_amount: number
@@ -356,6 +357,7 @@ export interface QuoteInsert {
   customer_address?: string | null
   pool_config?: Json | null
   valid_until?: string | null
+  delivery_term?: string | null
   subtotal?: number
   discount_percent?: number
   discount_amount?: number
@@ -379,6 +381,7 @@ export interface QuoteUpdate {
   customer_address?: string | null
   pool_config?: Json | null
   valid_until?: string | null
+  delivery_term?: string | null
   subtotal?: number
   discount_percent?: number
   discount_amount?: number

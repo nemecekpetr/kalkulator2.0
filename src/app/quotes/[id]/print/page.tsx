@@ -512,8 +512,8 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
           <p className="text-[10px] text-gray-500 uppercase tracking-wider">Realizací po celé ČR</p>
         </div>
         <div className="text-center">
-          <p className="text-3xl font-bold text-[#48A9A6]">4-8</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Týdnů dodání</p>
+          <p className="text-3xl font-bold text-[#48A9A6]">{quote.delivery_term || '4-8 týdnů'}</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Dodání</p>
         </div>
       </div>
 

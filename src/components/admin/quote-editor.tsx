@@ -94,6 +94,7 @@ interface QuoteEditorProps {
     customer_address: string
     notes: string
     valid_until: string
+    delivery_term: string | null
     items: (QuoteItem & { variant_ids?: string[] })[]
     variants?: {
       id: string
@@ -287,6 +288,7 @@ export function QuoteEditor({
     existingQuote?.valid_until ||
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   )
+  const [deliveryTerm, setDeliveryTerm] = useState(existingQuote?.delivery_term || '4-8 týdnů')
 
   // Variants
   const [variants, setVariants] = useState<QuoteVariantState[]>(() => {
@@ -696,6 +698,7 @@ export function QuoteEditor({
               }
             : null,
           valid_until: validUntil,
+          delivery_term: deliveryTerm,
           notes,
           variants: variantsWithItems.map((v, idx) => ({
             variant_key: v.key,
@@ -791,6 +794,7 @@ export function QuoteEditor({
               }
             : null,
           valid_until: validUntil,
+          delivery_term: deliveryTerm,
           notes,
           variants: variantsWithItems.map((v, idx) => ({
             variant_key: v.key,
@@ -1174,6 +1178,15 @@ export function QuoteEditor({
                 type="date"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="delivery_term">Termín dodání</Label>
+              <Input
+                id="delivery_term"
+                value={deliveryTerm}
+                onChange={(e) => setDeliveryTerm(e.target.value)}
+                placeholder="4-8 týdnů"
               />
             </div>
           </CardContent>

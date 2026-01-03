@@ -319,7 +319,7 @@ function TermsPage({ order }: { order: Order }) {
         </h2>
         <div className="grid grid-cols-3 gap-3">
           <div className="p-3 border-2 border-[#48A9A6] rounded-lg text-center bg-[#48A9A6]/5">
-            <p className="text-xs text-gray-500 mb-1">Záloha (50%)</p>
+            <p className="text-xs text-gray-500 mb-1">Záloha</p>
             <p className="text-xl font-bold text-[#01384B]">{formatPrice(depositAmount)}</p>
             <p className="text-xs text-gray-500">Splatná při podpisu</p>
           </div>

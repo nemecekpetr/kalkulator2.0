@@ -933,7 +933,7 @@ function ComparisonPage({
         <Text>
           - Ceny jsou uvedeny vcetne DPH{'\n'}
           - Cena nezahrnuje zemni prace a pripravu podlozi{'\n'}
-          - Dodaci lhuta: 4-8 tydnu od objednani{'\n'}
+          - Dodaci lhuta: {quote.delivery_term || '4-8 tydnu'} od objednani{'\n'}
           - Platebni podminky: zaloha 50% pri objednani, doplatek pri predani{'\n'}
           - Zaruka na bazenovou konstrukci: 10 let{'\n'}
           - Zaruka na technologii: 2 roky
@@ -1035,7 +1035,7 @@ export function QuotePDF({ quote, poolConfig, logoUrl, specialist }: QuotePDFPro
             <Text>
               - Ceny jsou uvedeny vcetne DPH{'\n'}
               - Cena nezahrnuje zemni prace a pripravu podlozi{'\n'}
-              - Dodaci lhuta: 4-8 tydnu od objednani{'\n'}
+              - Dodaci lhuta: {quote.delivery_term || '4-8 tydnu'} od objednani{'\n'}
               - Platebni podminky: zaloha 50% pri objednani, doplatek pri predani{'\n'}
               - Zaruka na bazenovou konstrukci: 10 let{'\n'}
               - Zaruka na technologii: 2 roky
