@@ -14,6 +14,7 @@ export interface Change {
 export interface ChangelogVersion {
   version: string
   date: string
+  time?: string // HH:MM format
   changes: Change[]
 }
 

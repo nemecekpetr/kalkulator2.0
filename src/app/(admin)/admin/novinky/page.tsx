@@ -131,7 +131,7 @@ export default function NovinkyPage() {
                   {version.date && (
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
-                      {formatDate(version.date)}
+                      {formatDate(version.date)}{version.time && ` v ${version.time}`}
                     </div>
                   )}
                 </div>

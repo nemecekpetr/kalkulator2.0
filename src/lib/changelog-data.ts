@@ -10,6 +10,7 @@ export const changelogVersions: ChangelogVersion[] = [
     {
       version: '0.2.3',
       date: '2026-01-03',
+      time: '01:15',
       changes: [
         {
           type: 'feature',
@@ -28,6 +29,7 @@ export const changelogVersions: ChangelogVersion[] = [
     {
       version: '0.2.2',
       date: '2026-01-03',
+      time: '00:30',
       changes: [
         {
           type: 'feature',
@@ -58,6 +60,7 @@ export const changelogVersions: ChangelogVersion[] = [
     {
       version: '0.2.1',
       date: '2026-01-02',
+      time: '20:45',
       changes: [
         {
           type: 'feature',
@@ -94,6 +97,7 @@ export const changelogVersions: ChangelogVersion[] = [
     {
       version: '0.2.0',
       date: '2026-01-01',
+      time: '15:00',
       changes: [
         {
           type: 'feature',
@@ -124,6 +128,7 @@ export const changelogVersions: ChangelogVersion[] = [
     {
       version: '0.1.0',
       date: '2025-12-30',
+      time: '18:00',
       changes: [
         {
           type: 'feature',
