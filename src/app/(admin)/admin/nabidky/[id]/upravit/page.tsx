@@ -138,6 +138,7 @@ export default async function EditQuotePage({ params }: PageProps) {
           customer_address: quote.customer_address || '',
           notes: quote.notes || '',
           valid_until: quote.valid_until || '',
+          delivery_term: quote.delivery_term || null,
           items: items.map((item) => ({
             id: item.id,
             product_id: item.product_id,
