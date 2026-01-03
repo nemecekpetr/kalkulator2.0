@@ -640,6 +640,7 @@ export interface Order {
   contract_date: string | null
   delivery_date: string | null
   delivery_address: string | null
+  delivery_term: string | null
   // Pool configuration (copied from quote)
   pool_config: Json | null
   // Pricing
@@ -672,6 +673,7 @@ export interface OrderInsert {
   contract_date?: string | null
   delivery_date?: string | null
   delivery_address?: string | null
+  delivery_term?: string | null
   pool_config?: Json | null
   subtotal?: number
   discount_percent?: number
@@ -698,6 +700,7 @@ export interface OrderUpdate {
   contract_date?: string | null
   delivery_date?: string | null
   delivery_address?: string | null
+  delivery_term?: string | null
   pool_config?: Json | null
   subtotal?: number
   discount_percent?: number

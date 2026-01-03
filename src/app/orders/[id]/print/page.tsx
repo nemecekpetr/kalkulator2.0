@@ -302,7 +302,7 @@ function TermsPage({ order }: { order: Order }) {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <p className="text-xs text-gray-500 uppercase">Dodací lhůta</p>
-              <p className="font-semibold text-[#01384B]">6-8 týdnů od uhrazení zálohy</p>
+              <p className="font-semibold text-[#01384B]">{order.delivery_term || '4-8 týdnů'} od uhrazení zálohy</p>
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase">Místo dodání</p>

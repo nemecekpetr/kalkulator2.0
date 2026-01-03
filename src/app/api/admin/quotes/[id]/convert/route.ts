@@ -68,6 +68,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         customer_email: quote.customer_email,
         customer_phone: quote.customer_phone,
         customer_address: quote.customer_address,
+        delivery_term: quote.delivery_term || '4-8 týdnů',
         pool_config: quote.pool_config,
         subtotal: quote.subtotal,
         discount_percent: quote.discount_percent,
