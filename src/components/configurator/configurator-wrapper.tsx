@@ -45,23 +45,10 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     return origins
   }, [])
 
-  // Check if we're on mobile
-  const isMobile = useCallback(() => {
-    if (typeof window === 'undefined') return false
-    return window.innerWidth < 768
-  }, [])
-
   // Send height to parent window for iframe auto-resize
   // Security: Only send to validated parent origins
-  // NOTE: On mobile, we skip resize to keep iframe at fixed height for sticky nav
   const sendHeight = useCallback(() => {
     if (!embedded || !containerRef.current) return
-
-    // On mobile, don't send resize - WordPress will keep fixed height
-    // This allows fixed navigation to work properly inside iframe
-    if (isMobile()) {
-      return
-    }
 
     const height = containerRef.current.scrollHeight
     const allowedOrigins = getAllowedOrigins()
@@ -105,7 +92,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
         containerRef.current.style.minHeight = `${height}px`
       }
     }
-  }, [embedded, getAllowedOrigins, isMobile])
+  }, [embedded, getAllowedOrigins])
 
   // Handle hydration - using useLayoutEffect pattern with flushSync alternative
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -190,52 +177,49 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   }
 
   // Embedded mode - minimal UI for iframe integration
-  // On mobile: iframe has fixed height (100svh), content scrolls inside, nav is fixed at bottom
+  // On mobile: navigation sticky at top (under progress), content scrolls normally
   // On desktop: iframe resizes to content height, normal flow
   if (embedded) {
     return (
-      <div ref={containerRef} className="bg-white h-[100svh] md:h-auto flex flex-col overflow-hidden md:overflow-visible">
+      <div ref={containerRef} className="bg-white">
         {/* Progress bar - always at top */}
-        <div className="flex-shrink-0 z-40 bg-white">
+        <div className="flex-shrink-0 z-40 bg-white sticky top-0">
           <ConfiguratorProgress embedded />
+          {/* Mobile navigation - sticky under progress bar */}
+          <div className="md:hidden border-b border-slate-100 shadow-sm">
+            <ConfiguratorNavigation embedded />
+          </div>
         </div>
 
-        {/* Navigation - on desktop stays here under progress */}
+        {/* Desktop navigation - under progress */}
         <div className="hidden md:block flex-shrink-0">
           <ConfiguratorNavigation embedded />
         </div>
 
-        {/* Scrollable content area on mobile, normal flow on desktop */}
-        <div className="flex-1 overflow-y-auto md:overflow-visible pb-16 md:pb-0">
-          <main className="container mx-auto px-4 py-6">
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Step content */}
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 configurator-content">
-                  <ConfiguratorErrorBoundary>
-                    <AnimatePresence mode="wait">
-                      {renderStep()}
-                    </AnimatePresence>
-                  </ConfiguratorErrorBoundary>
+        {/* Main content */}
+        <main className="container mx-auto px-4 py-6">
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Step content */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 configurator-content">
+                <ConfiguratorErrorBoundary>
+                  <AnimatePresence mode="wait">
+                    {renderStep()}
+                  </AnimatePresence>
+                </ConfiguratorErrorBoundary>
+              </div>
+            </div>
+
+            {/* Summary sidebar - skrýt po odeslání */}
+            {!isSubmitted && (
+              <div className="hidden lg:block">
+                <div className="sticky top-24">
+                  <ConfiguratorSummary />
                 </div>
               </div>
-
-              {/* Summary sidebar - skrýt po odeslání */}
-              {!isSubmitted && (
-                <div className="hidden lg:block">
-                  <div className="sticky top-24">
-                    <ConfiguratorSummary />
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
-        </div>
-
-        {/* Mobile navigation - fixed at bottom of iframe viewport */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
-          <ConfiguratorNavigation embedded />
-        </div>
+            )}
+          </div>
+        </main>
       </div>
     )
   }
