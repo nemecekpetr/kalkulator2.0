@@ -179,15 +179,17 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   // Embedded mode - minimal UI for iframe integration
   if (embedded) {
     return (
-      <div ref={containerRef} className="bg-white">
+      <div ref={containerRef} className="bg-white min-h-screen flex flex-col">
         {/* Progress bar */}
         <ConfiguratorProgress embedded />
 
-        {/* Navigation - under progress bar */}
-        <ConfiguratorNavigation embedded />
+        {/* Navigation - on desktop stays here, on mobile moves to bottom */}
+        <div className="hidden md:block">
+          <ConfiguratorNavigation embedded />
+        </div>
 
-        {/* Main content - pb-20 on mobile for sticky navigation */}
-        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+        {/* Main content */}
+        <main className="container mx-auto px-4 py-6 flex-1">
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Step content */}
             <div className="lg:col-span-2">
@@ -210,6 +212,11 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
             )}
           </div>
         </main>
+
+        {/* Mobile navigation - sticky at bottom */}
+        <div className="md:hidden sticky bottom-0">
+          <ConfiguratorNavigation embedded />
+        </div>
       </div>
     )
   }

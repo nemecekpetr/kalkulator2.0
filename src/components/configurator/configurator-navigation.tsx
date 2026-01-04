@@ -89,13 +89,12 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
         )}
       </AnimatePresence>
 
-      {/* Desktop: static under progress bar, Mobile: fixed at bottom (sticky in iframe) */}
+      {/* Desktop: static under progress bar, Mobile: fixed at bottom (wrapper handles positioning in embedded mode) */}
       <div className={`
-        bg-white border-slate-100
-        md:border-b md:static md:shadow-none md:border-t-0
+        bg-white border-slate-100 z-50
         ${embedded
-          ? 'sticky bottom-0 z-50 border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)]'
-          : 'fixed bottom-0 left-0 right-0 z-50 border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)]'
+          ? 'border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)] md:border-t-0 md:border-b md:shadow-none'
+          : 'fixed bottom-0 left-0 right-0 border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)] md:static md:border-t-0 md:border-b md:shadow-none'
         }
       `}>
         <div className="container mx-auto px-4 py-3">
