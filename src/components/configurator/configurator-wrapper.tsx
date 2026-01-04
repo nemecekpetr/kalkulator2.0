@@ -186,8 +186,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
         {/* Navigation - under progress bar */}
         <ConfiguratorNavigation embedded />
 
-        {/* Main content */}
-        <main className="container mx-auto px-4 py-6">
+        {/* Main content - pb-20 on mobile for sticky navigation */}
+        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Step content */}
             <div className="lg:col-span-2">
