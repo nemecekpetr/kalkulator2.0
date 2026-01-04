@@ -93,7 +93,7 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
       <div className={`
         bg-white border-slate-100 z-50
         ${embedded
-          ? 'border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)] md:border-t-0 md:border-b md:shadow-none'
+          ? 'md:border-b'
           : 'fixed bottom-0 left-0 right-0 border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)] md:static md:border-t-0 md:border-b md:shadow-none'
         }
       `}>

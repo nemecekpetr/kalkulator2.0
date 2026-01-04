@@ -177,44 +177,49 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   }
 
   // Embedded mode - minimal UI for iframe integration
+  // On mobile: use internal scrolling so fixed navigation works within iframe
   if (embedded) {
     return (
-      <div ref={containerRef} className="bg-white">
-        {/* Progress bar */}
-        <ConfiguratorProgress embedded />
+      <div ref={containerRef} className="bg-white h-screen md:h-auto flex flex-col overflow-hidden md:overflow-visible">
+        {/* Progress bar - sticky top */}
+        <div className="flex-shrink-0 sticky top-0 z-40 bg-white">
+          <ConfiguratorProgress embedded />
+        </div>
 
-        {/* Navigation - on desktop stays here */}
-        <div className="hidden md:block">
+        {/* Navigation - on desktop stays here under progress */}
+        <div className="hidden md:block flex-shrink-0">
           <ConfiguratorNavigation embedded />
         </div>
 
-        {/* Main content */}
-        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Step content */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 configurator-content">
-                <ConfiguratorErrorBoundary>
-                  <AnimatePresence mode="wait">
-                    {renderStep()}
-                  </AnimatePresence>
-                </ConfiguratorErrorBoundary>
-              </div>
-            </div>
-
-            {/* Summary sidebar - skrýt po odeslání */}
-            {!isSubmitted && (
-              <div className="hidden lg:block">
-                <div className="sticky top-24">
-                  <ConfiguratorSummary />
+        {/* Scrollable content area on mobile */}
+        <div className="flex-1 overflow-y-auto md:overflow-visible">
+          <main className="container mx-auto px-4 py-6 pb-4 md:pb-6">
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Step content */}
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 md:p-8 configurator-content">
+                  <ConfiguratorErrorBoundary>
+                    <AnimatePresence mode="wait">
+                      {renderStep()}
+                    </AnimatePresence>
+                  </ConfiguratorErrorBoundary>
                 </div>
               </div>
-            )}
-          </div>
-        </main>
 
-        {/* Mobile navigation - fixed at bottom of viewport */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+              {/* Summary sidebar - skrýt po odeslání */}
+              {!isSubmitted && (
+                <div className="hidden lg:block">
+                  <div className="sticky top-24">
+                    <ConfiguratorSummary />
+                  </div>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+
+        {/* Mobile navigation - fixed at bottom within the iframe viewport */}
+        <div className="md:hidden flex-shrink-0 bg-white border-t border-slate-100 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
           <ConfiguratorNavigation embedded />
         </div>
       </div>
