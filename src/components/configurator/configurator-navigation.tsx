@@ -89,7 +89,13 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
         )}
       </AnimatePresence>
 
-      <div className="bg-white border-b border-slate-100">
+      {/* Desktop: static under progress bar, Mobile: fixed at bottom */}
+      <div className="
+        bg-white border-slate-100
+        md:border-b
+        fixed bottom-0 left-0 right-0 z-50 border-t shadow-[0_-2px_10px_rgba(0,0,0,0.1)]
+        md:static md:shadow-none md:border-t-0
+      ">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Left side: Reset + Back */}
