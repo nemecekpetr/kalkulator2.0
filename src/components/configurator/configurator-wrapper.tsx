@@ -45,10 +45,23 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     return origins
   }, [])
 
+  // Check if we're on mobile
+  const isMobile = useCallback(() => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth < 768
+  }, [])
+
   // Send height to parent window for iframe auto-resize
   // Security: Only send to validated parent origins
+  // NOTE: On mobile, we skip resize to keep iframe at fixed height for sticky nav
   const sendHeight = useCallback(() => {
     if (!embedded || !containerRef.current) return
+
+    // On mobile, don't send resize - WordPress will keep fixed height
+    // This allows fixed navigation to work properly inside iframe
+    if (isMobile()) {
+      return
+    }
 
     const height = containerRef.current.scrollHeight
     const allowedOrigins = getAllowedOrigins()
@@ -92,7 +105,7 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
         containerRef.current.style.minHeight = `${height}px`
       }
     }
-  }, [embedded, getAllowedOrigins])
+  }, [embedded, getAllowedOrigins, isMobile])
 
   // Handle hydration - using useLayoutEffect pattern with flushSync alternative
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -177,12 +190,13 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   }
 
   // Embedded mode - minimal UI for iframe integration
-  // On mobile: use internal scrolling so fixed navigation works within iframe
+  // On mobile: iframe has fixed height (100svh), content scrolls inside, nav is fixed at bottom
+  // On desktop: iframe resizes to content height, normal flow
   if (embedded) {
     return (
-      <div ref={containerRef} className="bg-white h-screen md:h-auto flex flex-col overflow-hidden md:overflow-visible">
-        {/* Progress bar - sticky top */}
-        <div className="flex-shrink-0 sticky top-0 z-40 bg-white">
+      <div ref={containerRef} className="bg-white h-[100svh] md:h-auto flex flex-col overflow-hidden md:overflow-visible">
+        {/* Progress bar - always at top */}
+        <div className="flex-shrink-0 z-40 bg-white">
           <ConfiguratorProgress embedded />
         </div>
 
@@ -191,9 +205,9 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
           <ConfiguratorNavigation embedded />
         </div>
 
-        {/* Scrollable content area on mobile */}
-        <div className="flex-1 overflow-y-auto md:overflow-visible">
-          <main className="container mx-auto px-4 py-6 pb-4 md:pb-6">
+        {/* Scrollable content area on mobile, normal flow on desktop */}
+        <div className="flex-1 overflow-y-auto md:overflow-visible pb-16 md:pb-0">
+          <main className="container mx-auto px-4 py-6">
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Step content */}
               <div className="lg:col-span-2">
@@ -218,8 +232,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
           </main>
         </div>
 
-        {/* Mobile navigation - fixed at bottom within the iframe viewport */}
-        <div className="md:hidden flex-shrink-0 bg-white border-t border-slate-100 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+        {/* Mobile navigation - fixed at bottom of iframe viewport */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
           <ConfiguratorNavigation embedded />
         </div>
       </div>
