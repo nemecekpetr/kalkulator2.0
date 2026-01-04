@@ -7,6 +7,7 @@ import { useConfiguratorStore } from '@/stores/configurator-store'
 import { ConfiguratorProgress } from './configurator-progress'
 import { ConfiguratorNavigation } from './configurator-navigation'
 import { ConfiguratorSummary } from './configurator-summary'
+import { ConfiguratorCTA } from './configurator-cta'
 import { StepShape } from './steps/step-shape'
 import { StepType } from './steps/step-type'
 import { StepDimensions } from './steps/step-dimensions'
@@ -264,8 +265,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       {/* Navigation - under progress bar */}
       <ConfiguratorNavigation />
 
-      {/* Main content */}
-      <main className="container mx-auto px-4 py-4 relative z-10">
+      {/* Main content - pb-24 on mobile for sticky CTA */}
+      <main className="container mx-auto px-4 py-4 pb-24 md:pb-4 relative z-10">
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Step content */}
           <div className="lg:col-span-2">
@@ -305,6 +306,11 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
           )}
         </div>
       </main>
+
+      {/* Mobile sticky CTA - only visible on mobile */}
+      <div className="md:hidden">
+        <ConfiguratorCTA />
+      </div>
     </div>
   )
 }
