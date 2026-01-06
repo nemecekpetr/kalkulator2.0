@@ -4,9 +4,46 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.4'
+export const CURRENT_VERSION = '0.2.5'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.5',
+      date: '2026-01-06',
+      time: '21:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Nový design Thank You stránky s maskotem a timeline',
+          userDescription: 'Po odeslání konfigurace vás přivítá náš maskot "Bazénový mistr" s přehledem dalších kroků.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'CTA na blog "Jak vybrat bazén" na Thank You stránce',
+          userDescription: 'Na stránce po odeslání najdete odkaz na naše poradenské články pro výběr bazénu.'
+        },
+        {
+          type: 'feature',
+          scope: 'email',
+          description: 'Kontaktní údaje zákazníka v potvrzovacím emailu',
+          userDescription: 'V potvrzovacím emailu nyní vidíte i své kontaktní údaje pro kontrolu.'
+        },
+        {
+          type: 'feature',
+          scope: 'email',
+          description: 'Informace o zastřešení v potvrzovacím emailu',
+          userDescription: 'Email s konfigurací nyní obsahuje i informaci o zvoleném zastřešení.'
+        },
+        {
+          type: 'fix',
+          scope: 'email',
+          description: 'Aktualizace "23 let" na "24 let zkušeností"',
+          userDescription: 'Aktualizovali jsme počet let zkušeností v patičce emailu.'
+        }
+      ]
+    },
     {
       version: '0.2.4',
       date: '2026-01-06',
