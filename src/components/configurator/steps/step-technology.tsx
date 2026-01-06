@@ -92,7 +92,7 @@ export function StepTechnology() {
                 {tech.label}
               </h3>
               {'tag' in tech && tech.tag && (
-                <OptionTag variant={tech.tag === 'Moderní' ? 'premium' : 'recommended'} className="mb-2">
+                <OptionTag variant="recommended" className="mb-2">
                   {tech.tag}
                 </OptionTag>
               )}
