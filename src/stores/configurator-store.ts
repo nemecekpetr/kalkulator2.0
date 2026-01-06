@@ -141,7 +141,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         const { currentStep, shouldSkipStep, visitedSteps } = get()
         let nextStep = currentStep + 1
 
-        // Skip stairs step (5) for circle pools
+        // Skip steps that don't apply to current shape (e.g., stairs and roofing for circle)
         while (nextStep <= 11 && shouldSkipStep(nextStep)) {
           nextStep++
         }
@@ -158,7 +158,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         const { currentStep, shouldSkipStep } = get()
         let prevStep = currentStep - 1
 
-        // Skip stairs step (5) for circle pools
+        // Skip steps that don't apply to current shape (e.g., stairs and roofing for circle)
         while (prevStep >= 1 && shouldSkipStep(prevStep)) {
           prevStep--
         }
@@ -172,15 +172,27 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       // Setters
       setShape: (shape) => {
         const currentShape = get().shape
-        // Reset stairs when changing shape
+        // Reset related fields when changing shape
         if (shape === 'circle') {
-          // Circle cannot have stairs
-          set({ shape, stairs: 'none' })
+          // Circle: no stairs/counterflow/roofing, reset dimensions to circle defaults
+          set({
+            shape,
+            stairs: 'none',
+            counterflow: 'none',
+            roofing: 'none',
+            dimensions: { diameter: 3, depth: 1.2 }
+          })
         } else if (currentShape === 'circle') {
-          // Changing FROM circle to rectangle - reset stairs to allow user to choose
-          set({ shape, stairs: null })
+          // Changing FROM circle to rectangle - reset to rectangle defaults
+          set({
+            shape,
+            stairs: null,
+            counterflow: null,
+            roofing: null,
+            dimensions: { length: 6, width: 3, depth: 1.5 }
+          })
         } else {
-          // Changing between rectangle types - keep current stairs
+          // Changing between rectangle types - keep current values
           set({ shape })
         }
       },

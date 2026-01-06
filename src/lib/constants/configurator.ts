@@ -81,7 +81,7 @@ export const POOL_COLORS = [
     id: 'gray',
     label: 'Šedý povrch',
     description: 'Moderní, sofistikovaný design',
-    hex: '#6c757d',
+    hex: '#adb5bd',
     waterColor: '#0096c7'
   },
   {

@@ -48,7 +48,8 @@ export const RoofingOptionEnum = z.enum(['none', 'with_roofing'])
 export type RoofingOption = z.infer<typeof RoofingOptionEnum>
 
 // Available dimensions based on MVP configurator
-export const CIRCLE_DIAMETERS = [1.5, 2, 2.5, 3, 3.5, 4, 4.5] as const
+// Note: Must match DIMENSION_OPTIONS in configurator.ts
+export const CIRCLE_DIAMETERS = [1.5, 2, 2.5, 3, 3.5, 4] as const
 export const CIRCLE_DEPTHS = [0.5, 0.75, 1, 1.2, 1.35, 1.5] as const
 export const RECTANGLE_WIDTHS = [2, 2.5, 3, 3.5, 4] as const
 export const RECTANGLE_LENGTHS = [4, 5, 6, 7, 8] as const
@@ -56,7 +57,7 @@ export const RECTANGLE_DEPTHS = [1.2, 1.3, 1.4, 1.5] as const
 
 // Dimensions schema - validates based on shape
 export const DimensionsSchema = z.object({
-  diameter: z.number().min(1.5).max(4.5).optional(),
+  diameter: z.number().min(1.5).max(4).optional(),
   width: z.number().min(2).max(4).optional(),
   length: z.number().min(4).max(8).optional(),
   depth: z.number().min(0.5).max(1.5)

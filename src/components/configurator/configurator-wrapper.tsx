@@ -110,8 +110,17 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   }, [mounted, embedded, currentStep, sendHeight])
 
   // ResizeObserver for dynamic content changes (debounced to avoid excessive calls)
+  // Feature detection for older Safari versions that don't support ResizeObserver
   useEffect(() => {
     if (!mounted || !embedded || !containerRef.current) return
+
+    // Feature detection - ResizeObserver not available in older Safari
+    if (typeof ResizeObserver === 'undefined') {
+      // Fallback: send height on window resize
+      const handleResize = () => sendHeight()
+      window.addEventListener('resize', handleResize)
+      return () => window.removeEventListener('resize', handleResize)
+    }
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null
     const debouncedSendHeight = () => {
