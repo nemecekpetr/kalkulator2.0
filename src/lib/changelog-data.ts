@@ -10,7 +10,7 @@ export const changelogVersions: ChangelogVersion[] = [
     {
       version: '0.2.5',
       date: '2026-01-06',
-      time: '21:00',
+      time: '14:10',
       changes: [
         {
           type: 'feature',
