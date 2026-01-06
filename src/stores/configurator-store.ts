@@ -281,14 +281,14 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
 
       getTotalSteps: () => {
         const { shape } = get()
-        // 11 steps, but step 5 (stairs) is skipped for circle
-        return shape === 'circle' ? 10 : 11
+        // 11 steps, but step 5 (stairs) and step 9 (roofing) are skipped for circle
+        return shape === 'circle' ? 9 : 11
       },
 
       shouldSkipStep: (step) => {
         const { shape } = get()
-        // Skip stairs step (5) for circle pools
-        return step === 5 && shape === 'circle'
+        // Skip stairs step (5) and roofing step (9) for circle pools
+        return shape === 'circle' && (step === 5 || step === 9)
       },
 
       // Check if user has visited a step

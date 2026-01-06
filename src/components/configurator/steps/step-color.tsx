@@ -95,6 +95,10 @@ function PoolColorSVG({
           <stop offset="0%" stopColor={waterColor} />
           <stop offset="100%" stopColor={darkerColor} />
         </linearGradient>
+        <linearGradient id="wallColorRight" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={darkerColor} />
+          <stop offset="100%" stopColor={darkestColor} />
+        </linearGradient>
       </defs>
 
       {/* Left wall */}
@@ -109,6 +113,14 @@ function PoolColorSVG({
       <path
         d={`M${c.topFrontLeft.x},${c.topFrontLeft.y} L${c.topFrontRight.x},${c.topFrontRight.y} L${c.bottomFrontRight.x},${c.bottomFrontRight.y} L${c.bottomFrontLeft.x},${c.bottomFrontLeft.y} Z`}
         fill="url(#wallColorFront)"
+        stroke={strokeColor}
+        strokeWidth="2"
+      />
+
+      {/* Right wall */}
+      <path
+        d={`M${c.topFrontRight.x},${c.topFrontRight.y} L${c.topBackRight.x},${c.topBackRight.y} L${c.bottomBackRight.x},${c.bottomBackRight.y} L${c.bottomFrontRight.x},${c.bottomFrontRight.y} Z`}
+        fill="url(#wallColorRight)"
         stroke={strokeColor}
         strokeWidth="2"
       />

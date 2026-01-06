@@ -14,8 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card } from '@/components/ui/card'
-import { Lightbulb, Waves, Baby, ArrowDownToLine, Users } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Lightbulb, Waves, Baby, Users } from 'lucide-react'
 
 // 3D Isometric Pool visualization with dynamic dimensions
 function PoolDimensionsSVG({
@@ -39,18 +38,6 @@ function PoolDimensionsSVG({
   const strokeColor = '#01384B'
   const labelColor = '#01384B'
   const tileColor = '#e0f2f1'
-
-  // Isometric projection helpers
-  // In isometric: x goes right-down, y goes left-down, z goes up
-  const isoAngle = Math.PI / 6 // 30 degrees
-  const cos30 = Math.cos(isoAngle)
-  const sin30 = Math.sin(isoAngle)
-
-  // Convert 3D coordinates to 2D isometric
-  const toIso = (x: number, y: number, z: number, centerX: number, centerY: number) => ({
-    x: centerX + (x - y) * cos30,
-    y: centerY + (x + y) * sin30 - z
-  })
 
   if (isCircle) {
     // Circle pool in 3D - cylinder
@@ -170,6 +157,10 @@ function PoolDimensionsSVG({
           <stop offset="0%" stopColor={waterColor} />
           <stop offset="100%" stopColor={waterColorDark} />
         </linearGradient>
+        <linearGradient id="wallGradientRight" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={waterColorDark} />
+          <stop offset="100%" stopColor={waterColorDarker} />
+        </linearGradient>
       </defs>
 
       {/* Left wall (side) */}
@@ -184,6 +175,14 @@ function PoolDimensionsSVG({
       <path
         d={`M${c.topFrontLeft.x},${c.topFrontLeft.y} L${c.topFrontRight.x},${c.topFrontRight.y} L${c.bottomFrontRight.x},${c.bottomFrontRight.y} L${c.bottomFrontLeft.x},${c.bottomFrontLeft.y} Z`}
         fill="url(#wallGradientFront)"
+        stroke={strokeColor}
+        strokeWidth="2"
+      />
+
+      {/* Right wall (side) */}
+      <path
+        d={`M${c.topFrontRight.x},${c.topFrontRight.y} L${c.topBackRight.x},${c.topBackRight.y} L${c.bottomBackRight.x},${c.bottomBackRight.y} L${c.bottomFrontRight.x},${c.bottomFrontRight.y} Z`}
+        fill="url(#wallGradientRight)"
         stroke={strokeColor}
         strokeWidth="2"
       />
@@ -481,21 +480,21 @@ export function StepDimensions() {
                 <div className="flex items-start gap-2">
                   <Waves className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-[#01384B]">Průměr 3,5–4,5 m</p>
+                    <p className="text-sm font-semibold text-[#01384B]">Průměr 3–4 m</p>
                     <p className="text-sm text-slate-600">Pro celou rodinu</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Baby className="w-4 h-4 text-sky-500 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-[#01384B]">Hloubka 1,2–1,3 m</p>
-                    <p className="text-sm text-slate-600">Pro menší děti</p>
+                    <p className="text-sm font-semibold text-[#01384B]">Hloubka 0,5–1 m</p>
+                    <p className="text-sm text-slate-600">Pro děti</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Users className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-[#01384B]">Hloubka 1,4–1,5 m</p>
+                    <p className="text-sm font-semibold text-[#01384B]">Hloubka 1–1,5 m</p>
                     <p className="text-sm text-slate-600">Pro dospělé</p>
                   </div>
                 </div>
@@ -505,7 +504,7 @@ export function StepDimensions() {
                 <div className="flex items-start gap-2">
                   <Waves className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-semibold text-[#01384B]">Délka 6–8 m</p>
+                    <p className="text-sm font-semibold text-[#01384B]">Délka 5–7 m</p>
                     <p className="text-sm text-slate-600">Ideální pro plavání</p>
                   </div>
                 </div>

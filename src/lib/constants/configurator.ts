@@ -19,7 +19,7 @@ export const POOL_SHAPES = [
     id: 'circle',
     label: 'Kruhový',
     description: 'Kruhový design pro menší zahrady',
-    benefits: ['Ideální pro relaxaci', 'Úsporné řešení'],
+    benefits: ['Minimum stavebních prací', 'Úsporné řešení'],
     tag: 'Nejlevnější',
     icon: 'circle'
   },
@@ -28,14 +28,14 @@ export const POOL_SHAPES = [
     label: 'Obdélník se zaoblenými rohy',
     description: 'Měkčí zakončení, elegantní vzhled',
     benefits: ['Přirozený vzhled', 'Elegantní design'],
-    tag: 'Tradiční',
+    tag: 'Nejprodávanější',
     icon: 'rounded-rectangle'
   },
   {
     id: 'rectangle_sharp',
     label: 'Obdélník s ostrými rohy',
     description: 'Klasické pravoúhlé hranice',
-    benefits: ['Nejprodávanější', 'Moderní vzhled'],
+    benefits: ['Maximální využití prostoru', 'Čisté linie'],
     tag: 'Moderní',
     icon: 'rectangle'
   }
@@ -46,7 +46,7 @@ export const POOL_TYPES = [
   {
     id: 'skimmer',
     label: 'Skimmerový',
-    description: 'Klasický typ s hladinou cca 15 cm pod okrajem, voda nasávaná povrchovými skimmery',
+    description: 'Klasický typ s hladinou cca 10 cm pod okrajem, voda nasávaná povrchovými skimmery',
     tag: 'Nejoblíbenější',
     pros: ['Nižší pořizovací náklady', 'Jednoduchá údržba', 'Osvědčená technologie'],
     cons: ['Viditelná hladina pod okrajem']
@@ -67,7 +67,7 @@ export const POOL_COLORS = [
     id: 'blue',
     label: 'Modrý povrch',
     description: 'Klasická modrá barva bazénu',
-    hex: '#0077b6',
+    hex: '#5DADE2',
     waterColor: '#48cae4'
   },
   {
@@ -95,12 +95,6 @@ export const POOL_COLORS = [
 
 // Stairs types
 export const STAIRS_TYPES = [
-  {
-    id: 'none',
-    label: 'Bez schodiště',
-    description: 'Vstup pomocí vnějšího žebříčku',
-    imageKey: 'stairs-none'
-  },
   {
     id: 'roman',
     label: 'Románské',
@@ -131,8 +125,14 @@ export const STAIRS_TYPES = [
   {
     id: 'corner_square',
     label: 'Hranaté rohové',
-    description: 'Klasické pravoúhlé tvary',
+    description: 'Prostorově nejúspornější',
     imageKey: 'stairs-corner-square'
+  },
+  {
+    id: 'none',
+    label: 'Bez schodiště',
+    description: 'Vstup pomocí vnějšího žebříčku',
+    imageKey: 'stairs-none'
   }
 ] as const
 
@@ -141,65 +141,64 @@ export const TECHNOLOGY_LOCATIONS = [
   {
     id: 'shaft',
     label: 'Technologická šachta',
-    description: 'Plastová šachta zapuštěná v zemi vedle bazénu, kompaktní řešení',
+    description: 'Plastová šachta zapuštěná v zemi za bazénem.',
     tag: 'Doporučeno'
   },
   {
     id: 'wall',
     label: 'Technologická stěna',
-    description: 'Na povrchu u bazénu, snadný přístup k technologii',
-    tag: 'Moderní'
+    description: 'Na povrchu u bazénu, snadný přístup k technologii. Vhodné umístění do přístřešku.'
   },
   {
     id: 'other',
     label: 'Jiné umístění',
-    description: 'Zahradní domek, sklep, technická místnost'
+    description: 'Zahradní domek, sklep, technická místnost.'
   }
 ] as const
 
 // Lighting options
 export const LIGHTING_OPTIONS = [
   {
-    id: 'none',
-    label: 'Bez osvětlení',
-    description: 'Standardní konfigurace'
-  },
-  {
     id: 'led',
     label: 'S osvětlením',
     description: 'LED podvodní osvětlení pro atmosféru',
     tag: 'Doporučeno'
+  },
+  {
+    id: 'none',
+    label: 'Bez osvětlení',
+    description: 'Standardní konfigurace'
   }
 ] as const
 
 // Counterflow options
 export const COUNTERFLOW_OPTIONS = [
   {
-    id: 'none',
-    label: 'Bez protiproudu',
-    description: 'Standardní konfigurace'
-  },
-  {
     id: 'with_counterflow',
     label: 'S protiproudem',
     description: 'Umožňuje plavání na místě, masáž, aqua fitness',
-    tag: 'Sportovní'
+    tag: 'Kondiční'
+  },
+  {
+    id: 'none',
+    label: 'Bez protiproudu',
+    description: 'Standardní konfigurace'
   }
 ] as const
 
 // Water treatment options
 export const WATER_TREATMENT_OPTIONS = [
   {
-    id: 'chlorine',
-    label: 'Chlorová úprava',
-    description: 'Klasická dezinfekce chlorem',
-    tag: 'Tradiční'
-  },
-  {
     id: 'salt',
     label: 'Slaná úprava',
     description: 'Elektrolýza soli, šetrnější k pokožce',
     tag: 'Šetrné'
+  },
+  {
+    id: 'chlorine',
+    label: 'Chlorová úprava',
+    description: 'Klasická dezinfekce chlorem',
+    tag: 'Tradiční'
   }
 ] as const
 
@@ -213,7 +212,7 @@ export const HEATING_OPTIONS = [
   {
     id: 'preparation',
     label: 'Příprava odbočky',
-    description: 'Připravíme rozvody pro budoucí instalaci'
+    description: 'Připravíme rozvody pro dodatečnou instalaci tepelného čerpadla.'
   },
   {
     id: 'heat_pump',
@@ -230,7 +229,7 @@ export const ROOFING_OPTIONS = [
     label: 'Bez zastřešení',
     description: 'Nižší náklady na pořízení',
     pros: ['Nižší pořizovací náklady', 'Přímý přístup k bazénu'],
-    cons: ['Více znečištění', 'Tepelné ztráty', 'Kratší sezóna']
+    cons: ['Více znečištění', 'Tepelné ztráty', 'Kratší sezóna', 'Riziko pádu do bazénu']
   },
   {
     id: 'with_roofing',
@@ -251,8 +250,7 @@ export const DIMENSION_OPTIONS = {
       { value: 2.5, label: '2,5 m' },
       { value: 3, label: '3 m' },
       { value: 3.5, label: '3,5 m' },
-      { value: 4, label: '4 m' },
-      { value: 4.5, label: '4,5 m' }
+      { value: 4, label: '4 m' }
     ],
     depths: [
       { value: 0.5, label: '0,5 m' },

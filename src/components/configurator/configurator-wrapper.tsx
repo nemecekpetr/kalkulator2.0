@@ -166,7 +166,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
       case 8:
         return <StepHeating key="step-8" />
       case 9:
-        return <StepRoofing key="step-9" />
+        // Defense: skip check here in case step is set directly (e.g., from localStorage)
+        return shouldSkipStep(9) ? null : <StepRoofing key="step-9" />
       case 10:
         return <StepContact key="step-10" />
       case 11:

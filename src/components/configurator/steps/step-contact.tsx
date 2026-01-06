@@ -114,7 +114,15 @@ export function StepContact() {
               <h4 className="font-semibold text-[#01384B] text-sm mb-1">Vaše údaje jsou v bezpečí</h4>
               <p className="text-sm text-slate-600">
                 Údaje použijeme pouze pro zaslání kalkulace a kontaktování naším specialistou.
-                Nikdy je neposkytneme třetím stranám.
+                Nikdy je neposkytneme třetím stranám. Údaje jsou zpracovávány na základě{' '}
+                <a
+                  href="https://www.rentmil.cz/ochrana-osobnich-udaju"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-teal-600 hover:text-teal-700 underline"
+                >
+                  zásad ochrany osobních údajů
+                </a>.
               </p>
             </div>
           </div>

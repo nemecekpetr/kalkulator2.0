@@ -5,63 +5,66 @@ import { useConfiguratorStore } from '@/stores/configurator-store'
 import { POOL_TYPES } from '@/lib/constants/configurator'
 import { StepLayout, OptionCard, OptionTag } from '../step-layout'
 
-// SVG visualization showing skimmer vs overflow pool cross-section
+// SVG visualization showing skimmer vs overflow pool - top view (půdorys)
 function PoolTypeSVG({ typeId }: { typeId: string }) {
   const waterColor = '#7BC4C1'
   const strokeColor = '#01384B'
-  const concreteColor = '#e5e7eb'
+  const edgeColor = '#d1d5db' // gray-300 for pool edge
 
   if (typeId === 'skimmer') {
+    // Top view - skimmer box on OUTER side of pool (outside the water)
     return (
-      <svg viewBox="0 0 200 100" className="w-full h-24" aria-hidden="true">
-        {/* Pool walls */}
-        <rect x="20" y="20" width="160" height="70" fill={concreteColor} stroke={strokeColor} strokeWidth="2" rx="2" />
-        {/* Water - lower level */}
-        <rect x="24" y="35" width="152" height="51" fill={waterColor} rx="1" />
-        {/* Water surface line */}
-        <line x1="24" y1="35" x2="176" y2="35" stroke={strokeColor} strokeWidth="1" strokeDasharray="4 2" />
-        {/* Skimmer box on right */}
-        <rect x="165" y="28" width="12" height="20" fill="white" stroke={strokeColor} strokeWidth="1.5" />
-        {/* Arrow showing water flow to skimmer */}
-        <path d="M140,38 L158,38" stroke={strokeColor} strokeWidth="1.5" fill="none" markerEnd="url(#arrowhead)" />
-        {/* Gap indicator */}
-        <line x1="182" y1="20" x2="182" y2="35" stroke={strokeColor} strokeWidth="2" />
-        <text x="165" y="16" fontSize="11" fontWeight="600" fill={strokeColor}>15 cm</text>
-        {/* Arrow marker */}
-        <defs>
-          <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-            <path d="M0,0 L6,3 L0,6 Z" fill={strokeColor} />
-          </marker>
-        </defs>
+      <svg viewBox="0 0 200 100" className="w-full h-full" aria-hidden="true">
+        {/* Pool edge/coping */}
+        <rect x="15" y="8" width="170" height="70" fill={edgeColor} stroke={strokeColor} strokeWidth="2" rx="3" />
+        {/* Water surface */}
+        <rect x="22" y="15" width="156" height="56" fill={waterColor} rx="2" />
+        {/* Skimmer box - on OUTER side (right edge, outside the pool) */}
+        <rect x="185" y="29" width="12" height="28" fill="white" stroke={strokeColor} strokeWidth="2" rx="1" />
+        {/* Skimmer opening detail - slot facing pool */}
+        <rect x="185" y="35" width="3" height="16" fill={strokeColor} opacity="0.4" rx="0.5" />
+        {/* Connection line from pool to skimmer */}
+        <line x1="178" y1="43" x2="185" y2="43" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="2 2" />
+        {/* Label */}
+        <text x="100" y="93" fontSize="12" fontWeight="600" fill={strokeColor} textAnchor="middle">skimmer</text>
       </svg>
     )
   }
 
-  // Overflow type
+  // Overflow type - top view with overflow channel (grate/rošt) around perimeter
+  // Grate lines are perpendicular to pool edge, light gray color
+  const grateColor = '#9ca3af' // gray-400
+
   return (
-    <svg viewBox="0 0 200 100" className="w-full h-24" aria-hidden="true">
-      {/* Pool walls */}
-      <rect x="20" y="20" width="160" height="70" fill={concreteColor} stroke={strokeColor} strokeWidth="2" rx="2" />
-      {/* Water - at top level */}
-      <rect x="24" y="24" width="152" height="62" fill={waterColor} rx="1" />
-      {/* Overflow channel on right */}
-      <rect x="180" y="18" width="15" height="30" fill="white" stroke={strokeColor} strokeWidth="1.5" rx="1" />
-      {/* Water flowing over edge */}
-      <path d="M176,24 Q180,24 180,28 L180,40" stroke={waterColor} strokeWidth="3" fill="none" />
-      {/* Water drops in channel */}
-      <circle cx="187" cy="35" r="2" fill={waterColor} />
-      <circle cx="185" cy="42" r="1.5" fill={waterColor} />
-      {/* Arrows showing water flow */}
-      <path d="M150,26 L170,26" stroke={strokeColor} strokeWidth="1.5" fill="none" markerEnd="url(#arrowhead2)" />
-      <path d="M187,45 L187,55" stroke={strokeColor} strokeWidth="1" fill="none" markerEnd="url(#arrowhead2)" />
+    <svg viewBox="0 0 200 100" className="w-full h-full" aria-hidden="true">
+      {/* Outer edge / deck */}
+      <rect x="5" y="8" width="190" height="70" fill={edgeColor} stroke={strokeColor} strokeWidth="2" rx="3" />
+
+      {/* Grate lines - top (vertical lines) - full width including corners */}
+      {[...Array(46)].map((_, i) => (
+        <line key={`top-${i}`} x1={8 + i * 4} y1="11" x2={8 + i * 4} y2="20" stroke={grateColor} strokeWidth="1" />
+      ))}
+
+      {/* Grate lines - bottom (vertical lines) - full width including corners */}
+      {[...Array(46)].map((_, i) => (
+        <line key={`bottom-${i}`} x1={8 + i * 4} y1="66" x2={8 + i * 4} y2="75" stroke={grateColor} strokeWidth="1" />
+      ))}
+
+      {/* Grate lines - left (horizontal lines) - middle only, no corners */}
+      {[...Array(12)].map((_, i) => (
+        <line key={`left-${i}`} x1="8" y1={20 + i * 4} x2="17" y2={20 + i * 4} stroke={grateColor} strokeWidth="1" />
+      ))}
+
+      {/* Grate lines - right (horizontal lines) - middle only, no corners */}
+      {[...Array(12)].map((_, i) => (
+        <line key={`right-${i}`} x1="183" y1={20 + i * 4} x2="192" y2={20 + i * 4} stroke={grateColor} strokeWidth="1" />
+      ))}
+
+      {/* Water surface - inner pool */}
+      <rect x="17" y="20" width="166" height="46" fill={waterColor} stroke={strokeColor} strokeWidth="1.5" rx="1" />
+
       {/* Label */}
-      <text x="183" y="75" fontSize="14" fontWeight="600" fill={strokeColor}>žlab</text>
-      {/* Arrow marker */}
-      <defs>
-        <marker id="arrowhead2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" fill={strokeColor} />
-        </marker>
-      </defs>
+      <text x="100" y="93" fontSize="12" fontWeight="600" fill={strokeColor} textAnchor="middle">přelivový žlab</text>
     </svg>
   )
 }
@@ -97,7 +100,7 @@ export function StepType() {
               {/* Simple description */}
               <p className="text-sm text-foreground text-center mb-4">
                 {poolType.id === 'skimmer'
-                  ? 'Hladina 15 cm pod okrajem'
+                  ? 'Hladina 10 cm pod okrajem'
                   : 'Hladina u okraje, voda přetéká'}
               </p>
 

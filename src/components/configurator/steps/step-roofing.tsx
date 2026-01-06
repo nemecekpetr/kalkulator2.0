@@ -1,6 +1,5 @@
 'use client'
 
-import { Check, X } from 'lucide-react'
 import { useConfiguratorStore } from '@/stores/configurator-store'
 import { ROOFING_OPTIONS } from '@/lib/constants/configurator'
 import { StepLayout, OptionCard, OptionTag } from '../step-layout'
@@ -54,11 +53,6 @@ function RoofingSVG({ type }: { type: string }) {
             stroke={roofColor}
             strokeWidth="2"
           />
-          {/* Frame segments */}
-          <path d="M40,55 Q40,42 52,38" fill="none" stroke={roofColor} strokeWidth="1.5" />
-          <path d="M60,55 Q60,40 68,37" fill="none" stroke={roofColor} strokeWidth="1.5" />
-          <path d="M80,55 Q80,40 80,36" fill="none" stroke={roofColor} strokeWidth="1.5" />
-          <path d="M100,55 Q100,42 88,38" fill="none" stroke={roofColor} strokeWidth="1.5" />
           {/* Rails */}
           <line x1="25" y1="55" x2="25" y2="58" stroke={roofColor} strokeWidth="3" />
           <line x1="115" y1="55" x2="115" y2="58" stroke={roofColor} strokeWidth="3" />
@@ -111,7 +105,7 @@ export function StepRoofing() {
                 <div className="space-y-1">
                   {option.pros.map((pro, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <Check className="w-4 h-4 text-[#48A9A6] flex-shrink-0" />
+                      <span className="text-green-500 font-bold text-base flex-shrink-0">+</span>
                       <span className="text-foreground">{pro}</span>
                     </div>
                   ))}
@@ -119,7 +113,7 @@ export function StepRoofing() {
                 <div className="space-y-1">
                   {option.cons.map((con, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <X className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <span className="text-red-500 font-bold text-base flex-shrink-0">−</span>
                       <span className="text-slate-500">{con}</span>
                     </div>
                   ))}

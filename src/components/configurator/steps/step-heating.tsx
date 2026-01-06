@@ -121,7 +121,7 @@ export function StepHeating() {
           <ul className="space-y-1 text-sm text-slate-600">
             <li>• Prodloužení sezóny od března do října</li>
             <li>• Úspora až 80% nákladů oproti elektrickému ohřevu</li>
-            <li>• Komfortní teplota 26-28°C</li>
+            <li>• Komfortní teplota 26-30°C</li>
             <li>• Tichý provoz</li>
           </ul>
         </Card>
