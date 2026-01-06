@@ -4,9 +4,46 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.3'
+export const CURRENT_VERSION = '0.2.4'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.4',
+      date: '2026-01-06',
+      time: '14:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Kompletní UX a obsahové vylepšení všech kroků konfigurátoru',
+          userDescription: 'Konfigurátor bazénů prošel kompletní revizí - nové přehlednější grafiky, aktualizované texty a vylepšená navigace.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Nový pohled shora (půdorys) pro výběr typu bazénu',
+          userDescription: 'Ve výběru typu bazénu vidíte nyní bazén z ptačí perspektivy pro lepší představu o skimmeru a přelivovém žlabu.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Kruhové bazény - zjednodušený průchod bez zastřešení a protiproudu',
+          userDescription: 'Pro kruhové bazény jsme zjednodušili konfiguraci - přeskakují se kroky, které pro ně nejsou relevantní.'
+        },
+        {
+          type: 'fix',
+          scope: 'konfigurator',
+          description: 'Aktualizované tipy pro rozměry bazénů',
+          userDescription: 'Tipy pro výběr rozměrů byly aktualizovány podle nejčastějších požadavků zákazníků.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Odkaz na ochranu osobních údajů v kontaktním formuláři',
+          userDescription: 'V kontaktním formuláři je nyní odkaz na zásady ochrany osobních údajů dle GDPR.'
+        }
+      ]
+    },
     {
       version: '0.2.3',
       date: '2026-01-03',
