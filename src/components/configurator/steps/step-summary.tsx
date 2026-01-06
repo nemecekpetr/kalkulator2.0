@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Circle, Droplets, Ruler, Palette, Footprints,
   Settings, Lightbulb as LightbulbIcon, Waves, Thermometer, Home,
   User, Mail, Phone, MapPin, Check, Clock,
-  Plus, Edit2, Lightbulb, HelpCircle
+  Plus, Edit2, HelpCircle, ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
@@ -28,6 +28,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Turnstile } from '@/components/turnstile'
 import { submitConfiguration } from '@/app/actions/submit-configuration'
+
+// Constants
+const ADVICE_BLOG_URL = 'https://www.rentmil.cz/radime-vam?e-filter-1036ab9-post_tag=jak-vybrat'
+const ICON_GRADIENT_CLASSES = 'bg-gradient-to-br from-[#48A9A6] to-[#01384B]'
 
 interface SummaryRowProps {
   icon: React.ReactNode
@@ -65,7 +69,6 @@ export function StepSummary() {
     heating,
     roofing,
     contact,
-    isSubmitting,
     isSubmitted,
     submitError,
     setSubmitting,
@@ -78,6 +81,19 @@ export function StepSummary() {
   const handleTurnstileVerify = useCallback((token: string) => {
     setTurnstileToken(token)
   }, [])
+
+  // Focus management for accessibility - focus the thank you content when submitted
+  const thankYouRef = useRef<HTMLDivElement>(null)
+  const [mascotError, setMascotError] = useState(false)
+
+  useEffect(() => {
+    if (isSubmitted && thankYouRef.current) {
+      // Small delay to allow animations to start
+      setTimeout(() => {
+        thankYouRef.current?.focus()
+      }, 100)
+    }
+  }, [isSubmitted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -141,103 +157,176 @@ export function StepSummary() {
     return (
       <StepLayout title="" description="">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center py-12"
+          ref={thankYouRef}
+          tabIndex={-1}
+          aria-live="polite"
+          aria-atomic="true"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-[520px] mx-auto outline-none"
         >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring' }}
-            className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-[#48A9A6] to-[#01384B] flex items-center justify-center shadow-lg"
-          >
-            <Check className="w-12 h-12 text-white" />
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl font-display font-bold text-[#01384B] mb-4"
-          >
-            Děkujeme za Vaši poptávku!
-          </motion.h2>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-green-50 border border-green-200 rounded-lg p-6 max-w-lg mx-auto mb-6"
-          >
-            <p className="text-green-800 text-lg mb-2">
-              Vaši konfiguraci jsme úspěšně přijali.
-            </p>
-            <p className="text-green-700">
-              Shrnutí jsme Vám odeslali na e-mail{' '}
-              <strong className="text-green-900">{contact?.email}</strong>
-            </p>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#48A9A6]/10 rounded-full text-[#01384B]"
-          >
-            <Clock className="w-5 h-5 text-[#48A9A6]" />
-            <span className="font-medium">Ozveme se Vám do 24 hodin s cenovou kalkulací</span>
-          </motion.div>
+          <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+            {/* Hero s maskotem */}
+            <div className="bg-gradient-to-br from-[#01384B] via-[#025a6e] to-[#48A9A6] px-8 py-10 text-center relative overflow-hidden">
+              {/* Subtle water effect */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(72,169,166,0.3)_0%,transparent_50%),radial-gradient(circle_at_80%_20%,rgba(255,134,33,0.15)_0%,transparent_40%)] pointer-events-none" />
 
-          {/* Co očekávat */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="mt-8 p-4 bg-slate-50 rounded-lg text-left max-w-md mx-auto"
-          >
-            <p className="text-sm font-semibold text-[#01384B] mb-3">Co můžete očekávat:</p>
-            <ul className="text-sm text-slate-600 space-y-2">
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#48A9A6]" />
-                Potvrzovací e-mail během několika minut
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#48A9A6]" />
-                Cenovou nabídku do 24 hodin
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-[#48A9A6]" />
-                Telefonát od našeho specialisty
-              </li>
-            </ul>
-          </motion.div>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.2, type: 'spring' }}
+                className="relative z-10 w-[180px] h-[180px] mx-auto mb-5"
+              >
+                {!mascotError ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src="/images/mascot/hurray.png"
+                    alt="Bazénový mistr gratuluje k úspěšnému odeslání konfigurace"
+                    className="w-full h-full object-contain drop-shadow-2xl animate-float"
+                    onError={() => setMascotError(true)}
+                  />
+                ) : (
+                  // Fallback: checkmark icon if mascot fails to load
+                  <div className={`w-full h-full rounded-full ${ICON_GRADIENT_CLASSES} flex items-center justify-center`}>
+                    <Check className="w-20 h-20 text-white" />
+                  </div>
+                )}
+              </motion.div>
 
-          {/* Akční tlačítka */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="mt-8 flex flex-col sm:flex-row gap-3 justify-center"
-          >
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSubmitted(false)
-                setStep(1)
-              }}
-              className="gap-2"
-            >
-              <Edit2 className="w-4 h-4" />
-              Upravit konfiguraci
-            </Button>
-            <Button
-              onClick={() => {
-                reset()
-                setStep(1)
-              }}
-              className="gap-2 bg-gradient-to-r from-[#48A9A6] to-[#01384B] hover:from-[#48A9A6]/90 hover:to-[#01384B]/90"
-            >
-              <Plus className="w-4 h-4" />
-              Nová konfigurace
-            </Button>
-          </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-white text-xl font-bold relative z-10 drop-shadow-md"
+              >
+                Vy zenujete, my bazénujeme!
+              </motion.p>
+            </div>
+
+            {/* Content */}
+            <div className="p-8">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <h2 className="text-2xl font-bold text-[#01384B] text-center mb-2">
+                  Konfigurace přijata
+                </h2>
+                <p className="text-slate-500 text-center mb-6">
+                  Potvrzení jsme odeslali na{' '}
+                  <span className="text-[#48A9A6] font-semibold">{contact?.email}</span>
+                </p>
+              </motion.div>
+
+              {/* Timeline */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="space-y-0 mb-6"
+              >
+                <div className="flex items-start gap-3.5 py-3.5 border-b border-slate-100">
+                  <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#01384B] text-[15px]">E-mail odeslán</p>
+                    <p className="text-slate-500 text-sm">Shrnutí konfigurace máte ve schránce</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 py-3.5 border-b border-slate-100">
+                  <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
+                    <Clock className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#01384B] text-[15px]">Cenová nabídka do 24 hodin</p>
+                    <p className="text-slate-500 text-sm">Náš specialista připraví kalkulaci na míru</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3.5 py-3.5">
+                  <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
+                    <Phone className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#01384B] text-[15px]">Zavoláme vám</p>
+                    <p className="text-slate-500 text-sm">Pro upřesnění detailů a zodpovězení dotazů</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent my-6" />
+
+              {/* Advice section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="text-center"
+              >
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">
+                  Mezitím si přečtěte
+                </p>
+                <a
+                  href={ADVICE_BLOG_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-2xl p-6 text-left transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-2xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40"
+                >
+                  <h4 className="text-lg font-bold text-white mb-1">
+                    Jak vybrat ten správný bazén?
+                  </h4>
+                  <p className="text-white/90 text-sm mb-3">
+                    Tipy a rady od našich odborníků, které vám pomohou s výběrem
+                  </p>
+                  <span className="inline-flex items-center gap-1.5 text-white font-semibold text-sm group-hover:gap-3 transition-all duration-300">
+                    Přečíst články
+                    <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  </span>
+                </a>
+              </motion.div>
+
+              {/* CTA buttons */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="mt-5 flex flex-col sm:flex-row gap-3"
+              >
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSubmitted(false)
+                    setSubmitError(null)
+                    setStep(1)
+                  }}
+                  className="flex-1 gap-2 h-12 border-slate-200 text-slate-500 hover:border-[#48A9A6] hover:text-[#48A9A6]"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Upravit
+                </Button>
+                <Button
+                  onClick={() => {
+                    try {
+                      reset()
+                      setStep(1)
+                    } catch (error) {
+                      console.error('Reset failed:', error)
+                      // Fallback: force page reload
+                      window.location.href = '/'
+                    }
+                  }}
+                  className="flex-1 gap-2 h-12 bg-gradient-to-r from-[#48A9A6] to-[#01384B] hover:from-[#48A9A6]/90 hover:to-[#01384B]/90"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nová konfigurace
+                </Button>
+              </motion.div>
+            </div>
+          </div>
         </motion.div>
       </StepLayout>
     )

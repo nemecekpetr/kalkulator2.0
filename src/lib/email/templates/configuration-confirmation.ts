@@ -10,6 +10,7 @@ import {
   getColorLabel,
   getStairsLabel,
   getHeatingLabel,
+  getRoofingLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
 
@@ -74,6 +75,7 @@ export function generateConfigurationEmailHtml(data: ConfigurationEmailData): st
   const colorLabel = getColorLabel(data.color)
   const stairsLabel = getStairsLabel(data.stairs)
   const heatingLabel = getHeatingLabel(data.heating)
+  const roofingLabel = getRoofingLabel(data.roofing)
   const dimensionsLabel = formatDimensions(
     data.poolShape,
     data.dimensions as { diameter?: number; width?: number; length?: number; depth?: number }
@@ -310,6 +312,139 @@ export function generateConfigurationEmailHtml(data: ConfigurationEmailData): st
                           </div>
                         </td>
                       </tr>
+                      <!-- Řada 3 - Zastřešení -->
+                      <tr>
+                        <td width="33%" align="center" style="padding:8px 4px;"></td>
+                        <td width="33%" align="center" style="padding:8px 4px;">
+                          <div style="background:#f8fafc;
+                                      border-radius:12px;
+                                      padding:14px 8px;
+                                      border:1px solid #e2e8f0;">
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                        color:#64748b;
+                                        font-size:10px;
+                                        text-transform:uppercase;
+                                        letter-spacing:0.5px;
+                                        margin-bottom:4px;">
+                              Zastřešení
+                            </div>
+                            <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                        color:#01384B;
+                                        font-size:13px;
+                                        font-weight:700;">
+                              ${roofingLabel}
+                            </div>
+                          </div>
+                        </td>
+                        <td width="33%" align="center" style="padding:8px 4px;"></td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- VAŠE ÚDAJE - BÍLÁ KARTA -->
+          <tr>
+            <td style="padding:0 0 24px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                     style="background:#ffffff;
+                            border-radius:24px;
+                            box-shadow:0 8px 32px rgba(0,0,0,0.12);">
+                <tr>
+                  <td style="padding:24px;">
+                    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                color:#64748b;
+                                font-size:10px;
+                                text-transform:uppercase;
+                                letter-spacing:0.5px;
+                                margin-bottom:16px;">
+                      Vaše kontaktní údaje
+                    </div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#64748b;
+                                          font-size:13px;
+                                          width:120px;">
+                                Jméno
+                              </td>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#01384B;
+                                          font-size:13px;
+                                          font-weight:600;">
+                                ${data.contactName}
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#64748b;
+                                          font-size:13px;
+                                          width:120px;">
+                                E-mail
+                              </td>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#48A9A6;
+                                          font-size:13px;
+                                          font-weight:600;">
+                                ${data.contactEmail}
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:8px 0;${data.contactAddress ? ' border-bottom:1px solid #f1f5f9;' : ''}">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#64748b;
+                                          font-size:13px;
+                                          width:120px;">
+                                Telefon
+                              </td>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#01384B;
+                                          font-size:13px;
+                                          font-weight:600;">
+                                ${data.contactPhone}
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      ${data.contactAddress ? `
+                      <tr>
+                        <td style="padding:8px 0;">
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#64748b;
+                                          font-size:13px;
+                                          width:120px;">
+                                Místo instalace
+                              </td>
+                              <td style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                                          color:#01384B;
+                                          font-size:13px;
+                                          font-weight:600;">
+                                ${data.contactAddress}
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      ` : ''}
                     </table>
                   </td>
                 </tr>
@@ -414,7 +549,7 @@ export function generateConfigurationEmailHtml(data: ConfigurationEmailData): st
                           color:rgba(255,255,255,0.5);
                           font-size:11px;
                           margin-top:20px;">
-                Rentmil · Váš bazénový mistr · 23 let zkušeností
+                Rentmil · Váš bazénový mistr · 24 let zkušeností
               </div>
             </td>
           </tr>
@@ -439,6 +574,7 @@ export function generateConfigurationEmailText(data: ConfigurationEmailData): st
   const colorLabel = getColorLabel(data.color)
   const stairsLabel = getStairsLabel(data.stairs)
   const heatingLabel = getHeatingLabel(data.heating)
+  const roofingLabel = getRoofingLabel(data.roofing)
   const dimensionsLabel = formatDimensions(
     data.poolShape,
     data.dimensions as { diameter?: number; width?: number; length?: number; depth?: number }
@@ -460,6 +596,16 @@ Typ: ${typeLabel}
 Barva: ${colorLabel}
 Schody: ${stairsLabel}
 Ohřev: ${heatingLabel}
+Zastřešení: ${roofingLabel}
+
+---
+VAŠE KONTAKTNÍ ÚDAJE
+---
+
+Jméno: ${data.contactName}
+E-mail: ${data.contactEmail}
+Telefon: ${data.contactPhone}${data.contactAddress ? `
+Místo instalace: ${data.contactAddress}` : ''}
 
 ---
 
@@ -474,6 +620,6 @@ Lenka Finklarová
 bazeny@rentmil.cz
 
 ---
-Rentmil · Váš bazénový mistr · 23 let zkušeností
+Rentmil · Váš bazénový mistr · 24 let zkušeností
   `.trim()
 }
