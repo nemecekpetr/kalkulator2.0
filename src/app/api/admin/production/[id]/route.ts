@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import type { ProductionOrderUpdate } from '@/lib/supabase/types'
 
 interface RouteParams {
@@ -8,7 +8,7 @@ interface RouteParams {
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   try {
@@ -33,7 +33,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   try {
@@ -82,7 +82,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   try {

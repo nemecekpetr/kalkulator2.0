@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import { ProductionOrderCreateSchema, validateBody } from '@/lib/validations/api'
 
 export async function GET() {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   try {
@@ -67,7 +67,7 @@ function formatPoolDepth(poolConfig: Record<string, unknown> | null): string | n
 }
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   try {

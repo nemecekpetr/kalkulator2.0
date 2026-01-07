@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'fs/promises'
@@ -77,7 +77,7 @@ async function generatePdf(
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   let browser: Browser | null = null

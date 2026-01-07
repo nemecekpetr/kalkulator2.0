@@ -47,6 +47,12 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'email',
           description: 'Nový předmět emailu: "Bazény Rentmil - Gratulujeme! O krok blíže vysněnému bazénu"',
           userDescription: 'Potvrzovací email má nový přívětivější předmět.'
+        },
+        {
+          type: 'fix',
+          scope: 'admin',
+          description: 'Oprava oprávnění pro uživatele s rolí "user" - PDF export, změna stavu nabídek, práce s objednávkami a výrobou',
+          userDescription: 'Uživatelé s rolí "user" nyní mohou exportovat PDF, měnit stavy nabídek a pracovat s objednávkami a výrobou.'
         }
       ]
     },

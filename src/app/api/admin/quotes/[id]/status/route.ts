@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin, isAuthError } from '@/lib/auth/api-auth'
+import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import type { QuoteStatus } from '@/lib/supabase/types'
 
 interface RouteParams {
@@ -10,7 +10,7 @@ interface RouteParams {
 const VALID_STATUSES: QuoteStatus[] = ['draft', 'sent', 'accepted', 'rejected']
 
 export async function PATCH(request: Request, { params }: RouteParams) {
-  const auth = await requireAdmin()
+  const auth = await requireAuth()
   if (isAuthError(auth)) return auth.error
 
   try {
