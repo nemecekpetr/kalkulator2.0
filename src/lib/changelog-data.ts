@@ -4,9 +4,52 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.5'
+export const CURRENT_VERSION = '0.2.6'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.6',
+      date: '2026-01-07',
+      time: '15:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Předvybrané nejoblíbenější varianty ve všech krocích',
+          userDescription: 'Konfigurátor nyní automaticky předvybírá nejoblíbenější volby v každém kroku, což urychluje proces konfigurace.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Souhrn konfigurace zobrazuje pouze potvrzené kroky',
+          userDescription: 'V pravém panelu se nyní zobrazují pouze kroky, které jste potvrdili kliknutím na "Další krok".'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Obrázky schodišť podle tvaru bazénu (zaoblené/ostré rohy)',
+          userDescription: 'Při výběru schodiště vidíte obrázky odpovídající tvaru vašeho bazénu.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Rozlišení duplicitní konfigurace na Thank You stránce',
+          userDescription: 'Pokud odešlete stejnou konfiguraci vícekrát, uvidíte upozornění s výzvou ke kontrole emailu.'
+        },
+        {
+          type: 'fix',
+          scope: 'konfigurator',
+          description: 'Checkbox výběru viditelný nad obrázkem schodiště',
+          userDescription: 'Opravena viditelnost zaškrtávacího políčka u výběru schodiště.'
+        },
+        {
+          type: 'feature',
+          scope: 'email',
+          description: 'Nový předmět emailu: "Bazény Rentmil - Gratulujeme! O krok blíže vysněnému bazénu"',
+          userDescription: 'Potvrzovací email má nový přívětivější předmět.'
+        }
+      ]
+    },
     {
       version: '0.2.5',
       date: '2026-01-06',
