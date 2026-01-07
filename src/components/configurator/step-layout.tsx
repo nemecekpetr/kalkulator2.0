@@ -101,7 +101,7 @@ export function OptionCard({ selected, onClick, children, className, disabled, l
       <div
         aria-hidden="true"
         className={cn(
-          'absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300',
+          'absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 z-10',
           selected
             ? 'border-[#48A9A6] bg-gradient-to-br from-[#48A9A6] to-[#3d9996] shadow-md shadow-[#48A9A6]/30'
             : 'border-slate-300 bg-white'

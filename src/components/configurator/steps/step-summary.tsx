@@ -70,9 +70,11 @@ export function StepSummary() {
     roofing,
     contact,
     isSubmitted,
+    isDuplicate,
     submitError,
     setSubmitting,
     setSubmitted,
+    setDuplicate,
     setSubmitError,
     setStep,
     reset
@@ -141,6 +143,9 @@ export function StepSummary() {
 
       if (result.success) {
         setSubmitted(true)
+        if (result.isDuplicate) {
+          setDuplicate(true)
+        }
       } else {
         setSubmitError(result.message)
       }
@@ -210,12 +215,21 @@ export function StepSummary() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <h2 className="text-2xl font-bold text-[#01384B] text-center mb-2">
-                  Konfigurace přijata
+                <h2 className={`text-2xl font-bold text-center mb-2 ${isDuplicate ? 'text-red-600' : 'text-[#01384B]'}`}>
+                  {isDuplicate ? 'Konfigurace byla již dříve odeslána' : 'Konfigurace přijata'}
                 </h2>
                 <p className="text-slate-500 text-center mb-6">
-                  Potvrzení jsme odeslali na{' '}
-                  <span className="text-[#48A9A6] font-semibold">{contact?.email}</span>
+                  {isDuplicate ? (
+                    <>
+                      Tuto konfiguraci jste již odeslali. Potvrzení najdete na{' '}
+                      <span className="text-[#48A9A6] font-semibold">{contact?.email}</span>
+                    </>
+                  ) : (
+                    <>
+                      Potvrzení jsme odeslali na{' '}
+                      <span className="text-[#48A9A6] font-semibold">{contact?.email}</span>
+                    </>
+                  )}
                 </p>
               </motion.div>
 
@@ -226,35 +240,54 @@ export function StepSummary() {
                 transition={{ delay: 0.6 }}
                 className="space-y-0 mb-6"
               >
-                <div className="flex items-start gap-3.5 py-3.5 border-b border-slate-100">
-                  <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
-                    <Check className="w-4 h-4 text-white" />
+                {isDuplicate ? (
+                  // Duplicate submission - show info message
+                  <div className="flex items-start gap-3.5 py-3.5 bg-amber-50 rounded-xl px-4 -mx-4">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#01384B] text-[15px]">Zkontrolujte svůj e-mail</p>
+                      <p className="text-slate-500 text-sm">
+                        Potvrzení konfigurace jsme vám již dříve odeslali.
+                        Pokud ho nemůžete najít, zkontrolujte složku spam.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-[#01384B] text-[15px]">E-mail odeslán</p>
-                    <p className="text-slate-500 text-sm">Shrnutí konfigurace máte ve schránce</p>
-                  </div>
-                </div>
+                ) : (
+                  // New submission - show normal timeline
+                  <>
+                    <div className="flex items-start gap-3.5 py-3.5 border-b border-slate-100">
+                      <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#01384B] text-[15px]">E-mail odeslán</p>
+                        <p className="text-slate-500 text-sm">Shrnutí konfigurace máte ve schránce</p>
+                      </div>
+                    </div>
 
-                <div className="flex items-start gap-3.5 py-3.5 border-b border-slate-100">
-                  <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
-                    <Clock className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[#01384B] text-[15px]">Cenová nabídka do 24 hodin</p>
-                    <p className="text-slate-500 text-sm">Náš specialista připraví kalkulaci na míru</p>
-                  </div>
-                </div>
+                    <div className="flex items-start gap-3.5 py-3.5 border-b border-slate-100">
+                      <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
+                        <Clock className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#01384B] text-[15px]">Cenová nabídka do 24 hodin</p>
+                        <p className="text-slate-500 text-sm">Náš specialista připraví kalkulaci na míru</p>
+                      </div>
+                    </div>
 
-                <div className="flex items-start gap-3.5 py-3.5">
-                  <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
-                    <Phone className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-[#01384B] text-[15px]">Zavoláme vám</p>
-                    <p className="text-slate-500 text-sm">Pro upřesnění detailů a zodpovězení dotazů</p>
-                  </div>
-                </div>
+                    <div className="flex items-start gap-3.5 py-3.5">
+                      <div className={`w-9 h-9 rounded-xl ${ICON_GRADIENT_CLASSES} flex items-center justify-center flex-shrink-0`}>
+                        <Phone className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[#01384B] text-[15px]">Zavoláme vám</p>
+                        <p className="text-slate-500 text-sm">Pro upřesnění detailů a zodpovězení dotazů</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </motion.div>
 
               {/* Divider */}
@@ -300,6 +333,7 @@ export function StepSummary() {
                   variant="outline"
                   onClick={() => {
                     setSubmitted(false)
+                    setDuplicate(false)
                     setSubmitError(null)
                     setStep(1)
                   }}

@@ -7,14 +7,23 @@ import { StepLayout, OptionCard, OptionTag } from '../step-layout'
 import { Card } from '@/components/ui/card'
 import { Lightbulb } from 'lucide-react'
 
-// Map stair types to image paths
-const STAIRS_IMAGES: Record<string, string> = {
-  'none': '/images/stairs/none.png',
-  'roman': '/images/stairs/roman.png',
-  'corner_triangle': '/images/stairs/corner-triangle.png',
-  'full_width': '/images/stairs/full-width.png',
-  'with_bench': '/images/stairs/with-bench.png',
-  'corner_square': '/images/stairs/corner-square.png'
+// Map stair types to image paths based on pool shape
+const STAIRS_IMAGES_ROUNDED: Record<string, string> = {
+  'none': '/images/stairs/rounded/none.png',
+  'roman': '/images/stairs/rounded/roman.png',
+  'corner_triangle': '/images/stairs/rounded/corner-triangle.png',
+  'full_width': '/images/stairs/rounded/full-width.png',
+  'with_bench': '/images/stairs/rounded/with-bench.png',
+  'corner_square': '/images/stairs/rounded/corner-square.png'
+}
+
+const STAIRS_IMAGES_SHARP: Record<string, string> = {
+  'none': '/images/stairs/sharp/none.png',
+  'roman': '/images/stairs/sharp/roman.png',
+  'corner_triangle': '/images/stairs/sharp/corner-triangle.png',
+  'full_width': '/images/stairs/sharp/full-width.png',
+  'with_bench': '/images/stairs/sharp/with-bench.png',
+  'corner_square': '/images/stairs/sharp/corner-square.png'
 }
 
 export function StepStairs() {
@@ -26,6 +35,9 @@ export function StepStairs() {
   if (shape === 'circle') {
     return null
   }
+
+  // Select images based on pool shape (rounded vs sharp corners)
+  const stairsImages = shape === 'rectangle_sharp' ? STAIRS_IMAGES_SHARP : STAIRS_IMAGES_ROUNDED
 
   return (
     <StepLayout
@@ -44,7 +56,7 @@ export function StepStairs() {
               {/* Stairs image - fixed height container */}
               <div className="h-28 rounded-lg bg-gradient-to-b from-[#48A9A6]/5 to-[#01384B]/5 overflow-hidden relative flex items-center justify-center">
                 <Image
-                  src={STAIRS_IMAGES[stairsType.id]}
+                  src={stairsImages[stairsType.id]}
                   alt={stairsType.label}
                   fill
                   className="object-contain p-3"

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronUp, Circle, Square, Droplets, Palette, Footprints, Settings, Lightbulb, Thermometer, Home, User, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -70,22 +69,24 @@ function SummaryContent() {
     waterTreatment,
     heating,
     roofing,
-    contact
+    contact,
+    isStepConfirmed
   } = useConfiguratorStore()
 
-  const hasAnyData = shape || type || dimensions || color
+  // Only show data from confirmed steps (user clicked "Next")
+  const hasAnyConfirmed = isStepConfirmed(1) || isStepConfirmed(2) || isStepConfirmed(3) || isStepConfirmed(4)
 
-  if (!hasAnyData) {
+  if (!hasAnyConfirmed) {
     return (
       <div className="text-center py-8">
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#48A9A6]/10 to-[#01384B]/5 flex items-center justify-center">
           <Droplets className="w-10 h-10 text-[#48A9A6]" />
         </div>
         <p className="text-sm text-slate-500 font-medium">
-          Začněte vybírat a zde se zobrazí vaše konfigurace
+          Kliknutím na &quot;Další krok&quot; potvrdíte výběr
         </p>
         <p className="text-xs text-slate-400 mt-1">
-          Každý váš výběr se automaticky uloží
+          Zde se zobrazí vaše konfigurace
         </p>
       </div>
     )
@@ -93,29 +94,37 @@ function SummaryContent() {
 
   return (
     <div className="space-y-1">
-      {/* Pool basics */}
-      <SummaryItem
-        icon={<Circle className="w-4 h-4" />}
-        label="Tvar"
-        value={shape ? getShapeLabel(shape) : null}
-      />
-      <SummaryItem
-        icon={<Droplets className="w-4 h-4" />}
-        label="Typ"
-        value={type ? getTypeLabel(type) : null}
-      />
-      <SummaryItem
-        icon={<Square className="w-4 h-4" />}
-        label="Rozměry"
-        value={shape && dimensions ? formatDimensions(shape, dimensions) : null}
-      />
-      <SummaryItem
-        icon={<Palette className="w-4 h-4" />}
-        label="Barva"
-        value={color ? getColorLabel(color) : null}
-      />
+      {/* Pool basics - only show if step is confirmed */}
+      {isStepConfirmed(1) && (
+        <SummaryItem
+          icon={<Circle className="w-4 h-4" />}
+          label="Tvar"
+          value={shape ? getShapeLabel(shape) : null}
+        />
+      )}
+      {isStepConfirmed(2) && (
+        <SummaryItem
+          icon={<Droplets className="w-4 h-4" />}
+          label="Typ"
+          value={type ? getTypeLabel(type) : null}
+        />
+      )}
+      {isStepConfirmed(3) && (
+        <SummaryItem
+          icon={<Square className="w-4 h-4" />}
+          label="Rozměry"
+          value={shape && dimensions ? formatDimensions(shape, dimensions) : null}
+        />
+      )}
+      {isStepConfirmed(4) && (
+        <SummaryItem
+          icon={<Palette className="w-4 h-4" />}
+          label="Barva"
+          value={color ? getColorLabel(color) : null}
+        />
+      )}
 
-      {stairs && stairs !== 'none' && shape !== 'circle' && (
+      {isStepConfirmed(5) && stairs && stairs !== 'none' && shape !== 'circle' && (
         <SummaryItem
           icon={<Footprints className="w-4 h-4" />}
           label="Schodiště"
@@ -123,7 +132,7 @@ function SummaryContent() {
         />
       )}
 
-      {technology && (
+      {isStepConfirmed(6) && technology && (
         <SummaryItem
           icon={<Settings className="w-4 h-4" />}
           label="Technologie"
@@ -131,8 +140,8 @@ function SummaryContent() {
         />
       )}
 
-      {/* Accessories */}
-      {(lighting || counterflow || waterTreatment) && (
+      {/* Accessories - show section if step 7 is confirmed */}
+      {isStepConfirmed(7) && (lighting || counterflow || waterTreatment) && (
         <>
           <Separator className="my-3 bg-gradient-to-r from-transparent via-[#48A9A6]/20 to-transparent" />
           <div className="flex items-center gap-2 mb-2">
@@ -169,17 +178,17 @@ function SummaryContent() {
       )}
 
       {/* Heating & Roofing */}
-      {(heating || roofing) && (
+      {(isStepConfirmed(8) || isStepConfirmed(9)) && (
         <>
           <Separator className="my-3 bg-gradient-to-r from-transparent via-[#48A9A6]/20 to-transparent" />
-          {heating && heating !== 'none' && (
+          {isStepConfirmed(8) && heating && heating !== 'none' && (
             <SummaryItem
               icon={<Thermometer className="w-4 h-4" />}
               label="Ohřev"
               value={getHeatingLabel(heating)}
             />
           )}
-          {roofing && roofing !== 'none' && (
+          {isStepConfirmed(9) && roofing && roofing !== 'none' && (
             <SummaryItem
               icon={<Home className="w-4 h-4" />}
               label="Zastřešení"
@@ -190,7 +199,7 @@ function SummaryContent() {
       )}
 
       {/* Contact */}
-      {contact?.name && (
+      {isStepConfirmed(10) && contact?.name && (
         <>
           <Separator className="my-3 bg-gradient-to-r from-transparent via-[#48A9A6]/20 to-transparent" />
           <SummaryItem

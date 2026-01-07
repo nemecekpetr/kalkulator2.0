@@ -27,6 +27,10 @@ export interface ConfiguratorState {
   // Steps with default values should not show as "completed" until visited
   visitedSteps: number[]
 
+  // Track which steps user has confirmed by clicking "Next"
+  // Only confirmed steps appear in the summary sidebar
+  confirmedSteps: number[]
+
   // Step 1: Shape
   shape: PoolShape | null
 
@@ -62,6 +66,7 @@ export interface ConfiguratorState {
   // Submission state
   isSubmitting: boolean
   isSubmitted: boolean
+  isDuplicate: boolean // True if submission was a duplicate
   submitError: string | null
 }
 
@@ -88,6 +93,7 @@ export interface ConfiguratorActions {
   // Submission
   setSubmitting: (isSubmitting: boolean) => void
   setSubmitted: (isSubmitted: boolean) => void
+  setDuplicate: (isDuplicate: boolean) => void
   setSubmitError: (error: string | null) => void
 
   // Utils
@@ -99,27 +105,30 @@ export interface ConfiguratorActions {
   shouldSkipStep: (step: number) => boolean
   markStepVisited: (step: number) => void
   hasVisitedStep: (step: number) => boolean
+  confirmStep: (step: number) => void
+  isStepConfirmed: (step: number) => boolean
 }
 
 const initialState: ConfiguratorState = {
   currentStep: 1,
   visitedSteps: [1], // Start with step 1 as visited
-  shape: null,
-  type: null,
-  // Default dimensions for rectangle pool (6x3x1.5m)
-  dimensions: { length: 6, width: 3, depth: 1.5 },
-  // Default color is white
-  color: 'white',
-  stairs: null,
-  technology: null,
-  lighting: null,
-  counterflow: null,
-  waterTreatment: null,
-  heating: null,
-  roofing: null,
+  confirmedSteps: [], // Steps confirmed by clicking "Next" - shown in summary
+  // Pre-selected defaults (most popular choices) - but not confirmed until user clicks "Next"
+  shape: 'rectangle_rounded', // Nejprodávanější
+  type: 'skimmer', // Nejprodávanější
+  dimensions: { length: 6, width: 3, depth: 1.5 }, // Default dimensions
+  color: 'blue', // Nejprodávanější
+  stairs: 'roman', // Nejoblíbenější
+  technology: 'shaft', // Nejprodávanější
+  lighting: 'led', // Doporučené
+  counterflow: 'none', // Default
+  waterTreatment: 'salt', // Doporučené
+  heating: 'heat_pump', // Doporučené
+  roofing: 'with_roofing', // Doporučené
   contact: null,
   isSubmitting: false,
   isSubmitted: false,
+  isDuplicate: false,
   submitError: null
 }
 
@@ -138,7 +147,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       },
 
       nextStep: () => {
-        const { currentStep, shouldSkipStep, visitedSteps } = get()
+        const { currentStep, shouldSkipStep, visitedSteps, confirmedSteps } = get()
         let nextStep = currentStep + 1
 
         // Skip steps that don't apply to current shape (e.g., stairs and roofing for circle)
@@ -149,7 +158,9 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         if (nextStep <= 11) {
           set({
             currentStep: nextStep,
-            visitedSteps: visitedSteps.includes(nextStep) ? visitedSteps : [...visitedSteps, nextStep]
+            visitedSteps: visitedSteps.includes(nextStep) ? visitedSteps : [...visitedSteps, nextStep],
+            // Confirm current step when moving to next - this makes it visible in summary
+            confirmedSteps: confirmedSteps.includes(currentStep) ? confirmedSteps : [...confirmedSteps, currentStep]
           })
         }
       },
@@ -183,12 +194,12 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
             dimensions: { diameter: 3, depth: 1.2 }
           })
         } else if (currentShape === 'circle') {
-          // Changing FROM circle to rectangle - reset to rectangle defaults
+          // Changing FROM circle to rectangle - reset to rectangle defaults with popular choices
           set({
             shape,
-            stairs: null,
-            counterflow: null,
-            roofing: null,
+            stairs: 'roman', // Nejoblíbenější
+            counterflow: 'none',
+            roofing: 'none',
             dimensions: { length: 6, width: 3, depth: 1.5 }
           })
         } else {
@@ -211,6 +222,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       // Submission
       setSubmitting: (isSubmitting) => set({ isSubmitting }),
       setSubmitted: (isSubmitted) => set({ isSubmitted }),
+      setDuplicate: (isDuplicate) => set({ isDuplicate }),
       setSubmitError: (submitError) => set({ submitError }),
 
       // Utils
@@ -316,6 +328,19 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
         }
       },
 
+      // Confirm a step (makes it visible in summary)
+      confirmStep: (step) => {
+        const { confirmedSteps } = get()
+        if (!confirmedSteps.includes(step)) {
+          set({ confirmedSteps: [...confirmedSteps, step] })
+        }
+      },
+
+      // Check if step is confirmed
+      isStepConfirmed: (step) => {
+        return get().confirmedSteps.includes(step)
+      },
+
       // A step is "completed" only if:
       // 1. User has visited it (or all previous steps)
       // 2. AND it has valid values
@@ -364,6 +389,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           roofing: state.roofing,
           currentStep: state.currentStep,
           visitedSteps: state.visitedSteps,
+          confirmedSteps: state.confirmedSteps,
           // contact: excluded - sensitive data should not persist
         }) as ConfiguratorState,
       // Skip SSR storage to avoid hydration mismatch

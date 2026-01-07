@@ -3,7 +3,7 @@
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { ConfigurationSchema } from '@/lib/validations/configuration'
-import { sanitizeContact, sanitizeText } from '@/lib/validations/contact'
+import { sanitizeContact } from '@/lib/validations/contact'
 import { verifyTurnstile } from '@/lib/turnstile'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { sendEmail } from '@/lib/email/client'
@@ -37,6 +37,7 @@ interface SubmitResult {
   success: boolean
   message: string
   configurationId?: string
+  isDuplicate?: boolean // True if this was a duplicate submission within idempotency window
 }
 
 // Length of idempotency key hash (SHA-256 truncated)
@@ -220,7 +221,7 @@ async function processEmail(
 
     const result = await sendEmail({
       to: [config.contact_email, 'bazeny@rentmil.cz'],
-      subject: 'Vaše konfigurace bazénu - Rentmil',
+      subject: 'Bazény Rentmil - Gratulujeme! O krok blíže vysněnému bazénu',
       html,
       text,
       replyTo: 'bazeny@rentmil.cz',
@@ -342,9 +343,10 @@ export async function submitConfiguration(
     if (existingConfig) {
       console.warn(`Duplicate submission detected for idempotency key: ${idempotencyKey}`)
       return {
-        success: true, // Return success to not confuse user
-        message: 'Konfigurace byla úspěšně odeslána!',
+        success: true,
+        message: 'Tuto konfiguraci jste již odeslali. Zkontrolujte svůj e-mail.',
         configurationId: existingConfig.id,
+        isDuplicate: true,
       }
     }
 
@@ -381,8 +383,8 @@ export async function submitConfiguration(
         console.warn(`Race condition duplicate caught by DB constraint: ${idempotencyKey}`)
         return {
           success: true,
-          message: 'Konfigurace byla úspěšně odeslána!',
-          // Don't expose internal key to user
+          message: 'Tuto konfiguraci jste již odeslali. Zkontrolujte svůj e-mail.',
+          isDuplicate: true,
         }
       }
 
