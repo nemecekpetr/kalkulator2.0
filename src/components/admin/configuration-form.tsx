@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Mail } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import type { Configuration } from '@/lib/supabase/types'
 import {
   POOL_SHAPES,
@@ -60,6 +61,7 @@ const formSchema = z.object({
   heating: z.string().min(1, 'Vyberte ohřev'),
   roofing: z.string().min(1, 'Vyberte zastřešení'),
   message: z.string().optional(),
+  sendEmail: z.boolean().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -94,6 +96,7 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
       heating: configuration?.heating || '',
       roofing: configuration?.roofing || '',
       message: configuration?.message || '',
+      sendEmail: false,
     },
   })
 
@@ -141,7 +144,10 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
           toast.error(result.error || 'Nepodařilo se aktualizovat konfiguraci')
         }
       } else {
-        const result = await createConfiguration(data)
+        const result = await createConfiguration({
+          ...data,
+          sendEmail: values.sendEmail,
+        })
         if (result.success && result.id) {
           toast.success('Konfigurace byla vytvořena')
           router.push(`/admin/konfigurace/${result.id}`)
@@ -219,6 +225,31 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
                 </FormItem>
               )}
             />
+            {mode === 'create' && (
+              <FormField
+                control={form.control}
+                name="sendEmail"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="flex items-center gap-2 cursor-pointer">
+                        <Mail className="h-4 w-4" />
+                        Odeslat potvrzovací email zákazníkovi
+                      </FormLabel>
+                      <p className="text-sm text-muted-foreground">
+                        Zákazník obdrží email s potvrzením konfigurace
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
           </CardContent>
         </Card>
 

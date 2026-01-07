@@ -89,8 +89,8 @@ function generateDealNote(config: Configuration): string {
   return lines.join('\n')
 }
 
-// Process Pipedrive integration
-async function processPipedrive(
+// Process Pipedrive integration (exported for reuse in admin-actions)
+export async function processPipedrive(
   config: Configuration,
   supabase: Awaited<ReturnType<typeof createAdminClient>>
 ): Promise<{ success: boolean; dealId?: number; personId?: number; error?: string }> {
@@ -210,8 +210,8 @@ async function processPipedrive(
   }
 }
 
-// Process email sending
-async function processEmail(
+// Process email sending (exported for reuse in admin-actions)
+export async function processEmail(
   config: Configuration
 ): Promise<{ success: boolean; error?: string }> {
   try {

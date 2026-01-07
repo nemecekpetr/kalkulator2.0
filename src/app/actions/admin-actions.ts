@@ -406,22 +406,91 @@ export async function createConfiguration(data: {
   heating: string
   roofing: string
   message?: string
+  sendEmail?: boolean
 }) {
   try {
     const supabase = await createAdminClient()
 
+    // 1. Insert configuration with source: 'manual'
+    const { sendEmail: shouldSendEmail, ...configData } = data
     const { data: config, error } = await supabase
       .from('configurations')
       .insert({
-        ...data,
+        ...configData,
+        source: 'manual',
         pipedrive_status: 'pending',
       })
-      .select()
+      .select('*')
       .single()
 
     if (error) {
       console.error('Error creating configuration:', error)
       return { success: false, error: 'Nepodarilo se vytvorit konfiguraci', id: null }
+    }
+
+    // 2. Pipedrive integration (using shared function from submit-configuration)
+    const { processPipedrive, processEmail } = await import('./submit-configuration')
+    const pipedriveResult = await processPipedrive(config, supabase)
+
+    // 3. Log Pipedrive attempt
+    await supabase.from('sync_log').insert({
+      configuration_id: config.id,
+      action: 'pipedrive_create',
+      status: pipedriveResult.success ? 'success' : 'error',
+      error_message: pipedriveResult.error || null,
+      response: pipedriveResult.success
+        ? { dealId: pipedriveResult.dealId, personId: pipedriveResult.personId }
+        : null,
+    })
+
+    // 4. Update configuration with Pipedrive result
+    const pipedriveUpdate: Record<string, unknown> = {
+      pipedrive_status: pipedriveResult.success ? 'success' : 'error',
+    }
+
+    if (pipedriveResult.success) {
+      pipedriveUpdate.pipedrive_deal_id = String(pipedriveResult.dealId)
+      pipedriveUpdate.pipedrive_person_id = pipedriveResult.personId
+      pipedriveUpdate.pipedrive_synced_at = new Date().toISOString()
+      pipedriveUpdate.pipedrive_error = null
+    } else {
+      pipedriveUpdate.pipedrive_error = pipedriveResult.error
+    }
+
+    await supabase
+      .from('configurations')
+      .update(pipedriveUpdate)
+      .eq('id', config.id)
+
+    // 5. Optionally send confirmation email
+    if (shouldSendEmail) {
+      const emailResult = await processEmail(config)
+
+      // Update configuration with email result
+      if (emailResult.success) {
+        await supabase
+          .from('configurations')
+          .update({
+            email_sent_at: new Date().toISOString(),
+            email_error: null,
+          })
+          .eq('id', config.id)
+      } else {
+        await supabase
+          .from('configurations')
+          .update({
+            email_error: emailResult.error,
+          })
+          .eq('id', config.id)
+      }
+
+      // Log email attempt
+      await supabase.from('sync_log').insert({
+        configuration_id: config.id,
+        action: 'email_send',
+        status: emailResult.success ? 'success' : 'error',
+        error_message: emailResult.error || null,
+      })
     }
 
     revalidatePath('/admin/konfigurace')
