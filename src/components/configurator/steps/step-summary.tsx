@@ -6,7 +6,7 @@ import {
   Circle, Droplets, Ruler, Palette, Footprints,
   Settings, Lightbulb as LightbulbIcon, Waves, Thermometer, Home,
   User, Mail, Phone, MapPin, Check, Clock,
-  Plus, Edit2, HelpCircle, ChevronRight
+  Plus, Edit2, HelpCircle, ChevronRight, RefreshCw
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
@@ -87,6 +87,7 @@ export function StepSummary() {
   // Focus management for accessibility - focus the thank you content when submitted
   const thankYouRef = useRef<HTMLDivElement>(null)
   const [mascotError, setMascotError] = useState(false)
+  const [needsRefresh, setNeedsRefresh] = useState(false)
 
   useEffect(() => {
     if (isSubmitted && thankYouRef.current) {
@@ -152,7 +153,16 @@ export function StepSummary() {
     } catch (error) {
       console.error('Submit error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Neznámá chyba'
-      setSubmitError(`Došlo k neočekávané chybě: ${errorMessage}`)
+
+      // Detect "Server Action not found" error - happens after deployment/rebuild
+      // when client has cached old JS with outdated action ID
+      if (errorMessage.includes('was not found on the server') ||
+          errorMessage.includes('Server Action')) {
+        setNeedsRefresh(true)
+        setSubmitError(null)
+      } else {
+        setSubmitError(`Došlo k neočekávané chybě: ${errorMessage}`)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -373,8 +383,36 @@ export function StepSummary() {
     >
       <form id="configurator-form" onSubmit={handleSubmit}>
         <div className="space-y-6">
+          {/* Refresh needed message - shown when server action ID mismatch */}
+          {needsRefresh && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <RefreshCw className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-[#01384B] mb-1">
+                    Stránka potřebuje obnovit
+                  </h4>
+                  <p className="text-sm text-slate-600 mb-3">
+                    Aplikace byla aktualizována. Pro odeslání konfigurace je potřeba obnovit stránku.
+                    Vaše data zůstanou zachována.
+                  </p>
+                  <Button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="gap-2 bg-amber-500 hover:bg-amber-600 text-white"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Obnovit stránku
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Error message */}
-          {submitError && (
+          {submitError && !needsRefresh && (
             <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
               {submitError}
             </div>

@@ -24,16 +24,16 @@ export function ChangelogDropdown() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
 
-  // Calculate unread count on mount
+  // Calculate unread count on mount - intentional init pattern
   useEffect(() => {
     const lastSeen = getLastSeenVersion()
     if (!lastSeen) {
-      setUnreadCount(changelogVersions.length)
+      setUnreadCount(changelogVersions.length) // eslint-disable-line react-hooks/set-state-in-effect
     } else {
       const unread = changelogVersions.filter(
         (v) => compareVersions(v.version, lastSeen) > 0
       ).length
-      setUnreadCount(unread)
+      setUnreadCount(unread) // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [])
 

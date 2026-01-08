@@ -75,8 +75,9 @@ export function AdminSidebar() {
         }
       }
     }
-    fetchUserRole()
-    fetchCounts()
+    // Async functions - setState is called in async callbacks, not synchronously
+    void fetchUserRole()
+    void fetchCounts() // eslint-disable-line react-hooks/set-state-in-effect
 
     // Refresh counts every 30 seconds
     const interval = setInterval(fetchCounts, 30000)
@@ -166,6 +167,7 @@ export function AdminSidebar() {
             />
           </div>
           <p className="mt-2 text-sm font-semibold text-white/90 italic text-center leading-tight flex-shrink-0">
+            {/* eslint-disable-next-line react/no-unescaped-entities */}
             „Vy zenujete,<br />my bazénujeme."
           </p>
         </div>

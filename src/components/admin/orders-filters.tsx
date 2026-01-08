@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Search, X } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ORDER_STATUS_LABELS, type OrderStatus } from '@/lib/supabase/types'
 
 export function OrdersFilters() {
@@ -21,16 +21,7 @@ export function OrdersFilters() {
   const [search, setSearch] = useState(searchParams.get('search') || '')
   const status = searchParams.get('status') || 'all'
 
-  // Debounced search
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      updateFilters({ search })
-    }, 300)
-
-    return () => clearTimeout(timeout)
-  }, [search])
-
-  const updateFilters = (updates: { status?: string; search?: string }) => {
+  const updateFilters = useCallback((updates: { status?: string; search?: string }) => {
     const params = new URLSearchParams(searchParams.toString())
 
     if (updates.status !== undefined) {
@@ -53,7 +44,16 @@ export function OrdersFilters() {
     params.delete('page')
 
     router.push(`/admin/objednavky?${params.toString()}`)
-  }
+  }, [router, searchParams])
+
+  // Debounced search
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      updateFilters({ search })
+    }, 300)
+
+    return () => clearTimeout(timeout)
+  }, [search, updateFilters])
 
   const clearFilters = () => {
     setSearch('')

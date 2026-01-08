@@ -94,10 +94,9 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
     }
   }, [embedded, getAllowedOrigins])
 
-  // Handle hydration - using useLayoutEffect pattern with flushSync alternative
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Handle hydration - necessary for SSR, setState in empty effect is intentional
   useEffect(() => {
-    setMounted(true)
+    setMounted(true) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   // Send height on mount and step change

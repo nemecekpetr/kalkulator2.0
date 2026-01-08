@@ -1236,6 +1236,7 @@ export function QuoteEditor({
               Katalog produktů
             </CardTitle>
             <p className="text-sm text-muted-foreground">
+              {/* eslint-disable-next-line react/no-unescaped-entities */}
               Přidá do varianty „{variants.find((v) => v.key === activeVariant)?.name}"
             </p>
           </CardHeader>
