@@ -30,7 +30,15 @@ import {
   Waves,
   Check,
   X,
+  ChevronDown,
+  Printer,
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { QuoteVersions } from '@/components/admin/quote-versions'
 import { QuoteStatusBadge } from '@/components/admin/quote-status-badge'
 import type { Quote, QuoteItem, PoolDimensions, QuoteVariant, QuoteStatus } from '@/lib/supabase/types'
@@ -189,12 +197,29 @@ export default async function QuoteDetailPage({ params }: PageProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
-            <a href={`/api/admin/quotes/${quote.id}/pdf`} download>
-              <FileDown className="w-4 h-4 mr-2" />
-              Stáhnout PDF
-            </a>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <FileDown className="w-4 h-4 mr-2" />
+                Stáhnout PDF
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <a href={`/api/admin/quotes/${quote.id}/pdf`} download className="cursor-pointer">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Pro email (menší soubor)
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/api/admin/quotes/${quote.id}/pdf?quality=print`} download className="cursor-pointer">
+                  <Printer className="w-4 h-4 mr-2" />
+                  Pro tisk (vysoká kvalita)
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" asChild>
             <Link href={`/admin/nabidky/${quote.id}/upravit`}>
               <Pencil className="w-4 h-4 mr-2" />

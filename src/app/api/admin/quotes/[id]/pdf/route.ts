@@ -29,6 +29,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   try {
     const { id } = await params
+    const url = new URL(request.url)
+
+    // Get quality parameter (email = optimized for size, print = high quality)
+    const quality = url.searchParams.get('quality') === 'print' ? 'print' : 'email'
+
     const supabase = await createAdminClient()
 
     // Verify quote exists and fetch variants
@@ -52,11 +57,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     const hasVariants = variants && variants.length > 0
 
     // Get the base URL from request or environment
-    const url = new URL(request.url)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
     // Start metrics tracking
-    const metrics = new PdfMetrics('Nabídka', quote.quote_number)
+    const metrics = new PdfMetrics('Nabídka', `${quote.quote_number} (${quality})`)
 
     // Generate token for print pages access
     const printToken = generatePrintToken(id, 'quote')
@@ -81,7 +85,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const mergedPdf = await PDFDocument.create()
 
     // Step 1: Generate title page PDF (no header/footer)
-    const titlePageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=title`, printToken)
+    const titlePageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=title&quality=${quality}`, printToken)
 
     const titlePdfBuffer = await generatePdfFromPage(page, titlePageUrl)
     metrics.step('title-page')
@@ -102,7 +106,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
       // Generate PDF for each variant
       for (const variant of orderedVariants) {
-        const variantPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`, printToken)
+        const variantPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}&quality=${quality}`, printToken)
 
         const variantPdfBuffer = await generatePdfFromPage(page, variantPageUrl, contentOptions)
         metrics.step(`variant-${variant.variant_name}`)
@@ -116,7 +120,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
       // Generate comparison page only if more than 1 variant
       if (hasMultipleVariants) {
-        const comparisonPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=comparison`, printToken)
+        const comparisonPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=comparison&quality=${quality}`, printToken)
 
         const comparisonPdfBuffer = await generatePdfFromPage(page, comparisonPageUrl, contentOptions)
         metrics.step('comparison-page')
@@ -129,7 +133,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       }
     } else {
       // Classic single-variant PDF generation
-      const contentPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=content`, printToken)
+      const contentPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=content&quality=${quality}`, printToken)
 
       const contentPdfBuffer = await generatePdfFromPage(page, contentPageUrl, contentOptions)
       metrics.step('content-pages')
@@ -143,7 +147,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Always generate closing page as the last page
     // This page contains: 7 důvodů, business terms, validity, CTA, slogan
-    const closingPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=closing`, printToken)
+    const closingPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=closing&quality=${quality}`, printToken)
 
     const closingPdfBuffer = await generatePdfFromPage(page, closingPageUrl, contentOptions)
     metrics.step('closing-page')
@@ -168,12 +172,16 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     metrics.complete(mergedPdfBytes.length, mergedPdf.getPageCount())
 
-    // Return PDF
+    // Return PDF with quality indicator in filename for print version
+    const filename = quality === 'print'
+      ? `${quote.quote_number}-tisk.pdf`
+      : `${quote.quote_number}.pdf`
+
     return new NextResponse(Buffer.from(mergedPdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${quote.quote_number}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': String(mergedPdfBytes.length),
       },
     })

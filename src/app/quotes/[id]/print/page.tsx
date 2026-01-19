@@ -8,7 +8,30 @@ import { formatPrice, formatDate } from '@/lib/utils/format'
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; variant?: string; last?: string; token?: string }>
+  searchParams: Promise<{ page?: string; variant?: string; last?: string; token?: string; quality?: 'email' | 'print' }>
+}
+
+// Image paths type
+interface ImagePaths {
+  poolHero: string
+  maskotHolding: string
+  maskot: string
+}
+
+// Image paths based on quality setting
+// Email: optimized for small file size
+// Print: full resolution for sharp printing
+const IMAGE_PATHS: Record<'email' | 'print', ImagePaths> = {
+  email: {
+    poolHero: '/print/pool-hero-print.jpg',    // 800x533, 100KB
+    maskotHolding: '/print/maskot-holding-print.png',
+    maskot: '/print/maskot-print.png',
+  },
+  print: {
+    poolHero: '/print/pool-hero-hq.jpg',       // 3871x2581, 3.8MB - full resolution
+    maskotHolding: '/maskot-holding-hq.png',
+    maskot: '/maskot-hq.png',
+  },
 }
 
 // Use centralized category labels
@@ -100,13 +123,13 @@ function PrintBlock({ children, className = '' }: { children: React.ReactNode; c
 }
 
 // Title page component - WOW effect with hero photo
-function TitlePage({ quote }: { quote: QuoteWithCreator }) {
+function TitlePage({ quote, images }: { quote: QuoteWithCreator; images: ImagePaths }) {
   return (
     <div className="w-[210mm] h-[297mm] mx-auto relative overflow-hidden">
       {/* Hero background photo */}
       <div className="absolute inset-0">
         <img
-          src="/print/pool-hero-print.jpg"
+          src={images.poolHero}
           alt="Bazén Rentmil"
           className="w-full h-full object-cover"
         />
@@ -158,7 +181,7 @@ function TitlePage({ quote }: { quote: QuoteWithCreator }) {
           {/* Mascot - large and friendly */}
           <div className="relative">
             <img
-              src="/print/maskot-holding-print.png"
+              src={images.maskotHolding}
               alt="Bazénový mistr"
               className="h-72 object-contain drop-shadow-2xl"
             />
@@ -368,7 +391,7 @@ function VariantContentPages({ quote, variant }: { quote: QuoteWithCreator; vari
 // Closing page component - always last, fits on one page
 // Varianta 3: Moderní asymetrický layout s foto pozadím v CTA
 // Designed to fit within header (100px) and footer (50px) margins on A4
-function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
+function ClosingPage({ quote, images }: { quote: QuoteWithCreator; images: ImagePaths }) {
   // Calculate validity date (30 days from creation if not set)
   const validUntil = quote.valid_until
     ? new Date(quote.valid_until)
@@ -511,7 +534,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
       <div className="relative rounded-2xl overflow-hidden">
         {/* Background image */}
         <div className="absolute inset-0">
-          <img src="/print/pool-hero-print.jpg" alt="Bazén" className="w-full h-full object-cover" />
+          <img src={images.poolHero} alt="Bazén" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#01384B]/95 via-[#01384B]/85 to-[#01384B]/70"></div>
         </div>
 
@@ -551,7 +574,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
 
           {/* Mascot with slogan */}
           <div className="flex flex-col items-center">
-            <img src="/print/maskot-print.png" alt="Maskot" className="h-40 object-contain drop-shadow-2xl mb-2" />
+            <img src={images.maskot} alt="Maskot" className="h-40 object-contain drop-shadow-2xl mb-2" />
             {/* Slogan next to mascot */}
             <div className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-xl px-5 py-2.5 shadow-lg">
               <p className="text-base font-bold text-white italic whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>&bdquo;Vy zenujete, my bazénujeme.&ldquo;</p>
@@ -680,7 +703,7 @@ function ContentPages({ quote }: { quote: QuoteWithCreator }) {
 
 export default async function QuotePrintPage({ params, searchParams }: PageProps) {
   const { id } = await params
-  const { page, variant, token } = await searchParams
+  const { page, variant, token, quality } = await searchParams
 
   // Verify print token - required for all requests
   const tokenResult = verifyPrintToken(token, id, 'quote')
@@ -694,13 +717,16 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
     notFound()
   }
 
+  // Select images based on quality (default to email/optimized)
+  const images = IMAGE_PATHS[quality === 'print' ? 'print' : 'email']
+
   const hasVariants = quote.variants && quote.variants.length > 0
 
   // Render only title page
   if (page === 'title') {
     return (
       <div className="min-h-screen bg-white">
-        <TitlePage quote={quote} />
+        <TitlePage quote={quote} images={images} />
       </div>
     )
   }
@@ -740,7 +766,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
   if (page === 'closing') {
     return (
       <div className="min-h-screen bg-white">
-        <ClosingPage quote={quote} />
+        <ClosingPage quote={quote} images={images} />
       </div>
     )
   }
@@ -757,7 +783,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
 
     return (
       <div className="min-h-screen bg-white">
-        <TitlePage quote={quote} />
+        <TitlePage quote={quote} images={images} />
         {orderedVariants.map((v) => (
           <div key={v.id} className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
             <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
@@ -788,7 +814,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
   // Classic single-page view (no variants)
   return (
     <div className="min-h-screen bg-white">
-      <TitlePage quote={quote} />
+      <TitlePage quote={quote} images={images} />
       <div className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
         <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
           <img src="/logo-transparent.svg" alt="Rentmil" className="h-20 object-contain" />
