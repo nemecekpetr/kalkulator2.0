@@ -10,7 +10,25 @@ export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; token?: string }>
+  searchParams: Promise<{ page?: string; token?: string; quality?: 'email' | 'print' }>
+}
+
+// Image paths type
+interface ImagePaths {
+  poolHero: string
+  maskotHolding: string
+}
+
+// Image paths based on quality setting
+const IMAGE_PATHS: Record<'email' | 'print', ImagePaths> = {
+  email: {
+    poolHero: '/print/pool-hero-print.jpg',
+    maskotHolding: '/print/maskot-holding-print.png',
+  },
+  print: {
+    poolHero: '/print/pool-hero-hq.jpg',
+    maskotHolding: '/maskot-holding-hq.png',
+  },
 }
 
 const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
@@ -41,12 +59,12 @@ async function getOrder(id: string) {
 }
 
 // Title page component
-function TitlePage({ order }: { order: Order & { items: OrderItem[] } }) {
+function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; images: ImagePaths }) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Hero background photo */}
       <div className="absolute inset-0">
-        <img src="/print/pool-hero-print.jpg" alt="Bazén Rentmil" className="w-full h-full object-cover" />
+        <img src={images.poolHero} alt="Bazén Rentmil" className="w-full h-full object-cover" />
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#01384B]/80 via-[#01384B]/50 to-[#01384B]/90" />
       </div>
@@ -97,7 +115,7 @@ function TitlePage({ order }: { order: Order & { items: OrderItem[] } }) {
           {/* Mascot */}
           <div className="relative">
             <img
-              src="/print/maskot-holding-print.png"
+              src={images.maskotHolding}
               alt="Bazénový mistr"
               className="h-72 object-contain drop-shadow-2xl"
             />
@@ -388,7 +406,7 @@ function TermsPage({ order }: { order: Order }) {
 
 export default async function OrderPrintPage({ params, searchParams }: PageProps) {
   const { id } = await params
-  const { page, token } = await searchParams
+  const { page, token, quality } = await searchParams
 
   // Verify print token - required for all requests
   const tokenResult = verifyPrintToken(token, id, 'order')
@@ -402,9 +420,12 @@ export default async function OrderPrintPage({ params, searchParams }: PageProps
     notFound()
   }
 
+  // Select images based on quality (default to email/optimized)
+  const images = IMAGE_PATHS[quality === 'print' ? 'print' : 'email']
+
   // Return specific page based on query param
   if (page === 'title') {
-    return <TitlePage order={order} />
+    return <TitlePage order={order} images={images} />
   }
 
   if (page === 'terms') {

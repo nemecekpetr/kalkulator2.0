@@ -29,6 +29,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   try {
     const { id } = await params
+    const url = new URL(request.url)
+
+    // Get quality parameter (email = optimized for size, print = high quality)
+    const quality = url.searchParams.get('quality') === 'print' ? 'print' : 'email'
+
     const supabase = await createAdminClient()
 
     // Verify order exists
@@ -43,11 +48,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // Get the base URL from request or environment
-    const url = new URL(request.url)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
     // Start metrics tracking
-    const metrics = new PdfMetrics('Objednávka', order.order_number)
+    const metrics = new PdfMetrics('Objednávka', `${order.order_number} (${quality})`)
 
     // Generate token for print pages access
     const printToken = generatePrintToken(id, 'order')
@@ -70,7 +74,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const mergedPdf = await PDFDocument.create()
 
     // Step 1: Generate title page (no header/footer)
-    const titlePageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=title`, printToken)
+    const titlePageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=title&quality=${quality}`, printToken)
 
     const titlePdfBuffer = await generatePdfFromPage(page, titlePageUrl)
     await waitForContent(page, 'img', { context: 'Title page' })
@@ -81,7 +85,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     mergedPdf.addPage(titlePage)
 
     // Step 2: Generate contract content page (with header/footer)
-    const contentPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=content`, printToken)
+    const contentPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=content&quality=${quality}`, printToken)
 
     const contentPdfBuffer = await generatePdfFromPage(page, contentPageUrl, contentOptions)
     await waitForContent(page, 'table', { critical: true, context: 'Content page' })
@@ -95,7 +99,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // Step 3: Generate terms page (with header/footer)
-    const termsPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=terms`, printToken)
+    const termsPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=terms&quality=${quality}`, printToken)
 
     const termsPdfBuffer = await generatePdfFromPage(page, termsPageUrl, contentOptions)
     metrics.step('terms-page')
@@ -121,12 +125,16 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     metrics.complete(mergedPdfBytes.length, mergedPdf.getPageCount())
 
-    // Return PDF
+    // Return PDF with quality indicator in filename for print version
+    const filename = quality === 'print'
+      ? `${order.order_number}-tisk.pdf`
+      : `${order.order_number}.pdf`
+
     return new NextResponse(Buffer.from(mergedPdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${order.order_number}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': String(mergedPdfBytes.length),
       },
     })

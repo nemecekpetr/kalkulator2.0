@@ -15,7 +15,16 @@ import {
   MapPin,
   ExternalLink,
   Pencil,
+  ChevronDown,
+  Mail,
+  Printer,
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { PoolSchematic } from '@/components/pool-schematic'
 import { DeleteProductionButton } from '@/components/admin/delete-production-button'
 import { ProductionStatusBadge } from '@/components/admin/production-status-badge'
@@ -164,12 +173,29 @@ export default async function ProductionDetailPage({ params }: PageProps) {
               Upravit
             </Link>
           </Button>
-          <Button size="lg" asChild>
-            <a href={`/api/admin/production/${productionOrder.id}/pdf`} download>
-              <FileDown className="w-5 h-5 mr-2" />
-              Stáhnout PDF
-            </a>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="lg">
+                <FileDown className="w-5 h-5 mr-2" />
+                Stáhnout PDF
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <a href={`/api/admin/production/${productionOrder.id}/pdf`} download className="cursor-pointer">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Pro email (menší soubor)
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/api/admin/production/${productionOrder.id}/pdf?quality=print`} download className="cursor-pointer">
+                  <Printer className="w-4 h-4 mr-2" />
+                  Pro tisk (vysoká kvalita)
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

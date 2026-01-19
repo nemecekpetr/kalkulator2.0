@@ -23,6 +23,11 @@ export async function GET(request: Request, { params }: RouteParams) {
 
   try {
     const { id } = await params
+    const url = new URL(request.url)
+
+    // Get quality parameter (email = optimized for size, print = high quality)
+    const quality = url.searchParams.get('quality') === 'print' ? 'print' : 'email'
+
     const supabase = await createAdminClient()
 
     // Verify production order exists
@@ -37,11 +42,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // Get the base URL from request or environment
-    const url = new URL(request.url)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
     // Start metrics tracking
-    const metrics = new PdfMetrics('Výroba', production.production_number)
+    const metrics = new PdfMetrics('Výroba', `${production.production_number} (${quality})`)
 
     // Generate token for print pages access
     const printToken = generatePrintToken(id, 'production')
@@ -58,7 +62,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     })
 
     // Navigate to print page (secured by token)
-    const printPageUrl = addTokenToUrl(`${baseUrl}/production/${id}/print`, printToken)
+    const printPageUrl = addTokenToUrl(`${baseUrl}/production/${id}/print?quality=${quality}`, printToken)
 
     // Production page uses custom margins (no header/footer)
     const pdfBuffer = await generatePdfFromPage(page, printPageUrl, {
@@ -79,12 +83,16 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     metrics.complete(pdfWithMetadata.length, 1)
 
-    // Return PDF
+    // Return PDF with quality indicator in filename for print version
+    const filename = quality === 'print'
+      ? `${production.production_number}-tisk.pdf`
+      : `${production.production_number}.pdf`
+
     return new NextResponse(Buffer.from(pdfWithMetadata), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${production.production_number}.pdf"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Content-Length': String(pdfWithMetadata.length),
       },
     })

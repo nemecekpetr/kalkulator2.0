@@ -27,7 +27,15 @@ import {
   Building2,
   FileDown,
   Pencil,
+  ChevronDown,
+  Printer,
 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { OrderStatusBadge } from '@/components/admin/order-status-badge'
 import { CreateProductionButton } from '@/components/admin/create-production-button'
 import type { Order, OrderItem, PoolDimensions } from '@/lib/supabase/types'
@@ -157,12 +165,29 @@ export default async function OrderDetailPage({ params }: PageProps) {
             existingProductionId={order.production?.id}
             existingProductionNumber={order.production?.production_number}
           />
-          <Button variant="outline" asChild>
-            <a href={`/api/admin/orders/${order.id}/pdf`} download>
-              <FileDown className="w-4 h-4 mr-2" />
-              Stáhnout PDF
-            </a>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <FileDown className="w-4 h-4 mr-2" />
+                Stáhnout PDF
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <a href={`/api/admin/orders/${order.id}/pdf`} download className="cursor-pointer">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Pro email (menší soubor)
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href={`/api/admin/orders/${order.id}/pdf?quality=print`} download className="cursor-pointer">
+                  <Printer className="w-4 h-4 mr-2" />
+                  Pro tisk (vysoká kvalita)
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="outline" asChild>
             <Link href={`/admin/objednavky/${order.id}/upravit`}>
               <Pencil className="w-4 h-4 mr-2" />
