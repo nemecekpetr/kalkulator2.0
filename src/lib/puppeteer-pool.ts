@@ -63,12 +63,30 @@ export async function getBrowser(): Promise<Browser> {
     console.log('[Puppeteer] Waiting for browser launch in progress...')
     for (let i = 0; i < 60; i++) {
       await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Check if browser became available
       if (browserInstance && browserInstance.isConnected()) {
         lastUsedAt = now
+        console.log('[Puppeteer] Browser became available while waiting')
         return browserInstance
       }
-      if (!browserLaunching) break
+
+      // If launch finished (success or failure), exit loop
+      if (!browserLaunching) {
+        break
+      }
     }
+
+    // After waiting, check again if browser is available
+    if (browserInstance && browserInstance.isConnected()) {
+      lastUsedAt = now
+      return browserInstance
+    }
+
+    // If we reach here and browserLaunching is false but no browser,
+    // it means the launch failed - we should try again ourselves
+    // (fall through to launch new browser)
+    console.log('[Puppeteer] Previous launch failed, attempting new launch')
   }
 
   // Launch new browser
@@ -84,6 +102,11 @@ export async function getBrowser(): Promise<Browser> {
     scheduleCleanup()
 
     return browserInstance
+  } catch (error) {
+    // Clear instance on failure so next request can try again
+    browserInstance = null
+    console.error('[Puppeteer] Failed to launch browser:', error)
+    throw error
   } finally {
     browserLaunching = false
   }

@@ -1,26 +1,23 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PDFDocument } from 'pdf-lib'
-import { readFile } from 'fs/promises'
-import path from 'path'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
+import { generatePrintToken, addTokenToUrl } from '@/lib/pdf/print-token'
+import {
+  generatePdfFromPage,
+  createContentPageOptions,
+  waitForContent,
+  setPdfMetadata,
+  PdfMetrics,
+} from '@/lib/pdf/generate-pdf'
 import type { Browser, Page } from 'puppeteer'
+
+// Route segment config
+export const maxDuration = 60 // Allow up to 60 seconds for PDF generation
 
 interface RouteParams {
   params: Promise<{ id: string }>
-}
-
-// SVG logo as inline data URI for Puppeteer header
-async function getLogoDataUri(): Promise<string> {
-  try {
-    const logoPath = path.join(process.cwd(), 'public', 'logo-transparent.svg')
-    const svgContent = await readFile(logoPath, 'utf-8')
-    const base64 = Buffer.from(svgContent).toString('base64')
-    return `data:image/svg+xml;base64,${base64}`
-  } catch {
-    return ''
-  }
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
@@ -49,7 +46,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     const url = new URL(request.url)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
-    console.log('Generating PDF for order:', order.order_number)
+    // Start metrics tracking
+    const metrics = new PdfMetrics('Objednávka', order.order_number)
+
+    // Generate token for print pages access
+    const printToken = generatePrintToken(id, 'order')
 
     // Get browser from pool
     browser = await getBrowser()
@@ -62,82 +63,30 @@ export async function GET(request: Request, { params }: RouteParams) {
       deviceScaleFactor: 1,
     })
 
-    // Get logo as base64 data URI
-    const logoDataUri = await getLogoDataUri()
-
-    // Header template
-    const headerTemplate = `
-      <div style="width: 100%; height: 80px; padding: 15px 40px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #48A9A6; font-family: Arial, sans-serif; background: white;">
-        <img src="${logoDataUri}" style="height: 50px; width: auto;" />
-        <span style="font-size: 14px; font-weight: 600; color: #01384B;">${order.order_number}</span>
-      </div>
-    `
-
-    // Footer template with page numbers
-    const footerTemplate = `
-      <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
-        <span>Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz</span>
-        <span>Strana <span class="pageNumber"></span></span>
-      </div>
-    `
+    // Create content page options with standard header/footer
+    const contentOptions = await createContentPageOptions(order.order_number)
 
     // Create merged PDF
     const mergedPdf = await PDFDocument.create()
 
     // Step 1: Generate title page (no header/footer)
-    const titlePageUrl = `${baseUrl}/orders/${id}/print?page=title`
-    console.log('Generating title page from:', titlePageUrl)
+    const titlePageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=title`, printToken)
 
-    await page.goto(titlePageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000,
-    })
+    const titlePdfBuffer = await generatePdfFromPage(page, titlePageUrl)
+    await waitForContent(page, 'img', { context: 'Title page' })
+    metrics.step('title-page')
 
-    await page.waitForSelector('img', { timeout: 5000 }).catch(() => {
-      console.log('No images found or timeout')
-    })
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const titlePdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
-    })
-
-    // Copy title page
     const titlePdf = await PDFDocument.load(titlePdfBuffer)
     const [titlePage] = await mergedPdf.copyPages(titlePdf, [0])
     mergedPdf.addPage(titlePage)
 
     // Step 2: Generate contract content page (with header/footer)
-    const contentPageUrl = `${baseUrl}/orders/${id}/print?page=content`
-    console.log('Generating content page from:', contentPageUrl)
+    const contentPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=content`, printToken)
 
-    await page.goto(contentPageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000,
-    })
+    const contentPdfBuffer = await generatePdfFromPage(page, contentPageUrl, contentOptions)
+    await waitForContent(page, 'table', { critical: true, context: 'Content page' })
+    metrics.step('content-page')
 
-    await page.waitForSelector('table', { timeout: 5000 }).catch(() => {
-      console.log('No table found or timeout')
-    })
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const contentPdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate,
-      footerTemplate,
-      margin: {
-        top: '100px',
-        right: '0',
-        bottom: '50px',
-        left: '0',
-      },
-    })
-
-    // Copy content pages
     const contentPdf = await PDFDocument.load(contentPdfBuffer)
     const contentPageCount = contentPdf.getPageCount()
     for (let i = 0; i < contentPageCount; i++) {
@@ -146,31 +95,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // Step 3: Generate terms page (with header/footer)
-    const termsPageUrl = `${baseUrl}/orders/${id}/print?page=terms`
-    console.log('Generating terms page from:', termsPageUrl)
+    const termsPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=terms`, printToken)
 
-    await page.goto(termsPageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000,
-    })
+    const termsPdfBuffer = await generatePdfFromPage(page, termsPageUrl, contentOptions)
+    metrics.step('terms-page')
 
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    const termsPdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate,
-      footerTemplate,
-      margin: {
-        top: '100px',
-        right: '0',
-        bottom: '50px',
-        left: '0',
-      },
-    })
-
-    // Copy terms pages
     const termsPdf = await PDFDocument.load(termsPdfBuffer)
     const termsPageCount = termsPdf.getPageCount()
     for (let i = 0; i < termsPageCount; i++) {
@@ -178,9 +107,19 @@ export async function GET(request: Request, { params }: RouteParams) {
       mergedPdf.addPage(termsPage)
     }
 
-    const mergedPdfBytes = await mergedPdf.save()
+    // Set PDF metadata
+    setPdfMetadata(mergedPdf, {
+      title: `Smlouva o dílo ${order.order_number}`,
+      documentNumber: order.order_number,
+      documentType: 'Objednávka',
+    })
 
-    console.log('PDF generated, size:', mergedPdfBytes.length)
+    const mergedPdfBytes = await mergedPdf.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+    })
+
+    metrics.complete(mergedPdfBytes.length, mergedPdf.getPageCount())
 
     // Return PDF
     return new NextResponse(Buffer.from(mergedPdfBytes), {
@@ -192,14 +131,13 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
-    console.error('PDF generation error:', error)
+    console.error('[PDF] Generation error:', error)
 
     return new NextResponse(
       `Chyba při generování PDF: ${error instanceof Error ? error.message : 'Neznámá chyba'}`,
       { status: 500 }
     )
   } finally {
-    // Close page, browser will be reused from pool
     if (page) {
       try {
         await page.close()

@@ -2,12 +2,15 @@ import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Order, OrderItem, QuoteItemCategory } from '@/lib/supabase/types'
 import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
+import { COMPANY } from '@/lib/constants/company'
+import { verifyPrintToken } from '@/lib/pdf/print-token'
+import { formatPrice, formatDate } from '@/lib/utils/format'
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; token?: string }>
 }
 
 const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
@@ -37,29 +40,13 @@ async function getOrder(id: string) {
   } as Order & { items: OrderItem[] }
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('cs-CZ', {
-    style: 'currency',
-    currency: 'CZK',
-    maximumFractionDigits: 0,
-  }).format(price)
-}
-
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('cs-CZ', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
 // Title page component
 function TitlePage({ order }: { order: Order & { items: OrderItem[] } }) {
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Hero background photo */}
       <div className="absolute inset-0">
-        <img src="/pool-hero.jpg" alt="Bazén Rentmil" className="w-full h-full object-cover" />
+        <img src="/print/pool-hero-print.jpg" alt="Bazén Rentmil" className="w-full h-full object-cover" />
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#01384B]/80 via-[#01384B]/50 to-[#01384B]/90" />
       </div>
@@ -110,7 +97,7 @@ function TitlePage({ order }: { order: Order & { items: OrderItem[] } }) {
           {/* Mascot */}
           <div className="relative">
             <img
-              src="/maskot-holding-hq.png"
+              src="/print/maskot-holding-print.png"
               alt="Bazénový mistr"
               className="h-72 object-contain drop-shadow-2xl"
             />
@@ -171,11 +158,11 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
           {/* Seller */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-semibold text-[#48A9A6] mb-2">Prodávající</h3>
-            <p className="font-bold">Rentmil s.r.o.</p>
-            <p className="text-sm text-gray-600">Lidická 1233/26</p>
-            <p className="text-sm text-gray-600">323 00 Plzeň</p>
-            <p className="text-sm text-gray-600 mt-2">IČO: 12345678</p>
-            <p className="text-sm text-gray-600">DIČ: CZ12345678</p>
+            <p className="font-bold">{COMPANY.name}</p>
+            <p className="text-sm text-gray-600">{COMPANY.address.street}</p>
+            <p className="text-sm text-gray-600">{COMPANY.address.zip} {COMPANY.address.city}</p>
+            <p className="text-sm text-gray-600 mt-2">IČO: {COMPANY.ico}</p>
+            <p className="text-sm text-gray-600">DIČ: {COMPANY.dic}</p>
           </div>
 
           {/* Buyer */}
@@ -368,8 +355,8 @@ function TermsPage({ order }: { order: Order }) {
           <div className="p-4 border-2 border-gray-200 rounded-lg">
             <p className="text-xs text-gray-500 mb-2">Za zhotovitele:</p>
             <div className="border-b-2 border-[#01384B] h-16 mb-2" />
-            <p className="font-semibold text-[#01384B] text-sm">Rentmil s.r.o.</p>
-            <p className="text-xs text-[#01384B]">Drahoslav Houška, jednatel</p>
+            <p className="font-semibold text-[#01384B] text-sm">{COMPANY.name}</p>
+            <p className="text-xs text-[#01384B]">{COMPANY.representative.name}, {COMPANY.representative.role}</p>
             <p className="text-xs text-gray-600 mt-3">
               V Plzni dne {order.contract_date ? formatDate(order.contract_date) : formatDate(order.created_at)}
             </p>
@@ -387,11 +374,11 @@ function TermsPage({ order }: { order: Order }) {
       <div className="p-3 bg-gray-100 rounded-lg text-xs text-gray-600" style={{ pageBreakInside: 'avoid' }}>
         <p className="font-semibold mb-1">Ochrana osobních údajů a obchodní podmínky</p>
         <p className="leading-relaxed">
-          Osobní údaje jsou zpracovávány společností Rentmil s.r.o. v souladu s GDPR (EU) 2016/679.
-          Více na www.rentmil.cz/ochrana-osobnich-udaju.
+          Osobní údaje jsou zpracovávány společností {COMPANY.name} v souladu s GDPR (EU) 2016/679.
+          Více na {COMPANY.web}/ochrana-osobnich-udaju.
           Podpisem této smlouvy souhlasíte s obchodními podmínkami na{' '}
-          <a href="https://www.rentmil.cz/obchodni-podminky" className="text-[#48A9A6] underline">
-            www.rentmil.cz/obchodni-podminky
+          <a href={`https://${COMPANY.web}/obchodni-podminky`} className="text-[#48A9A6] underline">
+            {COMPANY.web}/obchodni-podminky
           </a>
         </p>
       </div>
@@ -401,7 +388,14 @@ function TermsPage({ order }: { order: Order }) {
 
 export default async function OrderPrintPage({ params, searchParams }: PageProps) {
   const { id } = await params
-  const { page } = await searchParams
+  const { page, token } = await searchParams
+
+  // Verify print token - required for all requests
+  const tokenResult = verifyPrintToken(token, id, 'order')
+  if (!tokenResult.valid) {
+    notFound() // Return 404 to not leak info about existence
+  }
+
   const order = await getOrder(id)
 
   if (!order) {

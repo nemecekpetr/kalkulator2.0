@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { PDFDocument } from 'pdf-lib'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
+import { generatePrintToken, addTokenToUrl } from '@/lib/pdf/print-token'
+import { generatePdfFromPage, waitForContent, setPdfMetadata, PdfMetrics } from '@/lib/pdf/generate-pdf'
 import type { Browser, Page } from 'puppeteer'
+
+// Route segment config
+export const maxDuration = 60 // Allow up to 60 seconds for PDF generation
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -27,14 +33,18 @@ export async function GET(request: Request, { params }: RouteParams) {
       .single()
 
     if (productionError || !production) {
-      return new NextResponse('Vyrobni zadani nenalezeno', { status: 404 })
+      return new NextResponse('Vyrobní zadání nenalezeno', { status: 404 })
     }
 
     // Get the base URL from request or environment
     const url = new URL(request.url)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
-    console.log('Generating PDF for production:', production.production_number)
+    // Start metrics tracking
+    const metrics = new PdfMetrics('Výroba', production.production_number)
+
+    // Generate token for print pages access
+    const printToken = generatePrintToken(id, 'production')
 
     // Get browser from pool
     browser = await getBrowser()
@@ -42,59 +52,50 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Set viewport for A4
     await page.setViewport({
-      width: 794, // A4 width at 96 DPI
-      height: 1123, // A4 height at 96 DPI
+      width: 794,
+      height: 1123,
       deviceScaleFactor: 1,
     })
 
-    // Navigate to public print page (same pattern as quotes - secured by UUID obscurity)
-    const printPageUrl = `${baseUrl}/production/${id}/print`
-    console.log('Generating PDF from:', printPageUrl)
+    // Navigate to print page (secured by token)
+    const printPageUrl = addTokenToUrl(`${baseUrl}/production/${id}/print`, printToken)
 
-    await page.goto(printPageUrl, {
-      waitUntil: 'networkidle0',
-      timeout: 30000,
+    // Production page uses custom margins (no header/footer)
+    const pdfBuffer = await generatePdfFromPage(page, printPageUrl, {
+      margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
     })
 
-    // Wait for images to load
-    await page.waitForSelector('img', { timeout: 5000 }).catch(() => {
-      console.log('No images found or timeout')
-    })
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    await waitForContent(page, 'img', { context: 'Production page' })
+    metrics.step('render-page')
 
-    // Generate PDF
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: false,
-      margin: {
-        top: '10mm',
-        right: '10mm',
-        bottom: '10mm',
-        left: '10mm',
-      },
+    // Add PDF metadata
+    const pdfDoc = await PDFDocument.load(pdfBuffer)
+    setPdfMetadata(pdfDoc, {
+      title: `Výrobní zadání ${production.production_number}`,
+      documentNumber: production.production_number,
+      documentType: 'Výrobní zadání',
     })
+    const pdfWithMetadata = await pdfDoc.save()
 
-    console.log('PDF generated, size:', pdfBuffer.length)
+    metrics.complete(pdfWithMetadata.length, 1)
 
     // Return PDF
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    return new NextResponse(Buffer.from(pdfWithMetadata), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${production.production_number}.pdf"`,
-        'Content-Length': String(pdfBuffer.length),
+        'Content-Length': String(pdfWithMetadata.length),
       },
     })
   } catch (error) {
-    console.error('PDF generation error:', error)
+    console.error('[PDF] Generation error:', error)
 
     return new NextResponse(
-      `Chyba pri generovani PDF: ${error instanceof Error ? error.message : 'Neznama chyba'}`,
+      `Chyba při generování PDF: ${error instanceof Error ? error.message : 'Neznámá chyba'}`,
       { status: 500 }
     )
   } finally {
-    // Close page, browser will be reused from pool
     if (page) {
       try {
         await page.close()

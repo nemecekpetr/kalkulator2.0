@@ -2,10 +2,13 @@ import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Quote, QuoteItem, QuoteItemCategory, UserProfile, QuoteVariant } from '@/lib/supabase/types'
 import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
+import { COMPANY, COMPANY_FOOTER_FULL } from '@/lib/constants/company'
+import { verifyPrintToken } from '@/lib/pdf/print-token'
+import { formatPrice, formatDate } from '@/lib/utils/format'
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ page?: string; variant?: string; last?: string }>
+  searchParams: Promise<{ page?: string; variant?: string; last?: string; token?: string }>
 }
 
 // Use centralized category labels
@@ -87,22 +90,6 @@ async function getQuote(id: string): Promise<QuoteWithCreator | null> {
   } as QuoteWithCreator
 }
 
-function formatPrice(price: number) {
-  return new Intl.NumberFormat('cs-CZ', {
-    style: 'currency',
-    currency: 'CZK',
-    maximumFractionDigits: 0,
-  }).format(price)
-}
-
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('cs-CZ', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
-
 // Block that should not be split across pages
 function PrintBlock({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -119,7 +106,7 @@ function TitlePage({ quote }: { quote: QuoteWithCreator }) {
       {/* Hero background photo */}
       <div className="absolute inset-0">
         <img
-          src="/pool-hero.jpg"
+          src="/print/pool-hero-print.jpg"
           alt="Bazén Rentmil"
           className="w-full h-full object-cover"
         />
@@ -171,7 +158,7 @@ function TitlePage({ quote }: { quote: QuoteWithCreator }) {
           {/* Mascot - large and friendly */}
           <div className="relative">
             <img
-              src="/maskot-holding-hq.png"
+              src="/print/maskot-holding-print.png"
               alt="Bazénový mistr"
               className="h-72 object-contain drop-shadow-2xl"
             />
@@ -524,7 +511,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
       <div className="relative rounded-2xl overflow-hidden">
         {/* Background image */}
         <div className="absolute inset-0">
-          <img src="/pool-hero.jpg" alt="Bazén" className="w-full h-full object-cover" />
+          <img src="/print/pool-hero-print.jpg" alt="Bazén" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#01384B]/95 via-[#01384B]/85 to-[#01384B]/70"></div>
         </div>
 
@@ -549,13 +536,13 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
                   <svg className="w-4 h-4 text-[#48A9A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                   </svg>
-                  {quote.creator?.phone || '+420 601 588 453'}
+                  {quote.creator?.phone || COMPANY.phone}
                 </p>
                 <p className="text-white/90 flex items-center gap-2">
                   <svg className="w-4 h-4 text-[#48A9A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                   </svg>
-                  {quote.creator?.email || 'info@rentmil.cz'}
+                  {quote.creator?.email || COMPANY.email}
                 </p>
               </div>
             </div>
@@ -564,7 +551,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
 
           {/* Mascot with slogan */}
           <div className="flex flex-col items-center">
-            <img src="/maskot-hq.png" alt="Maskot" className="h-40 object-contain drop-shadow-2xl mb-2" />
+            <img src="/print/maskot-print.png" alt="Maskot" className="h-40 object-contain drop-shadow-2xl mb-2" />
             {/* Slogan next to mascot */}
             <div className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-xl px-5 py-2.5 shadow-lg">
               <p className="text-base font-bold text-white italic whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>&bdquo;Vy zenujete, my bazénujeme.&ldquo;</p>
@@ -693,7 +680,14 @@ function ContentPages({ quote }: { quote: QuoteWithCreator }) {
 
 export default async function QuotePrintPage({ params, searchParams }: PageProps) {
   const { id } = await params
-  const { page, variant } = await searchParams
+  const { page, variant, token } = await searchParams
+
+  // Verify print token - required for all requests
+  const tokenResult = verifyPrintToken(token, id, 'quote')
+  if (!tokenResult.valid) {
+    notFound() // Return 404 to not leak info about existence
+  }
+
   const quote = await getQuote(id)
 
   if (!quote) {
@@ -772,7 +766,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
             </div>
             <VariantContentPages quote={quote} variant={v} />
             <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-500 mt-8">
-              <p>Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz | www.rentmil.cz</p>
+              <p>{COMPANY_FOOTER_FULL}</p>
             </div>
           </div>
         ))}
@@ -784,7 +778,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
           </div>
           <ComparisonPage quote={quote} />
           <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-500 mt-8">
-            <p>Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz | www.rentmil.cz</p>
+            <p>{COMPANY_FOOTER_FULL}</p>
           </div>
         </div>
       </div>
@@ -802,7 +796,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
         </div>
         <ContentPages quote={quote} />
         <div className="border-t border-gray-200 pt-4 text-center text-xs text-gray-500 mt-8">
-          <p>Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň | +420 601 588 453 | info@rentmil.cz | www.rentmil.cz</p>
+          <p>{COMPANY_FOOTER_FULL}</p>
         </div>
       </div>
     </div>

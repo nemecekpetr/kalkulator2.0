@@ -3,9 +3,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
-import { readFile } from 'fs/promises'
-import path from 'path'
+import { generatePrintToken, addTokenToUrl } from '@/lib/pdf/print-token'
+import { generatePdfFromPage, createContentPageOptions, setPdfMetadata, PdfMetrics } from '@/lib/pdf/generate-pdf'
 import type { Browser, Page } from 'puppeteer'
+
+// Route segment config
+export const maxDuration = 60 // Allow up to 60 seconds for PDF generation
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -15,65 +18,6 @@ interface QuoteVariant {
   id: string
   variant_name: string
   total_price: number
-}
-
-// SVG logo as inline data URI for Puppeteer header
-async function getLogoDataUri(): Promise<string> {
-  try {
-    const logoPath = path.join(process.cwd(), 'public', 'logo-transparent.svg')
-    const svgContent = await readFile(logoPath, 'utf-8')
-    const base64 = Buffer.from(svgContent).toString('base64')
-    return `data:image/svg+xml;base64,${base64}`
-  } catch {
-    // Fallback: return empty string if logo not found
-    return ''
-  }
-}
-
-// Navigate to URL and generate PDF with retry logic
-async function generatePdf(
-  page: Page,
-  url: string,
-  options: {
-    headerTemplate?: string
-    footerTemplate?: string
-    displayHeaderFooter?: boolean
-    margin?: { top: string; right: string; bottom: string; left: string }
-  } = {},
-  retries = 2
-): Promise<Uint8Array> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      // Navigate with shorter timeout
-      await page.goto(url, {
-        waitUntil: 'domcontentloaded',
-        timeout: 30000,
-      })
-
-      // Wait for content to render
-      await new Promise((resolve) => setTimeout(resolve, 300))
-
-      // Generate PDF
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        displayHeaderFooter: options.displayHeaderFooter ?? false,
-        headerTemplate: options.headerTemplate ?? '',
-        footerTemplate: options.footerTemplate ?? '',
-        margin: options.margin ?? { top: '0', right: '0', bottom: '0', left: '0' },
-      })
-
-      return pdfBuffer
-    } catch (error) {
-      console.error(`PDF generation attempt ${attempt} failed:`, error)
-      if (attempt === retries) {
-        throw error
-      }
-      // Wait before retry
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    }
-  }
-  throw new Error('PDF generation failed after retries')
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
@@ -111,7 +55,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     const url = new URL(request.url)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
 
-    console.log('Generating PDF for quote:', quote.quote_number, hasVariants ? `with ${variants?.length} variants` : 'without variants')
+    // Start metrics tracking
+    const metrics = new PdfMetrics('Nabídka', quote.quote_number)
+
+    // Generate token for print pages access
+    const printToken = generatePrintToken(id, 'quote')
 
     // Get a new browser instance for this request
     browser = await getBrowser()
@@ -126,42 +74,17 @@ export async function GET(request: Request, { params }: RouteParams) {
       deviceScaleFactor: 1,
     })
 
-    // Get logo as base64 data URI
-    const logoDataUri = await getLogoDataUri()
-
-    // Header template with inline SVG logo and quote number
-    const headerTemplate = `
-      <div style="width: 100%; height: 80px; padding: 15px 40px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #48A9A6; font-family: Arial, sans-serif; background: white;">
-        <img src="${logoDataUri}" style="height: 50px; width: auto;" />
-        <span style="font-size: 14px; font-weight: 600; color: #01384B;">${quote.quote_number}</span>
-      </div>
-    `
-
-    // Footer template with company info and page numbers
-    const footerTemplate = `
-      <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
-        <span style="flex: 1;">Rentmil s.r.o. | Lidická 1233/26, 323 00 Plzeň</span>
-        <span style="flex: 1; text-align: center;">+420 737 222 004 | bazeny@rentmil.cz | www.rentmil.cz</span>
-        <span style="flex: 0; text-align: right; color: #01384B; font-weight: 500;">Strana <span class="pageNumber"></span> z <span class="totalPages"></span></span>
-      </div>
-    `
-
-    const contentMargin = { top: '100px', right: '0', bottom: '50px', left: '0' }
-    const contentOptions = {
-      displayHeaderFooter: true,
-      headerTemplate,
-      footerTemplate,
-      margin: contentMargin,
-    }
+    // Create content page options with standard header/footer
+    const contentOptions = await createContentPageOptions(quote.quote_number)
 
     // Create merged PDF
     const mergedPdf = await PDFDocument.create()
 
     // Step 1: Generate title page PDF (no header/footer)
-    const titlePageUrl = `${baseUrl}/quotes/${id}/print?page=title`
-    console.log('Generating title page from:', titlePageUrl)
+    const titlePageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=title`, printToken)
 
-    const titlePdfBuffer = await generatePdf(page, titlePageUrl)
+    const titlePdfBuffer = await generatePdfFromPage(page, titlePageUrl)
+    metrics.step('title-page')
     const titlePdf = await PDFDocument.load(titlePdfBuffer)
     const [titlePage] = await mergedPdf.copyPages(titlePdf, [0])
     mergedPdf.addPage(titlePage)
@@ -179,10 +102,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 
       // Generate PDF for each variant
       for (const variant of orderedVariants) {
-        const variantPageUrl = `${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`
-        console.log('Generating variant page:', variant.variant_name)
+        const variantPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=variant&variant=${variant.id}`, printToken)
 
-        const variantPdfBuffer = await generatePdf(page, variantPageUrl, contentOptions)
+        const variantPdfBuffer = await generatePdfFromPage(page, variantPageUrl, contentOptions)
+        metrics.step(`variant-${variant.variant_name}`)
         const variantPdf = await PDFDocument.load(variantPdfBuffer)
         const variantPageCount = variantPdf.getPageCount()
         for (let i = 0; i < variantPageCount; i++) {
@@ -193,10 +116,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 
       // Generate comparison page only if more than 1 variant
       if (hasMultipleVariants) {
-        const comparisonPageUrl = `${baseUrl}/quotes/${id}/print?page=comparison`
-        console.log('Generating comparison page')
+        const comparisonPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=comparison`, printToken)
 
-        const comparisonPdfBuffer = await generatePdf(page, comparisonPageUrl, contentOptions)
+        const comparisonPdfBuffer = await generatePdfFromPage(page, comparisonPageUrl, contentOptions)
+        metrics.step('comparison-page')
         const comparisonPdf = await PDFDocument.load(comparisonPdfBuffer)
         const comparisonPageCount = comparisonPdf.getPageCount()
         for (let i = 0; i < comparisonPageCount; i++) {
@@ -206,10 +129,10 @@ export async function GET(request: Request, { params }: RouteParams) {
       }
     } else {
       // Classic single-variant PDF generation
-      const contentPageUrl = `${baseUrl}/quotes/${id}/print?page=content`
-      console.log('Generating content pages from:', contentPageUrl)
+      const contentPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=content`, printToken)
 
-      const contentPdfBuffer = await generatePdf(page, contentPageUrl, contentOptions)
+      const contentPdfBuffer = await generatePdfFromPage(page, contentPageUrl, contentOptions)
+      metrics.step('content-pages')
       const contentPdf = await PDFDocument.load(contentPdfBuffer)
       const contentPageCount = contentPdf.getPageCount()
       for (let i = 0; i < contentPageCount; i++) {
@@ -220,10 +143,10 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     // Always generate closing page as the last page
     // This page contains: 7 důvodů, business terms, validity, CTA, slogan
-    const closingPageUrl = `${baseUrl}/quotes/${id}/print?page=closing`
-    console.log('Generating closing page')
+    const closingPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=closing`, printToken)
 
-    const closingPdfBuffer = await generatePdf(page, closingPageUrl, contentOptions)
+    const closingPdfBuffer = await generatePdfFromPage(page, closingPageUrl, contentOptions)
+    metrics.step('closing-page')
     const closingPdf = await PDFDocument.load(closingPdfBuffer)
     const closingPageCount = closingPdf.getPageCount()
     for (let i = 0; i < closingPageCount; i++) {
@@ -231,9 +154,19 @@ export async function GET(request: Request, { params }: RouteParams) {
       mergedPdf.addPage(closingPage)
     }
 
-    const mergedPdfBytes = await mergedPdf.save()
+    // Set PDF metadata
+    setPdfMetadata(mergedPdf, {
+      title: `Cenová nabídka ${quote.quote_number}`,
+      documentNumber: quote.quote_number,
+      documentType: 'Nabídka',
+    })
 
-    console.log('PDF generated successfully, size:', mergedPdfBytes.length)
+    const mergedPdfBytes = await mergedPdf.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+    })
+
+    metrics.complete(mergedPdfBytes.length, mergedPdf.getPageCount())
 
     // Return PDF
     return new NextResponse(Buffer.from(mergedPdfBytes), {
@@ -245,7 +178,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       },
     })
   } catch (error) {
-    console.error('PDF generation error:', error)
+    // Note: metrics.error() would be called here but metrics may not be initialized
+    // if error occurred before metrics was created
+    console.error('[PDF] Generation error:', error)
 
     return new NextResponse(
       `Chyba při generování PDF: ${error instanceof Error ? error.message : 'Neznámá chyba'}`,

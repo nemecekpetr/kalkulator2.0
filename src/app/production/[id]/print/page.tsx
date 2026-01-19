@@ -3,15 +3,17 @@ import Image from 'next/image'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ProductionOrder, ProductionOrderItem } from '@/lib/supabase/types'
 import { PoolSchematic } from '@/components/pool-schematic'
+import { verifyPrintToken } from '@/lib/pdf/print-token'
+import { formatDateShort } from '@/lib/utils/format'
 
 // This page is used for PDF generation via Puppeteer
-// It's "public" but protected by UUID obscurity (same as /quotes/[id]/print)
-// Direct access is discouraged via robots.txt noindex
+// Access is secured by signed token with expiration
 
 export const dynamic = 'force-dynamic'
 
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ token?: string }>
 }
 
 interface PoolConfig {
@@ -76,14 +78,7 @@ async function getProductionOrder(id: string) {
   }
 }
 
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '-'
-  return new Date(dateString).toLocaleDateString('cs-CZ', {
-    day: 'numeric',
-    month: 'numeric',
-    year: 'numeric',
-  })
-}
+// Use shared formatDateShort from @/lib/utils/format
 
 function groupItemsByCategory(items: ProductionOrderItem[]): Record<string, ProductionOrderItem[]> {
   return items.reduce((acc, item) => {
@@ -94,8 +89,16 @@ function groupItemsByCategory(items: ProductionOrderItem[]): Record<string, Prod
   }, {} as Record<string, ProductionOrderItem[]>)
 }
 
-export default async function ProductionPrintPage({ params }: PageProps) {
+export default async function ProductionPrintPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const { token } = await searchParams
+
+  // Verify print token - required for all requests
+  const tokenResult = verifyPrintToken(token, id, 'production')
+  if (!tokenResult.valid) {
+    notFound() // Return 404 to not leak info about existence
+  }
+
   const production = await getProductionOrder(id)
 
   if (!production) {
@@ -461,7 +464,7 @@ export default async function ProductionPrintPage({ params }: PageProps) {
             />
             <div className="production-info">
               <div className="production-number">{production.production_number}</div>
-              <div className="production-date">Vytvořeno: {formatDate(production.created_at)}</div>
+              <div className="production-date">Vytvořeno: {formatDateShort(production.created_at)}</div>
             </div>
           </div>
 
@@ -478,20 +481,20 @@ export default async function ProductionPrintPage({ params }: PageProps) {
           <div className="dates-grid">
             <div className="date-box">
               <div className="date-label">Zahájení výroby</div>
-              <div className="date-value">{formatDate(production.production_start_date)}</div>
+              <div className="date-value">{formatDateShort(production.production_start_date)}</div>
             </div>
             <div className="date-box">
               <div className="date-label">Dokončení výroby</div>
-              <div className="date-value">{formatDate(production.production_end_date)}</div>
+              <div className="date-value">{formatDateShort(production.production_end_date)}</div>
             </div>
             <div className="date-box">
               <div className="date-label">Datum montáže</div>
-              <div className="date-value">{formatDate(production.assembly_date)}</div>
+              <div className="date-value">{formatDateShort(production.assembly_date)}</div>
             </div>
             {production.orders?.delivery_date && (
               <div className="date-box">
                 <div className="date-label">Dodání</div>
-                <div className="date-value">{formatDate(production.orders.delivery_date)}</div>
+                <div className="date-value">{formatDateShort(production.orders.delivery_date)}</div>
               </div>
             )}
           </div>
