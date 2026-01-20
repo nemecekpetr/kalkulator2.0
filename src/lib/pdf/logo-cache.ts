@@ -24,7 +24,7 @@ export async function getLogoDataUri(): Promise<string> {
   }
 
   try {
-    const logoPath = path.join(process.cwd(), 'public', 'logo-transparent.svg')
+    const logoPath = path.join(process.cwd(), 'public', 'logo-orange-gradient.svg')
     const svgContent = await readFile(logoPath, 'utf-8')
     const dataUri = `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`
 

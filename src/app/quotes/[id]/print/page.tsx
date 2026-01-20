@@ -142,7 +142,7 @@ function TitlePage({ quote, images }: { quote: QuoteWithCreator; images: ImagePa
         <div className="flex items-start justify-between">
           {/* Logo - large and prominent */}
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
-            <img src="/logo-transparent.svg" alt="Rentmil" className="h-20 object-contain" />
+            <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
           </div>
 
           {/* Quote info badge */}
@@ -787,7 +787,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
         {orderedVariants.map((v) => (
           <div key={v.id} className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
             <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
-              <img src="/logo-transparent.svg" alt="Rentmil" className="h-20 object-contain" />
+              <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
               <p className="text-lg font-semibold text-[#01384B]">{quote.quote_number}</p>
             </div>
             <VariantContentPages quote={quote} variant={v} />
@@ -799,7 +799,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
         {/* Comparison page */}
         <div className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
           <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
-            <img src="/logo-transparent.svg" alt="Rentmil" className="h-20 object-contain" />
+            <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
             <p className="text-lg font-semibold text-[#01384B]">{quote.quote_number}</p>
           </div>
           <ComparisonPage quote={quote} />
@@ -817,7 +817,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
       <TitlePage quote={quote} images={images} />
       <div className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
         <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
-          <img src="/logo-transparent.svg" alt="Rentmil" className="h-20 object-contain" />
+          <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
           <p className="text-lg font-semibold text-[#01384B]">{quote.quote_number}</p>
         </div>
         <ContentPages quote={quote} />

@@ -74,7 +74,7 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
         {/* Logo */}
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
           <img
-            src="/logo-transparent.svg"
+            src="/logo-orange-gradient.svg"
             alt="Rentmil"
             className="h-20 object-contain"
           />
