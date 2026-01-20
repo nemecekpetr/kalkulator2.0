@@ -4,9 +4,28 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.6'
+export const CURRENT_VERSION = '0.2.7'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.2.7',
+      date: '2026-01-20',
+      time: '12:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'pdf',
+          description: 'Volba kvality PDF - dropdown menu pro email (menší soubor) a tisk (vysoká kvalita)',
+          userDescription: 'Při stahování PDF dokumentu nyní můžete vybrat kvalitu: "Pro email" (optimalizovaná velikost) nebo "Pro tisk" (plná kvalita obrázků).'
+        },
+        {
+          type: 'fix',
+          scope: 'pdf',
+          description: 'Aktualizace loga na oranžový gradient',
+          userDescription: 'PDF dokumenty nyní obsahují aktuální logo Rentmil v oranžovém gradientu.'
+        }
+      ]
+    },
     {
       version: '0.2.6',
       date: '2026-01-07',
