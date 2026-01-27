@@ -35,6 +35,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
   User,
   Mail,
   Phone,
@@ -49,9 +57,10 @@ import {
   Search,
   Pencil,
   GripVertical,
+  Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey } from '@/lib/supabase/types'
+import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey, ProductGroupWithItems } from '@/lib/supabase/types'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -268,6 +277,11 @@ export function QuoteEditor({
   const [activeVariant, setActiveVariant] = useState<QuoteVariantKey>('ekonomicka')
   const [editingVariantName, setEditingVariantName] = useState<QuoteVariantKey | null>(null)
 
+  // Product groups state
+  const [groupsDialogOpen, setGroupsDialogOpen] = useState(false)
+  const [productGroups, setProductGroups] = useState<ProductGroupWithItems[]>([])
+  const [loadingGroups, setLoadingGroups] = useState(false)
+
   // Customer info
   const [customerName, setCustomerName] = useState(
     existingQuote?.customer_name || configuration?.contact_name || ''
@@ -415,6 +429,57 @@ export function QuoteEditor({
     }
     setItems((prev) => [newItem, ...prev])
   }, [activeVariant])
+
+  // Fetch product groups
+  const fetchProductGroups = useCallback(async () => {
+    setLoadingGroups(true)
+    try {
+      const response = await fetch('/api/admin/product-groups?active=true')
+      if (response.ok) {
+        const data = await response.json()
+        setProductGroups(data.groups || [])
+      }
+    } catch (err) {
+      console.error('Error fetching product groups:', err)
+    } finally {
+      setLoadingGroups(false)
+    }
+  }, [])
+
+  // Load groups when dialog opens
+  useEffect(() => {
+    if (groupsDialogOpen && productGroups.length === 0) {
+      fetchProductGroups()
+    }
+  }, [groupsDialogOpen, productGroups.length, fetchProductGroups])
+
+  // Add product group to active variant
+  const addProductGroup = useCallback(
+    (group: ProductGroupWithItems) => {
+      if (!group.items || group.items.length === 0) {
+        toast.error('Skupina neobsahuje žádné produkty')
+        return
+      }
+
+      const newItems: QuoteItem[] = group.items.map((item) => ({
+        id: crypto.randomUUID(),
+        product_id: item.product?.id || null,
+        name: item.product?.name || 'Neznámý produkt',
+        description: item.product?.description || '',
+        category: (item.product?.category || 'jine') as QuoteItemCategory,
+        quantity: item.quantity,
+        unit: item.product?.unit || 'ks',
+        unit_price: item.product?.unit_price || 0,
+        total_price: (item.product?.unit_price || 0) * item.quantity,
+        variant_keys: [activeVariant],
+      }))
+
+      setItems((prev) => [...newItems, ...prev])
+      setGroupsDialogOpen(false)
+      toast.success(`Přidáno ${newItems.length} položek ze skupiny "${group.name}"`)
+    },
+    [activeVariant]
+  )
 
   // Update item
   const updateItem = useCallback((id: string, updates: Partial<QuoteItem>) => {
@@ -1057,7 +1122,7 @@ export function QuoteEditor({
                   </div>
 
                   {/* Actions for this variant */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {configuration && (
                       <Button
                         variant="outline"
@@ -1073,6 +1138,63 @@ export function QuoteEditor({
                         {activeVariantItems.length > 0 ? 'Přegenerovat' : 'Generovat z konfigurace'}
                       </Button>
                     )}
+                    <Dialog open={groupsDialogOpen} onOpenChange={setGroupsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Layers className="w-4 h-4 mr-2" />
+                          Přidat skupinu
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-lg max-h-[80vh]">
+                        <DialogHeader>
+                          <DialogTitle>Vybrat skupinu produktů</DialogTitle>
+                          <DialogDescription>
+                            Všechny produkty ze skupiny budou přidány do varianty &bdquo;{variants.find((v) => v.key === activeVariant)?.name}&ldquo;
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="max-h-[50vh] overflow-y-auto">
+                          {loadingGroups ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : productGroups.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Layers className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                              <p>Žádné skupiny produktů</p>
+                              <p className="text-sm">Vytvořte je v Nastavení → Produkty → Skupiny</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {productGroups.map((group) => {
+                                const itemCount = group.items?.length || 0
+                                const totalPrice = (group.items || []).reduce(
+                                  (sum, item) => sum + (item.product?.unit_price || 0) * item.quantity,
+                                  0
+                                )
+                                return (
+                                  <div
+                                    key={group.id}
+                                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted cursor-pointer"
+                                    onClick={() => addProductGroup(group)}
+                                  >
+                                    <div>
+                                      <div className="font-medium">{group.name}</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {itemCount} {itemCount === 1 ? 'položka' : itemCount < 5 ? 'položky' : 'položek'}
+                                        {group.description && ` · ${group.description}`}
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-medium">{formatPrice(totalPrice)}</div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                     <Button variant="outline" size="sm" onClick={addCustomItem}>
                       <Plus className="w-4 h-4 mr-2" />
                       Vlastní položka

@@ -222,6 +222,9 @@ export type ConfigurationInsert = Database['public']['Tables']['configurations']
 export type ConfigurationUpdate = Database['public']['Tables']['configurations']['Update']
 export type SyncLog = Database['public']['Tables']['sync_log']['Row']
 
+// Price calculation types
+export type PriceType = 'fixed' | 'percentage' | 'surface_coefficient'
+
 // Product types
 export interface Product {
   id: string
@@ -240,6 +243,15 @@ export interface Product {
   unit: string
   image_url: string | null
   active: boolean
+  // Price calculation fields
+  price_type: PriceType
+  price_reference_product_id: string | null
+  price_percentage: number | null
+  price_minimum: number | null
+  price_coefficient: number | null
+  required_surcharge_ids: string[] | null
+  price_version: number
+  tags: string[] | null
 }
 
 export interface ProductInsert {
@@ -257,6 +269,15 @@ export interface ProductInsert {
   unit?: string
   image_url?: string | null
   active?: boolean
+  // Price calculation fields
+  price_type?: PriceType
+  price_reference_product_id?: string | null
+  price_percentage?: number | null
+  price_minimum?: number | null
+  price_coefficient?: number | null
+  required_surcharge_ids?: string[] | null
+  price_version?: number
+  tags?: string[] | null
 }
 
 export interface ProductUpdate {
@@ -273,6 +294,15 @@ export interface ProductUpdate {
   unit?: string
   image_url?: string | null
   active?: boolean
+  // Price calculation fields
+  price_type?: PriceType
+  price_reference_product_id?: string | null
+  price_percentage?: number | null
+  price_minimum?: number | null
+  price_coefficient?: number | null
+  required_surcharge_ids?: string[] | null
+  price_version?: number
+  tags?: string[] | null
 }
 
 // Reference photo types
@@ -557,7 +587,7 @@ export interface GeneratedQuoteItem {
   total_price: number
   sort_order: number
   // Metadata for UI
-  source?: 'pool_base_price' | 'mapping_rule'
+  source?: 'pool_base_price' | 'mapping_rule' | 'required_surcharge' | 'product_group'
   rule_id?: string
 }
 
@@ -906,4 +936,94 @@ export interface ProductionOrderWithItems extends ProductionOrder {
   items: ProductionOrderItem[]
   order?: Order | null
   creator?: UserProfile | null
+}
+
+// =============================================================================
+// Product Groups Types
+// =============================================================================
+
+export interface ProductGroup {
+  id: string
+  created_at: string
+  updated_at: string
+  name: string
+  description: string | null
+  category: string | null
+  sort_order: number
+  active: boolean
+}
+
+export interface ProductGroupInsert {
+  id?: string
+  name: string
+  description?: string | null
+  category?: string | null
+  sort_order?: number
+  active?: boolean
+}
+
+export interface ProductGroupUpdate {
+  name?: string
+  description?: string | null
+  category?: string | null
+  sort_order?: number
+  active?: boolean
+}
+
+export interface ProductGroupItem {
+  id: string
+  created_at: string
+  group_id: string
+  product_id: string
+  quantity: number
+  sort_order: number
+  // Joined data
+  product?: Product | null
+}
+
+export interface ProductGroupItemInsert {
+  id?: string
+  group_id: string
+  product_id: string
+  quantity?: number
+  sort_order?: number
+}
+
+export interface ProductGroupItemUpdate {
+  quantity?: number
+  sort_order?: number
+}
+
+export interface ProductGroupWithItems extends ProductGroup {
+  items: ProductGroupItem[]
+}
+
+// =============================================================================
+// Product Price History Types
+// =============================================================================
+
+export interface ProductPriceHistory {
+  id: string
+  created_at: string
+  product_id: string
+  old_price: number | null
+  new_price: number | null
+  change_percentage: number | null
+  price_version: number | null
+  reason: string | null
+  changed_by: string | null
+  // Joined data
+  product?: Product | null
+  changer?: UserProfile | null
+}
+
+export interface ProductPriceHistoryInsert {
+  id?: string
+  product_id: string
+  old_price?: number | null
+  new_price?: number | null
+  change_percentage?: number | null
+  price_version?: number | null
+  reason?: string | null
+  changed_by?: string | null
 }

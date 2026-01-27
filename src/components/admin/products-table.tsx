@@ -61,9 +61,11 @@ import {
   FlaskConical,
   MoreHorizontal,
   Layers,
+  Percent,
+  Calculator,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Product, ProductCategory } from '@/lib/supabase/types'
+import type { Product, ProductCategory, PriceType } from '@/lib/supabase/types'
 import { PRODUCT_CATEGORY_LABELS, PRODUCT_CATEGORY_COLORS } from '@/lib/constants/categories'
 
 interface ProductsTableProps {
@@ -88,6 +90,19 @@ const CATEGORY_ICONS: Record<ProductCategory, typeof Waves> = {
   chemie: FlaskConical,
   jine: MoreHorizontal,
   sety: Layers,
+}
+
+// Price type labels and icons
+const PRICE_TYPE_LABELS: Record<PriceType, string> = {
+  fixed: 'Fixní',
+  percentage: '%',
+  surface_coefficient: 'm²',
+}
+
+const PRICE_TYPE_ICONS: Record<PriceType, typeof Waves> = {
+  fixed: Package,
+  percentage: Percent,
+  surface_coefficient: Calculator,
 }
 
 type SortField = 'name' | 'code' | 'category' | 'unit_price' | 'active'
@@ -433,6 +448,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
                 </button>
               </TableHead>
               <TableHead>Jednotka</TableHead>
+              <TableHead>Typ ceny</TableHead>
               <TableHead>
                 <button
                   onClick={() => handleSort('active')}
@@ -447,19 +463,25 @@ export function ProductsTable({ products }: ProductsTableProps) {
           <TableBody>
             {filteredAndSortedProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   {search || categoryFilter !== 'all'
                     ? 'Žádné produkty nenalezeny'
-                    : 'Žádné produkty. Synchronizujte z Pipedrive.'}
+                    : 'Žádné produkty. Vytvořte nový nebo synchronizujte z Pipedrive.'}
                 </TableCell>
               </TableRow>
             ) : (
               filteredAndSortedProducts.map((product) => {
                 const CategoryIcon = CATEGORY_ICONS[product.category]
+                const priceType = product.price_type || 'fixed'
+                const PriceTypeIcon = PRICE_TYPE_ICONS[priceType]
 
                 return (
-                  <TableRow key={product.id}>
-                    <TableCell>
+                  <TableRow
+                    key={product.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => router.push(`/admin/produkty/${product.id}`)}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedIds.has(product.id)}
                         onCheckedChange={() => toggleSelect(product.id)}
@@ -491,9 +513,27 @@ export function ProductsTable({ products }: ProductsTableProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {formatPrice(product.unit_price)}
+                      {priceType === 'fixed' ? (
+                        formatPrice(product.unit_price)
+                      ) : priceType === 'percentage' ? (
+                        <span className="text-muted-foreground">
+                          {product.price_percentage}%
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {product.price_coefficient} Kč/m²
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>{product.unit}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <PriceTypeIcon className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          {PRICE_TYPE_LABELS[priceType]}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={product.active ? 'default' : 'secondary'}>
                         {product.active ? 'Aktivní' : 'Neaktivní'}

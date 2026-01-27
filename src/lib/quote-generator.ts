@@ -1,6 +1,7 @@
 /**
  * Quote Generator
  * Generates quote items from a pool configuration using mapping rules and product codes
+ * Supports dynamic pricing: fixed, percentage-based, and surface coefficient pricing
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -12,7 +13,14 @@ import type {
   QuoteItemCategory,
   PoolShape,
   PoolType,
+  PoolDimensions,
 } from '@/lib/supabase/types'
+import {
+  calculateProductPrice,
+  buildPriceContext,
+  roundPrice,
+  type PriceContext,
+} from '@/lib/pricing/calculate-price'
 
 // Values that should be skipped (no product needed)
 const SKIP_VALUES = ['none']
@@ -157,6 +165,60 @@ async function getMappingRules(
 }
 
 /**
+ * Get all active products for price context building
+ */
+async function getAllProducts(supabase: SupabaseClient): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('active', true)
+
+  if (error) {
+    console.error('Error fetching products for price context:', error)
+    return []
+  }
+
+  return (data || []) as Product[]
+}
+
+/**
+ * Calculate the actual price for a product using the pricing engine
+ */
+function getProductPrice(
+  product: Product,
+  priceContext: PriceContext
+): number {
+  if (!product.price_type || product.price_type === 'fixed') {
+    return product.unit_price
+  }
+
+  const calculated = calculateProductPrice(product, priceContext)
+  return roundPrice(calculated.price)
+}
+
+/**
+ * Collect all required surcharge product IDs from a list of products
+ */
+function collectRequiredSurcharges(
+  products: Product[],
+  addedProductIds: Set<string>
+): string[] {
+  const surchargeIds: string[] = []
+
+  for (const product of products) {
+    if (product.required_surcharge_ids?.length) {
+      for (const surchargeId of product.required_surcharge_ids) {
+        if (!addedProductIds.has(surchargeId) && !surchargeIds.includes(surchargeId)) {
+          surchargeIds.push(surchargeId)
+        }
+      }
+    }
+  }
+
+  return surchargeIds
+}
+
+/**
  * Generate quote items from a configuration
  */
 export async function generateQuoteItemsFromConfiguration(
@@ -165,10 +227,26 @@ export async function generateQuoteItemsFromConfiguration(
 ): Promise<GeneratedQuoteItem[]> {
   const items: GeneratedQuoteItem[] = []
   let sortOrder = 0
+  const addedProductIds = new Set<string>()
+
+  // Get pool dimensions for pricing context
+  const poolDimensions: PoolDimensions = config.dimensions
+  const poolShape = config.pool_shape as PoolShape
+
+  // Get all products for building price context
+  const allProducts = await getAllProducts(supabase)
+
+  // Build price context with pool dimensions
+  const priceContext = buildPriceContext(allProducts, poolShape, poolDimensions)
+
+  // Track products added for surcharge collection
+  const addedProducts: Product[] = []
 
   // 1. Find and add pool product by code
   const poolProduct = await findPoolProduct(config, supabase)
   if (poolProduct) {
+    const unitPrice = getProductPrice(poolProduct, priceContext)
+
     items.push({
       product_id: poolProduct.id,
       name: poolProduct.name,
@@ -176,11 +254,17 @@ export async function generateQuoteItemsFromConfiguration(
       category: poolProduct.category as QuoteItemCategory,
       quantity: 1,
       unit: poolProduct.unit || 'ks',
-      unit_price: poolProduct.unit_price,
-      total_price: poolProduct.unit_price,
+      unit_price: unitPrice,
+      total_price: unitPrice,
       sort_order: sortOrder++,
       source: 'pool_base_price',
     })
+
+    addedProductIds.add(poolProduct.id)
+    addedProducts.push(poolProduct)
+
+    // Update price context with pool price (for percentage calculations)
+    priceContext.productPrices.set(poolProduct.id, unitPrice)
   }
 
   // 2. Get and apply mapping rules
@@ -199,8 +283,13 @@ export async function generateQuoteItemsFromConfiguration(
       continue
     }
 
+    // Skip if product already added
+    if (addedProductIds.has(product.id)) {
+      continue
+    }
+
     const quantity = rule.quantity || 1
-    const unitPrice = product.unit_price
+    const unitPrice = getProductPrice(product, priceContext)
     const totalPrice = unitPrice * quantity
 
     items.push({
@@ -216,6 +305,45 @@ export async function generateQuoteItemsFromConfiguration(
       source: 'mapping_rule',
       rule_id: rule.id,
     })
+
+    addedProductIds.add(product.id)
+    addedProducts.push(product)
+
+    // Update price context for potential dependent products
+    priceContext.productPrices.set(product.id, unitPrice)
+  }
+
+  // 3. Add required surcharges (products that must be added when other products are selected)
+  const surchargeIds = collectRequiredSurcharges(addedProducts, addedProductIds)
+
+  if (surchargeIds.length > 0) {
+    // Fetch surcharge products
+    const { data: surchargeProducts } = await supabase
+      .from('products')
+      .select('*')
+      .in('id', surchargeIds)
+      .eq('active', true)
+
+    if (surchargeProducts) {
+      for (const surcharge of surchargeProducts as Product[]) {
+        const unitPrice = getProductPrice(surcharge, priceContext)
+
+        items.push({
+          product_id: surcharge.id,
+          name: surcharge.name,
+          description: surcharge.description,
+          category: surcharge.category as QuoteItemCategory,
+          quantity: 1,
+          unit: surcharge.unit || 'ks',
+          unit_price: unitPrice,
+          total_price: unitPrice,
+          sort_order: sortOrder++,
+          source: 'required_surcharge',
+        })
+
+        addedProductIds.add(surcharge.id)
+      }
+    }
   }
 
   return items

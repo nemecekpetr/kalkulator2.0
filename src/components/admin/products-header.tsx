@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Package, RefreshCw, AlertCircle, CheckCircle, Settings2 } from 'lucide-react'
+import { Package, RefreshCw, AlertCircle, CheckCircle, Settings2, Plus, Upload, TrendingUp, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { formatDistanceToNow } from 'date-fns'
 import { cs } from 'date-fns/locale'
@@ -92,32 +92,61 @@ export function ProductsHeader({ totalProducts, lastSync, pipedriveConfigured }:
           </p>
         </div>
 
-        {userRole === 'admin' && (
-          <div className="flex items-center gap-2">
-            <Link href="/admin/nastaveni/produkty/mapovani">
-              <Button variant="outline" size="sm">
-                <Settings2 className="w-4 h-4 mr-2" />
-                Mapování produktů
-              </Button>
-            </Link>
-            {pipedriveConfigured ? (
-              <Button
-                onClick={handleSync}
-                disabled={syncing}
-                variant="outline"
-                size="sm"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Synchronizuji...' : 'Sync Pipedrive'}
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <AlertCircle className="w-4 h-4" />
-                Pipedrive není nakonfigurováno
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Link href="/admin/produkty/novy">
+            <Button size="sm">
+              <Plus className="w-4 h-4 mr-2" />
+              Nový produkt
+            </Button>
+          </Link>
+
+          {userRole === 'admin' && (
+            <>
+              <Link href="/admin/nastaveni/produkty/precenovani">
+                <Button variant="outline" size="sm">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Přeceňování
+                </Button>
+              </Link>
+              <Link href="/admin/nastaveni/produkty/skupiny">
+                <Button variant="outline" size="sm">
+                  <Layers className="w-4 h-4 mr-2" />
+                  Skupiny
+                </Button>
+              </Link>
+              <Link href="/admin/nastaveni/produkty/mapovani">
+                <Button variant="outline" size="sm">
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  Mapování
+                </Button>
+              </Link>
+              {pipedriveConfigured ? (
+                <>
+                  <Button
+                    onClick={handleSync}
+                    disabled={syncing}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Sync...' : 'Import'}
+                  </Button>
+                  <Link href="/admin/nastaveni/produkty/export">
+                    <Button variant="outline" size="sm">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Export
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AlertCircle className="w-4 h-4" />
+                  Pipedrive nenakonfigurováno
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {syncResult && (
