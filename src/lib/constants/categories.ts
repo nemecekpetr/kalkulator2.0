@@ -5,44 +5,44 @@ import type { ProductCategory, QuoteItemCategory } from '@/lib/supabase/types'
  * Single source of truth - use this everywhere for consistency
  */
 export const PRODUCT_CATEGORY_LABELS: Record<ProductCategory, string> = {
-  bazeny: 'Bazény',
-  zastreseni: 'Zastřešení',
-  sluzby: 'Služby',
-  doprava: 'Doprava',
-  prislusenstvi: 'Příslušenství',
+  skelety: 'Skelety',
+  sety: 'Sety',
   schodiste: 'Schodiště',
+  technologie: 'Technologie',
+  osvetleni: 'Osvětlení',
   uprava_vody: 'Úprava vody',
   protiproud: 'Protiproud',
-  technologie: 'Technologie',
-  material: 'Materiál',
   ohrev: 'Ohřev',
-  osvetleni: 'Osvětlení',
-  cisteni: 'Čištění',
+  material: 'Materiál',
+  priplatky: 'Příplatky',
   chemie: 'Chemie',
+  zatepleni: 'Zateplení',
+  vysavace: 'Vysavače',
+  sluzby: 'Služby',
+  doprava: 'Doprava',
   jine: 'Jiné',
-  sety: 'Sety',
 }
 
 /**
  * CSS classes for category badge colors
  */
 export const PRODUCT_CATEGORY_COLORS: Record<ProductCategory, string> = {
-  bazeny: 'bg-blue-100 text-blue-800',
-  zastreseni: 'bg-slate-100 text-slate-800',
-  sluzby: 'bg-orange-100 text-orange-800',
-  doprava: 'bg-green-100 text-green-800',
-  prislusenstvi: 'bg-purple-100 text-purple-800',
+  skelety: 'bg-blue-100 text-blue-800',
+  sety: 'bg-violet-100 text-violet-800',
   schodiste: 'bg-amber-100 text-amber-800',
+  technologie: 'bg-indigo-100 text-indigo-800',
+  osvetleni: 'bg-yellow-100 text-yellow-800',
   uprava_vody: 'bg-cyan-100 text-cyan-800',
   protiproud: 'bg-sky-100 text-sky-800',
-  technologie: 'bg-indigo-100 text-indigo-800',
-  material: 'bg-stone-100 text-stone-800',
   ohrev: 'bg-red-100 text-red-800',
-  osvetleni: 'bg-yellow-100 text-yellow-800',
-  cisteni: 'bg-teal-100 text-teal-800',
+  material: 'bg-stone-100 text-stone-800',
+  priplatky: 'bg-pink-100 text-pink-800',
   chemie: 'bg-lime-100 text-lime-800',
+  zatepleni: 'bg-orange-100 text-orange-800',
+  vysavace: 'bg-teal-100 text-teal-800',
+  sluzby: 'bg-purple-100 text-purple-800',
+  doprava: 'bg-green-100 text-green-800',
   jine: 'bg-gray-100 text-gray-800',
-  sety: 'bg-violet-100 text-violet-800',
 }
 
 /**
@@ -50,22 +50,7 @@ export const PRODUCT_CATEGORY_COLORS: Record<ProductCategory, string> = {
  * Extends product categories with 'prace' (work/labor)
  */
 export const QUOTE_CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
-  bazeny: 'Bazény',
-  zastreseni: 'Zastřešení',
-  sluzby: 'Služby',
-  doprava: 'Doprava',
-  prislusenstvi: 'Příslušenství',
-  schodiste: 'Schodiště',
-  uprava_vody: 'Úprava vody',
-  protiproud: 'Protiproud',
-  technologie: 'Technologie',
-  material: 'Materiál',
-  ohrev: 'Ohřev',
-  osvetleni: 'Osvětlení',
-  cisteni: 'Čištění',
-  chemie: 'Chemie',
-  jine: 'Jiné',
-  sety: 'Sety',
+  ...PRODUCT_CATEGORY_LABELS,
   prace: 'Práce',
 }
 
@@ -74,22 +59,22 @@ export const QUOTE_CATEGORY_LABELS: Record<QuoteItemCategory, string> = {
  * Most important/common categories first
  */
 export const QUOTE_CATEGORY_ORDER: QuoteItemCategory[] = [
-  'bazeny',
+  'skelety',
+  'sety',
   'schodiste',
   'technologie',
   'osvetleni',
   'protiproud',
   'uprava_vody',
   'ohrev',
-  'zastreseni',
-  'prislusenstvi',
-  'cisteni',
-  'chemie',
   'material',
+  'priplatky',
+  'zatepleni',
+  'vysavace',
+  'chemie',
   'sluzby',
   'prace',
   'doprava',
-  'sety',
   'jine',
 ]
 
@@ -97,21 +82,21 @@ export const QUOTE_CATEGORY_ORDER: QuoteItemCategory[] = [
  * All valid quote item categories as array (for Zod schema, selects, etc.)
  */
 export const QUOTE_CATEGORIES: QuoteItemCategory[] = [
-  'bazeny',
-  'zastreseni',
-  'sluzby',
-  'doprava',
-  'prislusenstvi',
+  'skelety',
+  'sety',
   'schodiste',
+  'technologie',
+  'osvetleni',
   'uprava_vody',
   'protiproud',
-  'technologie',
-  'material',
   'ohrev',
-  'osvetleni',
-  'cisteni',
+  'material',
+  'priplatky',
   'chemie',
+  'zatepleni',
+  'vysavace',
+  'sluzby',
+  'doprava',
   'jine',
-  'sety',
   'prace',
 ]

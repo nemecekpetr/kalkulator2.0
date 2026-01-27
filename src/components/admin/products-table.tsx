@@ -74,22 +74,22 @@ interface ProductsTableProps {
 
 // Icons for each category (kept local as these are UI-specific)
 const CATEGORY_ICONS: Record<ProductCategory, typeof Waves> = {
-  bazeny: Waves,
-  zastreseni: Home,
-  sluzby: Wrench,
-  doprava: Truck,
-  prislusenstvi: Settings,
+  skelety: Waves,
+  sety: Layers,
   schodiste: Footprints,
+  technologie: Cpu,
+  osvetleni: Lightbulb,
   uprava_vody: Droplets,
   protiproud: Wind,
-  technologie: Cpu,
-  material: Package,
   ohrev: Flame,
-  osvetleni: Lightbulb,
-  cisteni: Sparkles,
+  material: Package,
+  priplatky: Percent,
   chemie: FlaskConical,
+  zatepleni: Home,
+  vysavace: Sparkles,
+  sluzby: Wrench,
+  doprava: Truck,
   jine: MoreHorizontal,
-  sety: Layers,
 }
 
 // Price type labels and icons
@@ -521,7 +521,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
                         </span>
                       ) : (
                         <span className="text-muted-foreground">
-                          {product.price_coefficient} Kč/m²
+                          {product.price_coefficient} Kč/{product.coefficient_unit === 'bm' ? 'bm' : 'm²'}
                         </span>
                       )}
                     </TableCell>

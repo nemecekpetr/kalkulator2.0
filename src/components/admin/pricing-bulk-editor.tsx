@@ -77,12 +77,13 @@ interface CSVRow {
   oldPrice?: number
 }
 
+// Build categories from imported labels
 const CATEGORIES = [
   { value: 'all', label: 'Všechny kategorie' },
-  { value: 'bazeny', label: 'Bazény' },
-  { value: 'prislusenstvi', label: 'Příslušenství' },
-  { value: 'sluzby', label: 'Služby' },
-  { value: 'doprava', label: 'Doprava' },
+  ...Object.entries(PRODUCT_CATEGORY_LABELS).map(([value, label]) => ({
+    value,
+    label,
+  })),
 ]
 
 export function PricingBulkEditor({ products }: PricingBulkEditorProps) {

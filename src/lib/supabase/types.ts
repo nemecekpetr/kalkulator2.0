@@ -14,23 +14,23 @@ export type UserRole = 'admin' | 'user'
 
 // Quote types
 export type ProductCategory =
-  | 'bazeny'
-  | 'zastreseni'
-  | 'sluzby'
-  | 'doprava'
-  | 'prislusenstvi'
-  | 'schodiste'
-  | 'uprava_vody'
-  | 'protiproud'
-  | 'technologie'
-  | 'material'
-  | 'ohrev'
-  | 'osvetleni'
-  | 'cisteni'
-  | 'chemie'
-  | 'jine'
-  | 'sety'
-export type QuoteItemCategory = ProductCategory | 'prace'
+  | 'skelety'      // Bazénové skelety
+  | 'sety'         // Bazénové sety
+  | 'schodiste'    // Schodiště
+  | 'technologie'  // Filtrace, skimmery, trysky, šachty
+  | 'osvetleni'    // LED světla, trafo, krabice
+  | 'uprava_vody'  // Solná voda, UV lampa, dávkovače
+  | 'protiproud'   // Protiproudy
+  | 'ohrev'        // Tepelná čerpadla
+  | 'material'     // Lemová trubka, prostupy, odbočky
+  | 'priplatky'    // 8mm tloušťka, ostré rohy, změna hloubky
+  | 'chemie'       // Chlor, pH, sůl
+  | 'zatepleni'    // Zateplení stěn a dna
+  | 'vysavace'     // Ruční a robotické vysavače
+  | 'sluzby'       // Služby
+  | 'doprava'      // Doprava
+  | 'jine'         // Ostatní
+export type QuoteItemCategory = ProductCategory | 'prace' // práce (labor)
 
 // Configuration status - lifecycle of a configuration
 export type ConfigurationStatus = 'new' | 'processed'

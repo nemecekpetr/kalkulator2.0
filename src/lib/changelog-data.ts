@@ -4,9 +4,64 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.2.7'
+export const CURRENT_VERSION = '0.3.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.3.0',
+      date: '2026-01-27',
+      time: '12:30',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Nový systém správy produktů s CRUD operacemi přímo v aplikaci',
+          userDescription: 'Produkty nyní můžete vytvářet, upravovat a mazat přímo v aplikaci bez nutnosti synchronizace z Pipedrive.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Koeficientové ceny s volbou jednotky (m² povrch nebo bm obvod)',
+          userDescription: 'Pro příplatky jako 8mm tloušťka nebo lemová trubka lze nastavit cenu podle povrchu bazénu (m²) nebo jeho obvodu (bm).'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Procentuální příplatky počítané z referenčního produktu',
+          userDescription: 'Příplatky jako "ostré rohy" lze nastavit jako procento z ceny jiného produktu (např. 10% z bazénového skeletu).'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Skupiny produktů (balíčky) pro rychlé vkládání do nabídek',
+          userDescription: 'Vytvořte si předpřipravené skupiny produktů a vkládejte je do nabídek jedním kliknutím.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Hromadné přeceňování produktů (procentuální nebo fixní změna)',
+          userDescription: 'Změňte ceny více produktů najednou - zadejte procento nebo fixní částku a změna se aplikuje na vybrané produkty.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'CSV import cen produktů',
+          userDescription: 'Importujte ceny z CSV souboru ve formátu kód;cena pro rychlou aktualizaci ceníku.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Nové kategorie produktů: skelety, sety, příplatky, zateplení, vysavače',
+          userDescription: 'Produkty jsou nyní přehledněji organizovány do nových kategorií odpovídajících katalogu Rentmil.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Import 290 produktů z CSV katalogů (skelety, sety, doplňky)',
+          userDescription: 'Do aplikace bylo naimportováno 290 produktů včetně bazénových skeletů, setů a veškerého příslušenství.'
+        }
+      ]
+    },
     {
       version: '0.2.7',
       date: '2026-01-20',
