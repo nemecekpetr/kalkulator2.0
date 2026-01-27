@@ -258,6 +258,9 @@ export interface Product {
   // Material variant for skeletons
   material_thickness: MaterialThickness | null
   compatible_shapes: PoolShape[] | null
+  // Prerequisite products
+  prerequisite_product_ids: string[] | null
+  prerequisite_pool_shapes: PoolShape[] | null
 }
 
 export interface ProductInsert {
@@ -287,6 +290,8 @@ export interface ProductInsert {
   tags?: string[] | null
   material_thickness?: MaterialThickness | null
   compatible_shapes?: PoolShape[] | null
+  prerequisite_product_ids?: string[] | null
+  prerequisite_pool_shapes?: PoolShape[] | null
 }
 
 export interface ProductUpdate {
@@ -315,6 +320,8 @@ export interface ProductUpdate {
   tags?: string[] | null
   material_thickness?: MaterialThickness | null
   compatible_shapes?: PoolShape[] | null
+  prerequisite_product_ids?: string[] | null
+  prerequisite_pool_shapes?: PoolShape[] | null
 }
 
 // Reference photo types
