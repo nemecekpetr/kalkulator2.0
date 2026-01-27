@@ -2,6 +2,14 @@
 
 const PIPEDRIVE_API_URL = 'https://api.pipedrive.com/v1'
 
+// Retry configuration
+const MAX_RETRIES = 3
+const INITIAL_RETRY_DELAY = 1000 // 1 second
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 // Custom field keys for Pipedrive products
 const PIPEDRIVE_FIELD_KEYS = {
   // Old category field (deprecated)
@@ -76,19 +84,68 @@ export class PipedriveClient {
     const url = new URL(`${PIPEDRIVE_API_URL}${endpoint}`)
     url.searchParams.set('api_token', this.apiToken)
 
-    const response = await fetch(url.toString(), {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    })
+    let lastError: Error | null = null
 
-    if (!response.ok) {
-      throw new Error(`Pipedrive API error: ${response.status} ${response.statusText}`)
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch(url.toString(), {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...options?.headers,
+          },
+        })
+
+        // Rate limit - retry with backoff
+        if (response.status === 429) {
+          const retryAfter = parseInt(response.headers.get('Retry-After') || '10', 10)
+          if (attempt < MAX_RETRIES) {
+            console.warn(
+              `[Pipedrive] Rate limit hit, retrying after ${retryAfter}s (attempt ${attempt}/${MAX_RETRIES})`
+            )
+            await sleep(retryAfter * 1000)
+            continue
+          }
+        }
+
+        // Server errors - retry with exponential backoff
+        if (response.status >= 500 && attempt < MAX_RETRIES) {
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1)
+          console.warn(
+            `[Pipedrive] Server error ${response.status}, retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES})`
+          )
+          await sleep(delay)
+          continue
+        }
+
+        if (!response.ok) {
+          throw new Error(`Pipedrive API error: ${response.status} ${response.statusText}`)
+        }
+
+        return response.json()
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error))
+
+        // Network errors - retry with exponential backoff
+        const isNetworkError =
+          error instanceof TypeError ||
+          (error as NodeJS.ErrnoException).code === 'ECONNRESET' ||
+          (error as NodeJS.ErrnoException).code === 'ETIMEDOUT'
+
+        if (attempt < MAX_RETRIES && isNetworkError) {
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt - 1)
+          console.warn(
+            `[Pipedrive] Network error, retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES})`
+          )
+          await sleep(delay)
+          continue
+        }
+
+        throw lastError
+      }
     }
 
-    return response.json()
+    throw lastError || new Error('Max retries exceeded')
   }
 
   async getProducts(start = 0, limit = 100): Promise<PipedriveResponse<PipedriveProduct[]>> {

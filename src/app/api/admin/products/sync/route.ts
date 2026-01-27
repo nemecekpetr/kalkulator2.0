@@ -44,16 +44,26 @@ export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization')
   const expectedKey = process.env.ADMIN_API_KEY
 
-  // If API key is provided, validate it
+  // If API key is provided in the header, validate it
   if (authHeader) {
-    if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
+    // Reject if ADMIN_API_KEY is not configured but someone is trying to use API key auth
+    if (!expectedKey) {
+      return NextResponse.json(
+        { error: 'API klíč není nakonfigurován na serveru' },
+        { status: 500 }
+      )
+    }
+
+    // Validate the provided API key
+    if (authHeader !== `Bearer ${expectedKey}`) {
       return NextResponse.json(
         { error: 'Neautorizovaný přístup' },
         { status: 401 }
       )
     }
+    // API key is valid, continue with the request
   } else {
-    // No API key - require session auth
+    // No API key header - require session auth
     const authResult = await requireAuth()
     if (isAuthError(authResult)) return authResult.error
   }

@@ -4,9 +4,58 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.3.0'
+export const CURRENT_VERSION = '0.3.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.3.1',
+      date: '2026-01-27',
+      time: '20:00',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'ceny',
+          description: 'Oprava výpočtu cen pro řetězené procentuální příplatky (A→B→C)',
+          userDescription: 'Opravili jsme výpočet cen, kdy procentuální příplatek závisí na jiném procentuálním příplatku. Nyní se ceny počítají správně i pro složité závislosti.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Oprava rekurzivního přidávání povinných příplatků',
+          userDescription: 'Pokud příplatek A vyžaduje příplatek B, oba se nyní správně přidají do nabídky automaticky.'
+        },
+        {
+          type: 'fix',
+          scope: 'produkty',
+          description: 'Atomická aktualizace položek ve skupinách produktů (transakce)',
+          userDescription: 'Úprava skupin produktů je nyní bezpečnější - změny se buď uloží celé, nebo vůbec.'
+        },
+        {
+          type: 'fix',
+          scope: 'produkty',
+          description: 'Oprava ukládání důvodu změny při hromadném přeceňování',
+          userDescription: 'Při hromadné změně cen se nyní správně ukládá důvod změny do historie.'
+        },
+        {
+          type: 'fix',
+          scope: 'integrace',
+          description: 'Přidána retry logika pro synchronizaci produktů z Pipedrive',
+          userDescription: 'Synchronizace produktů z Pipedrive je nyní odolnější vůči dočasným výpadkům sítě.'
+        },
+        {
+          type: 'fix',
+          scope: 'bezpecnost',
+          description: 'Oprava autentizace API klíčem pro sync endpoint',
+          userDescription: 'Zpřísnili jsme zabezpečení synchronizačního endpointu.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Podpora starých kategorií produktů (bazeny, prislusenstvi) s automatickým převodem',
+          userDescription: 'Nabídky se starými kategoriemi produktů nyní fungují správně - automaticky se převádí na nové kategorie.'
+        }
+      ]
+    },
     {
       version: '0.3.0',
       date: '2026-01-27',

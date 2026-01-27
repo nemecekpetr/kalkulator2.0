@@ -1,16 +1,37 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
-import type { QuoteVariantKey } from '@/lib/supabase/types'
+import type { QuoteVariantKey, QuoteItemCategory } from '@/lib/supabase/types'
 import { QUOTE_CATEGORIES } from '@/lib/constants/categories'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
+
+// Map old category names to new ones for backwards compatibility
+const LEGACY_CATEGORY_MAP: Record<string, QuoteItemCategory> = {
+  bazeny: 'skelety',
+  prislusenstvi: 'jine',
+}
+
+// All valid categories including legacy ones (for validation)
+const ALL_VALID_CATEGORIES = [
+  ...QUOTE_CATEGORIES,
+  ...Object.keys(LEGACY_CATEGORY_MAP),
+]
+
+// Normalize category - map legacy to new, pass through valid ones
+function normalizeCategory(category: string): QuoteItemCategory {
+  if (LEGACY_CATEGORY_MAP[category]) {
+    return LEGACY_CATEGORY_MAP[category]
+  }
+  return category as QuoteItemCategory
+}
 
 const QuoteItemSchema = z.object({
   id: z.string().optional(), // For tracking during edit
   product_id: z.string().nullable(),
   name: z.string().min(1),
   description: z.string().optional(),
-  category: z.enum(QUOTE_CATEGORIES as [string, ...string[]]),
+  // Accept both new and legacy categories - will be normalized before saving
+  category: z.enum(ALL_VALID_CATEGORIES as [string, ...string[]]),
   quantity: z.number().min(0),
   unit: z.string(),
   unit_price: z.number().min(0),
@@ -195,7 +216,7 @@ export async function POST(request: Request) {
             product_id: item.product_id,
             name: item.name,
             description: item.description || null,
-            category: item.category,
+            category: normalizeCategory(item.category), // Map legacy categories
             quantity: item.quantity,
             unit: item.unit,
             unit_price: item.unit_price,
@@ -353,7 +374,7 @@ export async function PUT(request: Request) {
             product_id: item.product_id,
             name: item.name,
             description: item.description || null,
-            category: item.category,
+            category: normalizeCategory(item.category), // Map legacy categories
             quantity: item.quantity,
             unit: item.unit,
             unit_price: item.unit_price,

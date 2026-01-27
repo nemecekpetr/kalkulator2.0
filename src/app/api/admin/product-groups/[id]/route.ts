@@ -96,44 +96,29 @@ export async function PUT(request: Request, { params }: RouteParams) {
       }
     }
 
-    // Update items if provided
+    // Update items if provided - use RPC for atomic transaction
     if (body.items !== undefined && Array.isArray(body.items)) {
-      // Delete existing items
-      const { error: deleteError } = await supabase
-        .from('product_group_items')
-        .delete()
-        .eq('group_id', id)
+      // Prepare items for RPC call
+      const itemsJson = body.items.map(
+        (item: { product_id: string; quantity?: number }, index: number) => ({
+          product_id: item.product_id,
+          quantity: item.quantity || 1,
+          sort_order: index,
+        })
+      )
 
-      if (deleteError) {
-        console.error('Error deleting existing items:', deleteError)
+      // Call RPC function for atomic delete+insert
+      const { error: rpcError } = await supabase.rpc('update_product_group_items', {
+        p_group_id: id,
+        p_items: itemsJson,
+      })
+
+      if (rpcError) {
+        console.error('Error updating product group items:', rpcError)
         return NextResponse.json(
-          { error: `Chyba při aktualizaci položek: ${deleteError.message}` },
+          { error: `Chyba při aktualizaci položek: ${rpcError.message}` },
           { status: 500 }
         )
-      }
-
-      // Insert new items
-      if (body.items.length > 0) {
-        const itemsToInsert = body.items.map(
-          (item: { product_id: string; quantity?: number }, index: number) => ({
-            group_id: id,
-            product_id: item.product_id,
-            quantity: item.quantity || 1,
-            sort_order: index,
-          })
-        )
-
-        const { error: insertError } = await supabase
-          .from('product_group_items')
-          .insert(itemsToInsert)
-
-        if (insertError) {
-          console.error('Error inserting new items:', insertError)
-          return NextResponse.json(
-            { error: `Chyba při přidávání položek: ${insertError.message}` },
-            { status: 500 }
-          )
-        }
       }
     }
 

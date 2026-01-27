@@ -199,6 +199,7 @@ export function buildPriceContext(
 /**
  * Calculate prices for all products, handling dependencies
  * Products with percentage pricing need their reference products calculated first
+ * Supports chains of percentage products (A→B→C) via iterative resolution
  */
 export function calculateAllPrices(
   products: Product[],
@@ -225,14 +226,36 @@ export function calculateAllPrices(
     }
   }
 
-  // Calculate percentage products (may depend on other products)
-  // Note: This simple implementation doesn't handle chains of percentage products
-  for (const product of products) {
-    if (product.price_type === 'percentage') {
+  // Calculate percentage products iteratively to handle chains (A→B→C)
+  // Keep iterating until no prices change (all dependencies resolved)
+  const percentageProducts = products.filter((p) => p.price_type === 'percentage')
+  const MAX_ITERATIONS = 10 // Prevent infinite loops from circular dependencies
+  let iteration = 0
+  let hasChanges = true
+
+  while (hasChanges && iteration < MAX_ITERATIONS) {
+    hasChanges = false
+    iteration++
+
+    for (const product of percentageProducts) {
+      const previousPrice = context.productPrices.get(product.id)
       const result = calculateProductPrice(product, context)
+
+      // Check if the price actually changed (reference might now be available)
+      if (previousPrice !== result.price) {
+        hasChanges = true
+      }
+
       results.set(product.id, result)
       context.productPrices.set(product.id, result.price)
     }
+  }
+
+  // Warn if we hit max iterations (likely circular dependency)
+  if (iteration >= MAX_ITERATIONS && hasChanges) {
+    console.warn(
+      'Price calculation hit max iterations - possible circular dependency in percentage products'
+    )
   }
 
   return results

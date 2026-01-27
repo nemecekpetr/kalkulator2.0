@@ -102,20 +102,35 @@ export async function POST(request: Request) {
 
     // Add reason to price history if provided
     if (body.reason) {
-      const historyUpdates = updates.map((update) => ({
-        product_id: update.id,
-        reason: body.reason,
-        changed_by: user?.id || null,
-      }))
+      // Fetch the most recent history entry IDs for each product
+      // We need to do this because Supabase doesn't support .limit() on .update()
+      const productIds = updates.map((u) => u.id)
 
-      // Update the most recent history entries with the reason
-      for (const historyUpdate of historyUpdates) {
-        await supabase
-          .from('product_price_history')
-          .update({ reason: historyUpdate.reason, changed_by: historyUpdate.changed_by })
-          .eq('product_id', historyUpdate.product_id)
-          .order('created_at', { ascending: false })
-          .limit(1)
+      // Get the latest history entry for each product using a subquery approach
+      // First, get all recent history entries for these products
+      const { data: historyEntries } = await supabase
+        .from('product_price_history')
+        .select('id, product_id, created_at')
+        .in('product_id', productIds)
+        .order('created_at', { ascending: false })
+
+      if (historyEntries && historyEntries.length > 0) {
+        // Group by product_id and take only the most recent entry for each
+        const latestByProduct = new Map<string, string>()
+        for (const entry of historyEntries) {
+          if (!latestByProduct.has(entry.product_id)) {
+            latestByProduct.set(entry.product_id, entry.id)
+          }
+        }
+
+        // Update each history entry by its specific ID
+        const historyIds = Array.from(latestByProduct.values())
+        if (historyIds.length > 0) {
+          await supabase
+            .from('product_price_history')
+            .update({ reason: body.reason, changed_by: user?.id || null })
+            .in('id', historyIds)
+        }
       }
     }
 

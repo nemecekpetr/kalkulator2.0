@@ -15,6 +15,20 @@ import type {
   PoolType,
   PoolDimensions,
 } from '@/lib/supabase/types'
+
+// Map legacy category names to new ones for backwards compatibility
+const LEGACY_CATEGORY_MAP: Record<string, QuoteItemCategory> = {
+  bazeny: 'skelety',
+  prislusenstvi: 'jine',
+}
+
+// Normalize category - map legacy to new, pass through valid ones
+function normalizeCategory(category: string): QuoteItemCategory {
+  if (LEGACY_CATEGORY_MAP[category]) {
+    return LEGACY_CATEGORY_MAP[category]
+  }
+  return category as QuoteItemCategory
+}
 import {
   calculateProductPrice,
   buildPriceContext,
@@ -198,24 +212,64 @@ function getProductPrice(
 
 /**
  * Collect all required surcharge product IDs from a list of products
+ * Now supports recursive collection - if surcharge A requires surcharge B, both are collected
  */
 function collectRequiredSurcharges(
   products: Product[],
-  addedProductIds: Set<string>
+  addedProductIds: Set<string>,
+  allProducts: Product[]
 ): string[] {
-  const surchargeIds: string[] = []
+  const surchargeIds = new Set<string>()
+  const processedIds = new Set<string>()
+  const MAX_DEPTH = 10 // Prevent infinite loops from circular dependencies
 
+  // Initial collection from input products
+  const toProcess: string[] = []
   for (const product of products) {
     if (product.required_surcharge_ids?.length) {
       for (const surchargeId of product.required_surcharge_ids) {
-        if (!addedProductIds.has(surchargeId) && !surchargeIds.includes(surchargeId)) {
-          surchargeIds.push(surchargeId)
+        if (!addedProductIds.has(surchargeId) && !surchargeIds.has(surchargeId)) {
+          surchargeIds.add(surchargeId)
+          toProcess.push(surchargeId)
         }
       }
     }
   }
 
-  return surchargeIds
+  // Recursively collect surcharges from surcharges
+  let depth = 0
+  while (toProcess.length > 0 && depth < MAX_DEPTH) {
+    depth++
+    const currentBatch = [...toProcess]
+    toProcess.length = 0 // Clear the array
+
+    for (const surchargeId of currentBatch) {
+      if (processedIds.has(surchargeId)) continue
+      processedIds.add(surchargeId)
+
+      // Find the surcharge product to check its required_surcharge_ids
+      const surchargeProduct = allProducts.find((p) => p.id === surchargeId)
+      if (surchargeProduct?.required_surcharge_ids?.length) {
+        for (const nestedSurchargeId of surchargeProduct.required_surcharge_ids) {
+          if (
+            !addedProductIds.has(nestedSurchargeId) &&
+            !surchargeIds.has(nestedSurchargeId)
+          ) {
+            surchargeIds.add(nestedSurchargeId)
+            toProcess.push(nestedSurchargeId)
+          }
+        }
+      }
+    }
+  }
+
+  if (depth >= MAX_DEPTH && toProcess.length > 0) {
+    console.warn(
+      'Surcharge collection hit max depth - possible circular dependency in required_surcharge_ids'
+    )
+  }
+
+  return Array.from(surchargeIds)
 }
 
 /**
@@ -251,7 +305,7 @@ export async function generateQuoteItemsFromConfiguration(
       product_id: poolProduct.id,
       name: poolProduct.name,
       description: poolProduct.description,
-      category: poolProduct.category as QuoteItemCategory,
+      category: normalizeCategory(poolProduct.category),
       quantity: 1,
       unit: poolProduct.unit || 'ks',
       unit_price: unitPrice,
@@ -296,7 +350,7 @@ export async function generateQuoteItemsFromConfiguration(
       product_id: product.id,
       name: product.name,
       description: product.description,
-      category: product.category as QuoteItemCategory,
+      category: normalizeCategory(product.category),
       quantity,
       unit: product.unit || 'ks',
       unit_price: unitPrice,
@@ -314,7 +368,8 @@ export async function generateQuoteItemsFromConfiguration(
   }
 
   // 3. Add required surcharges (products that must be added when other products are selected)
-  const surchargeIds = collectRequiredSurcharges(addedProducts, addedProductIds)
+  // Recursively collects surcharges - if surcharge A requires surcharge B, both are added
+  const surchargeIds = collectRequiredSurcharges(addedProducts, addedProductIds, allProducts)
 
   if (surchargeIds.length > 0) {
     // Fetch surcharge products
@@ -332,7 +387,7 @@ export async function generateQuoteItemsFromConfiguration(
           product_id: surcharge.id,
           name: surcharge.name,
           description: surcharge.description,
-          category: surcharge.category as QuoteItemCategory,
+          category: normalizeCategory(surcharge.category),
           quantity: 1,
           unit: surcharge.unit || 'ks',
           unit_price: unitPrice,
