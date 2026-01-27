@@ -5,13 +5,13 @@ import type { ProductCategory } from '@/lib/supabase/types'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 
 // Map Pipedrive category ID to our categories
-// Updated 2026-01-02 with all categories from Pipedrive
+// Updated 2026-01-27 - categories updated to match new schema
 const PIPEDRIVE_CATEGORY_IDS: Record<string, ProductCategory> = {
-  '102': 'bazeny',         // Bazény
-  '108': 'zastreseni',     // Zastřešení
+  '102': 'skelety',        // Bazény → Skelety
+  '108': 'jine',           // Zastřešení → Jiné (deprecated)
   '109': 'sluzby',         // Služby
   '110': 'doprava',        // Doprava
-  '111': 'prislusenstvi',  // Příslušenství
+  '111': 'jine',           // Příslušenství → Jiné (deprecated)
   '113': 'schodiste',      // Schodiště
   '114': 'uprava_vody',    // Úprava vody
   '115': 'protiproud',     // Protiproud
@@ -19,7 +19,7 @@ const PIPEDRIVE_CATEGORY_IDS: Record<string, ProductCategory> = {
   '117': 'material',       // Materiál
   '118': 'ohrev',          // Ohřev
   '119': 'osvetleni',      // Osvětlení
-  '120': 'cisteni',        // Čištění
+  '120': 'vysavace',       // Čištění → Vysavače
   '121': 'chemie',         // Chemie
   '122': 'jine',           // Jiné
   '137': 'sety',           // Sety

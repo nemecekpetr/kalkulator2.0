@@ -124,7 +124,7 @@ export default async function MappingRulesPage() {
         </CardHeader>
         <CardContent>
           <Suspense fallback={<TableSkeleton />}>
-            <PoolMappingSection poolProducts={products.filter(p => p.category === 'bazeny')} />
+            <PoolMappingSection poolProducts={products.filter(p => p.category === 'skelety')} />
           </Suspense>
         </CardContent>
       </Card>
