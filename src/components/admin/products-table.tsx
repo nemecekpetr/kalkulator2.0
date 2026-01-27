@@ -96,13 +96,13 @@ const CATEGORY_ICONS: Record<ProductCategory, typeof Waves> = {
 const PRICE_TYPE_LABELS: Record<PriceType, string> = {
   fixed: 'Fixní',
   percentage: '%',
-  surface_coefficient: 'm²',
+  coefficient: 'Koef.',
 }
 
 const PRICE_TYPE_ICONS: Record<PriceType, typeof Waves> = {
   fixed: Package,
   percentage: Percent,
-  surface_coefficient: Calculator,
+  coefficient: Calculator,
 }
 
 type SortField = 'name' | 'code' | 'category' | 'unit_price' | 'active'

@@ -61,6 +61,49 @@ export function formatPoolSurface(surface: number): string {
 }
 
 /**
+ * Calculate the perimeter of a pool skeleton (běžný metr)
+ *
+ * For rectangular pools:
+ * - Perimeter: 2 × (width + length)
+ *
+ * For circular pools:
+ * - Perimeter: π × diameter
+ *
+ * @param shape - Pool shape (circle, rectangle_rounded, rectangle_sharp)
+ * @param dimensions - Pool dimensions in meters
+ * @returns Perimeter in meters (bm)
+ */
+export function calculatePoolPerimeter(
+  shape: PoolShape,
+  dimensions: PoolDimensions
+): number {
+  if (shape === 'circle') {
+    if (!dimensions.diameter) {
+      return 0
+    }
+    // Circumference: π × diameter
+    return Math.PI * dimensions.diameter
+  }
+
+  // Rectangular pools (both rounded and sharp corners)
+  if (!dimensions.width || !dimensions.length) {
+    return 0
+  }
+
+  // Perimeter: 2 × (width + length)
+  return 2 * (dimensions.width + dimensions.length)
+}
+
+/**
+ * Format pool perimeter for display
+ * @param perimeter - Perimeter in meters
+ * @returns Formatted string (e.g., "18.0 bm")
+ */
+export function formatPoolPerimeter(perimeter: number): string {
+  return `${perimeter.toFixed(1)} bm`
+}
+
+/**
  * Calculate pool volume in cubic meters
  * Useful for water treatment calculations
  *

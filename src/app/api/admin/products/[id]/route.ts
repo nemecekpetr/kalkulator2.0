@@ -89,6 +89,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.price_percentage !== undefined) updateData.price_percentage = body.price_percentage
     if (body.price_minimum !== undefined) updateData.price_minimum = body.price_minimum
     if (body.price_coefficient !== undefined) updateData.price_coefficient = body.price_coefficient
+    if (body.coefficient_unit !== undefined) updateData.coefficient_unit = body.coefficient_unit
     if (body.required_surcharge_ids !== undefined)
       updateData.required_surcharge_ids = body.required_surcharge_ids
     if (body.tags !== undefined) updateData.tags = body.tags

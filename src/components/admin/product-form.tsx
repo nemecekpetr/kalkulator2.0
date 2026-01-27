@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card'
 import { Loader2, Save, ArrowLeft, Info, X, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Product, ProductCategory, PriceType } from '@/lib/supabase/types'
+import type { Product, ProductCategory, PriceType, CoefficientUnit } from '@/lib/supabase/types'
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 interface ProductFormProps {
@@ -36,13 +36,23 @@ interface ProductFormProps {
 const PRICE_TYPE_LABELS: Record<PriceType, string> = {
   fixed: 'Fixní cena',
   percentage: 'Procentuální příplatek',
-  surface_coefficient: 'Povrchový koeficient',
+  coefficient: 'Koeficient',
 }
 
 const PRICE_TYPE_DESCRIPTIONS: Record<PriceType, string> = {
   fixed: 'Pevná cena za jednotku',
   percentage: 'Procento z ceny referenčního produktu',
-  surface_coefficient: 'Cena za m² povrchu bazénu',
+  coefficient: 'Koeficient × měření bazénu (povrch nebo obvod)',
+}
+
+const COEFFICIENT_UNIT_LABELS: Record<CoefficientUnit, string> = {
+  m2: 'm² (povrch)',
+  bm: 'bm (obvod)',
+}
+
+const COEFFICIENT_UNIT_DESCRIPTIONS: Record<CoefficientUnit, string> = {
+  m2: 'Metr čtvereční - povrch bazénu (stěny + dno)',
+  bm: 'Běžný metr - obvod bazénového skeletu',
 }
 
 const UNIT_OPTIONS = ['ks', 'm', 'm²', 'm³', 'kg', 'l', 'hod', 'km', 'komplet', 'sada']
@@ -75,6 +85,9 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
   const [priceCoefficient, setPriceCoefficient] = useState(
     product?.price_coefficient?.toString() || ''
   )
+  const [coefficientUnit, setCoefficientUnit] = useState<CoefficientUnit>(
+    product?.coefficient_unit || 'm2'
+  )
   const [requiredSurchargeIds, setRequiredSurchargeIds] = useState<string[]>(
     product?.required_surcharge_ids || []
   )
@@ -100,11 +113,13 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
       ? (referenceProduct.unit_price * parseFloat(pricePercentage)) / 100
       : null
 
-  // Calculate preview for surface coefficient (example for 40m² pool)
-  const exampleSurface = 40 // m²
-  const previewSurfacePrice =
-    priceType === 'surface_coefficient' && priceCoefficient
-      ? exampleSurface * parseFloat(priceCoefficient)
+  // Calculate preview for coefficient (example pool 3×6m)
+  const exampleSurface = 39.6 // m² for 3×6×1.2m pool
+  const examplePerimeter = 18 // bm for 3×6m pool
+  const exampleMeasurement = coefficientUnit === 'm2' ? exampleSurface : examplePerimeter
+  const previewCoefficientPrice =
+    priceType === 'coefficient' && priceCoefficient
+      ? exampleMeasurement * parseFloat(priceCoefficient)
       : null
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,9 +147,9 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
       }
     }
 
-    if (priceType === 'surface_coefficient') {
+    if (priceType === 'coefficient') {
       if (!priceCoefficient || parseFloat(priceCoefficient) <= 0) {
-        toast.error('Zadejte koeficient (Kč/m²)')
+        toast.error('Zadejte koeficient')
         return
       }
     }
@@ -161,7 +176,8 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
         price_minimum:
           priceType === 'percentage' && priceMinimum ? parseFloat(priceMinimum) : null,
         price_coefficient:
-          priceType === 'surface_coefficient' ? parseFloat(priceCoefficient) || null : null,
+          priceType === 'coefficient' ? parseFloat(priceCoefficient) || null : null,
+        coefficient_unit: priceType === 'coefficient' ? coefficientUnit : 'm2',
         required_surcharge_ids: requiredSurchargeIds.length > 0 ? requiredSurchargeIds : null,
         tags: tags.length > 0 ? tags : null,
       }
@@ -526,12 +542,33 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
               </div>
             )}
 
-            {/* Surface coefficient fields */}
-            {priceType === 'surface_coefficient' && (
+            {/* Coefficient fields */}
+            {priceType === 'coefficient' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="coefficient">Koeficient (Kč/m²)</Label>
+                    <Label htmlFor="coefficientUnit">Jednotka výpočtu</Label>
+                    <Select
+                      value={coefficientUnit}
+                      onValueChange={(v) => setCoefficientUnit(v as CoefficientUnit)}
+                    >
+                      <SelectTrigger id="coefficientUnit">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(Object.keys(COEFFICIENT_UNIT_LABELS) as CoefficientUnit[]).map((u) => (
+                          <SelectItem key={u} value={u}>
+                            {COEFFICIENT_UNIT_LABELS[u]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      {COEFFICIENT_UNIT_DESCRIPTIONS[coefficientUnit]}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="coefficient">Koeficient</Label>
                     <Input
                       id="coefficient"
                       type="number"
@@ -542,22 +579,25 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
                       placeholder="Např. 650"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="unit">Jednotka</Label>
-                    <Input id="unit" value="m²" disabled />
-                  </div>
                 </div>
 
                 {/* Preview */}
-                {previewSurfacePrice !== null && (
+                {previewCoefficientPrice !== null && (
                   <div className="p-4 bg-muted rounded-lg flex items-start gap-3">
                     <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-medium">Příklad výpočtu (bazén {exampleSurface} m²):</p>
+                      <p className="font-medium">
+                        Příklad výpočtu (bazén 3×6×1.2m):
+                      </p>
                       <p className="text-muted-foreground">
-                        {exampleSurface} m² × {priceCoefficient} Kč/m² ={' '}
+                        {coefficientUnit === 'm2' ? (
+                          <>Povrch: {exampleSurface} m²</>
+                        ) : (
+                          <>Obvod: {examplePerimeter} bm</>
+                        )}
+                        {' × '}{priceCoefficient} Kč ={' '}
                         <span className="font-medium text-foreground">
-                          {formatPrice(previewSurfacePrice)}
+                          {formatPrice(previewCoefficientPrice)}
                         </span>
                       </p>
                     </div>

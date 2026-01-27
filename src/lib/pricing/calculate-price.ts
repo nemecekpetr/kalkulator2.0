@@ -3,16 +3,18 @@
  * Calculates prices based on product price_type:
  * - fixed: Direct unit_price
  * - percentage: Percentage of a reference product's price
- * - surface_coefficient: Price per m² × pool surface
+ * - coefficient: Coefficient × pool measurement (surface m² or perimeter bm)
  */
 
-import type { Product, PoolShape, PoolDimensions } from '@/lib/supabase/types'
-import { calculatePoolSurface } from './pool-surface'
+import type { Product, PoolShape, PoolDimensions, CoefficientUnit } from '@/lib/supabase/types'
+import { calculatePoolSurface, calculatePoolPerimeter } from './pool-surface'
 
 export interface PriceContext {
-  /** Pool surface area in m² (for surface_coefficient calculations) */
+  /** Pool surface area in m² */
   poolSurface?: number
-  /** Pool shape and dimensions (alternative to poolSurface) */
+  /** Pool perimeter in meters (bm) */
+  poolPerimeter?: number
+  /** Pool shape and dimensions (alternative to poolSurface/poolPerimeter) */
   poolShape?: PoolShape
   poolDimensions?: PoolDimensions
   /** Map of product ID to its calculated/actual price (for percentage calculations) */
@@ -28,9 +30,11 @@ export interface CalculatedPrice {
   referencePrice?: number
   /** For percentage: the actual percentage applied */
   percentageApplied?: number
-  /** For surface_coefficient: the surface used */
-  surfaceUsed?: number
-  /** For surface_coefficient: the coefficient used */
+  /** For coefficient: the measurement value used (m² or bm) */
+  measurementUsed?: number
+  /** For coefficient: the unit of measurement */
+  measurementUnit?: CoefficientUnit
+  /** For coefficient: the coefficient value used */
   coefficientUsed?: number
   /** Products that should be automatically added (required surcharges) */
   requiredSurchargeIds: string[]
@@ -93,27 +97,32 @@ export function calculateProductPrice(
       }
       break
 
-    case 'surface_coefficient':
+    case 'coefficient':
       if (product.price_coefficient) {
-        // Get pool surface from context
-        let surface = context.poolSurface
-        if (
-          !surface &&
-          context.poolShape &&
-          context.poolDimensions
-        ) {
-          surface = calculatePoolSurface(
-            context.poolShape,
-            context.poolDimensions
-          )
+        const unit = product.coefficient_unit || 'm2'
+        let measurement: number | undefined
+
+        if (unit === 'm2') {
+          // Use surface area
+          measurement = context.poolSurface
+          if (!measurement && context.poolShape && context.poolDimensions) {
+            measurement = calculatePoolSurface(context.poolShape, context.poolDimensions)
+          }
+        } else {
+          // Use perimeter (bm)
+          measurement = context.poolPerimeter
+          if (!measurement && context.poolShape && context.poolDimensions) {
+            measurement = calculatePoolPerimeter(context.poolShape, context.poolDimensions)
+          }
         }
 
-        if (surface) {
-          result.surfaceUsed = surface
+        if (measurement) {
+          result.measurementUsed = measurement
+          result.measurementUnit = unit
           result.coefficientUsed = product.price_coefficient
-          result.price = surface * product.price_coefficient
+          result.price = measurement * product.price_coefficient
         } else {
-          // No surface available, fall back to unit_price
+          // No measurement available, fall back to unit_price
           result.price = product.unit_price
         }
       } else {
@@ -178,9 +187,10 @@ export function buildPriceContext(
     poolDimensions,
   }
 
-  // Calculate pool surface if dimensions provided
+  // Calculate pool measurements if dimensions provided
   if (poolShape && poolDimensions) {
     context.poolSurface = calculatePoolSurface(poolShape, poolDimensions)
+    context.poolPerimeter = calculatePoolPerimeter(poolShape, poolDimensions)
   }
 
   return context
@@ -198,9 +208,9 @@ export function calculateAllPrices(
   const context = buildPriceContext(products, poolShape, poolDimensions)
   const results = new Map<string, CalculatedPrice>()
 
-  // Calculate surface coefficient products (they don't depend on other products)
+  // Calculate coefficient products (they don't depend on other products)
   for (const product of products) {
-    if (product.price_type === 'surface_coefficient') {
+    if (product.price_type === 'coefficient') {
       const result = calculateProductPrice(product, context)
       results.set(product.id, result)
       context.productPrices.set(product.id, result.price)
@@ -246,11 +256,12 @@ export function getPriceDescription(calculated: CalculatedPrice): string {
       }
       return 'Procentuální příplatek'
 
-    case 'surface_coefficient':
-      if (calculated.surfaceUsed && calculated.coefficientUsed) {
-        return `${calculated.surfaceUsed.toFixed(1)} m² × ${formatPriceNumber(calculated.coefficientUsed)} Kč/m²`
+    case 'coefficient':
+      if (calculated.measurementUsed && calculated.coefficientUsed) {
+        const unitLabel = calculated.measurementUnit === 'bm' ? 'bm' : 'm²'
+        return `${calculated.measurementUsed.toFixed(1)} ${unitLabel} × ${formatPriceNumber(calculated.coefficientUsed)} Kč`
       }
-      return 'Koeficient × povrch'
+      return 'Koeficient × měření'
 
     default:
       return 'Neznámý typ'

@@ -116,10 +116,10 @@ export async function POST(request: Request) {
       }
     }
 
-    if (body.price_type === 'surface_coefficient') {
+    if (body.price_type === 'coefficient') {
       if (typeof body.price_coefficient !== 'number' || body.price_coefficient <= 0) {
         return NextResponse.json(
-          { error: 'Pro povrchový koeficient je nutné zadat koeficient' },
+          { error: 'Pro koeficient je nutné zadat hodnotu koeficientu' },
           { status: 400 }
         )
       }
@@ -144,6 +144,7 @@ export async function POST(request: Request) {
       price_percentage: body.price_percentage || null,
       price_minimum: body.price_minimum || null,
       price_coefficient: body.price_coefficient || null,
+      coefficient_unit: body.coefficient_unit || 'm2',
       required_surcharge_ids: body.required_surcharge_ids || null,
       tags: body.tags || null,
     }

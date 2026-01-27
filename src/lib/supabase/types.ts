@@ -223,7 +223,8 @@ export type ConfigurationUpdate = Database['public']['Tables']['configurations']
 export type SyncLog = Database['public']['Tables']['sync_log']['Row']
 
 // Price calculation types
-export type PriceType = 'fixed' | 'percentage' | 'surface_coefficient'
+export type PriceType = 'fixed' | 'percentage' | 'coefficient'
+export type CoefficientUnit = 'm2' | 'bm'
 
 // Product types
 export interface Product {
@@ -249,6 +250,7 @@ export interface Product {
   price_percentage: number | null
   price_minimum: number | null
   price_coefficient: number | null
+  coefficient_unit: CoefficientUnit
   required_surcharge_ids: string[] | null
   price_version: number
   tags: string[] | null
@@ -275,6 +277,7 @@ export interface ProductInsert {
   price_percentage?: number | null
   price_minimum?: number | null
   price_coefficient?: number | null
+  coefficient_unit?: CoefficientUnit
   required_surcharge_ids?: string[] | null
   price_version?: number
   tags?: string[] | null
@@ -300,6 +303,7 @@ export interface ProductUpdate {
   price_percentage?: number | null
   price_minimum?: number | null
   price_coefficient?: number | null
+  coefficient_unit?: CoefficientUnit
   required_surcharge_ids?: string[] | null
   price_version?: number
   tags?: string[] | null
