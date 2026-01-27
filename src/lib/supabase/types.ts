@@ -225,6 +225,7 @@ export type SyncLog = Database['public']['Tables']['sync_log']['Row']
 // Price calculation types
 export type PriceType = 'fixed' | 'percentage' | 'coefficient'
 export type CoefficientUnit = 'm2' | 'bm'
+export type MaterialThickness = '5mm' | '8mm'
 
 // Product types
 export interface Product {
@@ -254,6 +255,9 @@ export interface Product {
   required_surcharge_ids: string[] | null
   price_version: number
   tags: string[] | null
+  // Material variant for skeletons
+  material_thickness: MaterialThickness | null
+  compatible_shapes: PoolShape[] | null
 }
 
 export interface ProductInsert {
@@ -281,6 +285,8 @@ export interface ProductInsert {
   required_surcharge_ids?: string[] | null
   price_version?: number
   tags?: string[] | null
+  material_thickness?: MaterialThickness | null
+  compatible_shapes?: PoolShape[] | null
 }
 
 export interface ProductUpdate {
@@ -307,6 +313,8 @@ export interface ProductUpdate {
   required_surcharge_ids?: string[] | null
   price_version?: number
   tags?: string[] | null
+  material_thickness?: MaterialThickness | null
+  compatible_shapes?: PoolShape[] | null
 }
 
 // Reference photo types
