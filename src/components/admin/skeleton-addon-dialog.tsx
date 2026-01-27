@@ -32,6 +32,12 @@ interface SkeletonAddonItem {
   disabledReason?: string
 }
 
+interface SkeletonAddonResult {
+  product: Product
+  name: string  // Modified name with addons suffix
+  price: number // Total price including addons
+}
+
 interface SkeletonAddonDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -39,7 +45,7 @@ interface SkeletonAddonDialogProps {
   addons: Product[]
   poolShape: PoolShape
   dimensions: PoolDimensions
-  onConfirm: (items: { product: Product; price: number }[]) => void
+  onConfirm: (result: SkeletonAddonResult) => void
 }
 
 export function SkeletonAddonDialog({
@@ -161,33 +167,33 @@ export function SkeletonAddonDialog({
     thickness8mmPrice,
   ])
 
-  // Handle confirm
+  // Handle confirm - returns single item with addons in name and price
   const handleConfirm = useCallback(() => {
     if (!skeleton) return
 
-    const items: { product: Product; price: number }[] = [
-      { product: skeleton, price: skeletonPrice },
-    ]
-
-    // Add sharp corners if selected
+    // Build addon suffix for name
+    const addons: string[] = []
     if (sharpCornersAddon && selectedAddons.has(sharpCornersAddon.id)) {
-      items.push({ product: sharpCornersAddon, price: sharpCornersPrice })
+      addons.push('ostré rohy')
     }
-
-    // Add 8mm if selected
     if (thickness8mmAddon && selectedAddons.has(thickness8mmAddon.id)) {
-      items.push({ product: thickness8mmAddon, price: thickness8mmPrice })
+      addons.push('8mm')
     }
 
-    onConfirm(items)
+    const addonSuffix = addons.length > 0 ? ` (${addons.join(', ')})` : ''
+    const name = skeleton.name + addonSuffix
+
+    onConfirm({
+      product: skeleton,
+      name,
+      price: totalPrice,
+    })
   }, [
     skeleton,
-    skeletonPrice,
+    totalPrice,
     selectedAddons,
     sharpCornersAddon,
     thickness8mmAddon,
-    sharpCornersPrice,
-    thickness8mmPrice,
     onConfirm,
   ])
 
