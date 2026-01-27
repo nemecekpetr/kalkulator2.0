@@ -4,9 +4,46 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.3.1'
+export const CURRENT_VERSION = '0.3.2'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.3.2',
+      date: '2026-01-27',
+      time: '22:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Sbalitelné kategorie v katalogu produktů s počtem položek',
+          userDescription: 'Katalog produktů v editoru nabídek má nyní sbalitelné kategorie. Kliknutím na kategorii ji rozbalíte nebo sbalíte. U každé kategorie vidíte počet produktů.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Tlačítka Rozbalit/Sbalit vše pro hromadné ovládání kategorií',
+          userDescription: 'V záhlaví katalogu produktů jsou nová tlačítka pro rychlé rozbalení nebo sbalení všech kategorií najednou.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Plovoucí sidebar s katalogem produktů (sticky)',
+          userDescription: 'Katalog produktů je nyní plovoucí - zůstává viditelný při scrollování stránkou, takže máte produkty vždy po ruce.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Vyhledávání produktů podle názvu i kódu s normalizací rozměrů',
+          userDescription: 'Hledání v katalogu produktů nyní funguje i podle kódu produktu. Navíc můžete hledat rozměry pomocí "x" i "×" - např. "7x3" najde bazény 7×3m.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Zobrazení celého názvu produktu včetně rozměrů',
+          userDescription: 'V katalogu produktů se nyní zobrazuje celý název produktu včetně rozměrů bazénu, které jsou zásadní pro správný výběr.'
+        }
+      ]
+    },
     {
       version: '0.3.1',
       date: '2026-01-27',

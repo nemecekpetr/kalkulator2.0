@@ -43,6 +43,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   User,
   Mail,
   Phone,
@@ -58,9 +68,18 @@ import {
   Pencil,
   GripVertical,
   Layers,
+  ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey, ProductGroupWithItems } from '@/lib/supabase/types'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { Badge } from '@/components/ui/badge'
+import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey, ProductGroupWithItems, PoolShape, PoolDimensions } from '@/lib/supabase/types'
+import { checkProductPrerequisites, parseSkeletonCode, calculatePoolSurface, type PrerequisiteCheckResult } from '@/lib/pricing'
+import { SkeletonAddonDialog } from './skeleton-addon-dialog'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -124,11 +143,13 @@ const DEFAULT_VARIANTS: QuoteVariantState[] = [
   { key: 'premiova', name: 'Prémiová', discount_percent: 0, discount_amount: 0 },
 ]
 
-const VARIANT_LABELS: Record<QuoteVariantKey, string> = {
-  ekonomicka: 'Ekonomická',
-  optimalni: 'Optimální',
-  premiova: 'Prémiová',
-}
+// Addon product codes (same as skeleton-addon-dialog.tsx)
+const SHARP_CORNERS_CODE = 'PRIPLATEK-OSTRE-ROHY'
+const THICKNESS_8MM_CODE = 'PRIPLATEK-8MM'
+
+// Price constants
+const SHARP_CORNERS_PERCENTAGE = 10 // 10% of skeleton price
+const THICKNESS_8MM_PRICE_PER_M2 = 650 // 650 Kč/m²
 
 // Sortable item component for drag and drop
 interface SortableItemProps {
@@ -138,6 +159,10 @@ interface SortableItemProps {
   removeItem: (id: string) => void
   toggleItemVariant: (itemId: string, variantKey: QuoteVariantKey) => void
   formatPrice: (price: number) => string
+  // Skeleton addon props
+  skeletonAddons: Product[]
+  products: Product[]
+  onToggleSkeletonAddon: (skeletonItemId: string, addonType: 'sharp_corners' | '8mm', checked: boolean) => void
 }
 
 function SortableQuoteItem({
@@ -147,6 +172,9 @@ function SortableQuoteItem({
   removeItem,
   toggleItemVariant,
   formatPrice,
+  skeletonAddons,
+  products,
+  onToggleSkeletonAddon,
 }: SortableItemProps) {
   const {
     attributes,
@@ -162,6 +190,86 @@ function SortableQuoteItem({
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
+
+  // Check if this is a skeleton item and calculate addon prices
+  const skeletonInfo = useMemo(() => {
+    if (item.category !== 'skelety' || skeletonAddons.length === 0) {
+      return null
+    }
+
+    // Get base product to find its code and base price
+    const baseProduct = item.product_id
+      ? products.find((p) => p.id === item.product_id)
+      : null
+
+    // Try to parse dimensions from product code first, then from item name
+    const parsed = (baseProduct ? parseSkeletonCode(baseProduct.code) : null) ||
+      (() => {
+        // Try to parse from item name which might contain dimensions
+        // E.g., "Bazénový skelet kruh 2.5m × 1.2m"
+        const circleMatch = item.name.match(/(\d+(?:[.,]\d+)?)\s*m?\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*m?/i)
+        if (circleMatch && item.name.toLowerCase().includes('kruh')) {
+          return {
+            shape: 'circle' as PoolShape,
+            dimensions: {
+              diameter: parseFloat(circleMatch[1].replace(',', '.')),
+              depth: parseFloat(circleMatch[2].replace(',', '.')),
+            }
+          }
+        }
+        // Rectangle match: e.g., "3×6×1.2m"
+        const rectMatch = item.name.match(/(\d+(?:[.,]\d+)?)\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*[×x]\s*(\d+(?:[.,]\d+)?)/i)
+        if (rectMatch) {
+          return {
+            shape: (item.name.toLowerCase().includes('ostr') ? 'rectangle_sharp' : 'rectangle_rounded') as PoolShape,
+            dimensions: {
+              width: parseFloat(rectMatch[1].replace(',', '.')),
+              length: parseFloat(rectMatch[2].replace(',', '.')),
+              depth: parseFloat(rectMatch[3].replace(',', '.')),
+            }
+          }
+        }
+        return null
+      })()
+
+    if (!parsed) {
+      return null
+    }
+
+    const { shape, dimensions } = parsed
+    const isCircle = shape === 'circle'
+
+    // Get base skeleton price (from original product, not current item price which may include addons)
+    const baseSkeletonPrice = baseProduct?.unit_price ?? item.unit_price
+
+    // Find addon products
+    const sharpCornersAddon = skeletonAddons.find((p) => p.code === SHARP_CORNERS_CODE)
+    const thickness8mmAddon = skeletonAddons.find((p) => p.code === THICKNESS_8MM_CODE)
+
+    // Calculate addon prices based on BASE skeleton price
+    const sharpCornersPrice = Math.round(baseSkeletonPrice * (SHARP_CORNERS_PERCENTAGE / 100))
+    const poolSurface = calculatePoolSurface(shape, dimensions)
+    const thickness8mmPrice = Math.round(poolSurface * THICKNESS_8MM_PRICE_PER_M2)
+
+    // Check if addons are already included (detect from item name)
+    const itemNameLower = item.name.toLowerCase()
+    const hasSharpCorners = itemNameLower.includes('ostré rohy')
+    const hasThickness8mm = itemNameLower.includes('8mm')
+
+    return {
+      isCircle,
+      shape,
+      dimensions,
+      poolSurface,
+      baseSkeletonPrice,
+      sharpCornersAddon,
+      thickness8mmAddon,
+      sharpCornersPrice,
+      thickness8mmPrice,
+      hasSharpCorners,
+      hasThickness8mm,
+    }
+  }, [item, skeletonAddons, products])
 
   return (
     <div
@@ -259,6 +367,46 @@ function SortableQuoteItem({
           </label>
         ))}
       </div>
+      {/* Skeleton addons section */}
+      {skeletonInfo && (skeletonInfo.sharpCornersAddon || skeletonInfo.thickness8mmAddon) && (
+        <div className="flex items-center gap-4 pt-2 border-t">
+          <span className="text-sm text-muted-foreground">Příplatky:</span>
+          {/* Sharp corners - only for rectangles */}
+          {skeletonInfo.sharpCornersAddon && !skeletonInfo.isCircle && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={skeletonInfo.hasSharpCorners}
+                onCheckedChange={(checked) =>
+                  onToggleSkeletonAddon(item.id, 'sharp_corners', !!checked)
+                }
+              />
+              <span>
+                Ostré rohy{' '}
+                <span className="text-muted-foreground">
+                  (+{formatPrice(skeletonInfo.sharpCornersPrice)})
+                </span>
+              </span>
+            </label>
+          )}
+          {/* 8mm thickness */}
+          {skeletonInfo.thickness8mmAddon && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={skeletonInfo.hasThickness8mm}
+                onCheckedChange={(checked) =>
+                  onToggleSkeletonAddon(item.id, '8mm', !!checked)
+                }
+              />
+              <span>
+                8mm materiál{' '}
+                <span className="text-muted-foreground">
+                  (+{formatPrice(skeletonInfo.thickness8mmPrice)})
+                </span>
+              </span>
+            </label>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -277,10 +425,30 @@ export function QuoteEditor({
   const [activeVariant, setActiveVariant] = useState<QuoteVariantKey>('ekonomicka')
   const [editingVariantName, setEditingVariantName] = useState<QuoteVariantKey | null>(null)
 
+  // Collapsible categories state
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(['skelety', 'technologie'])
+  )
+
   // Product groups state
   const [groupsDialogOpen, setGroupsDialogOpen] = useState(false)
   const [productGroups, setProductGroups] = useState<ProductGroupWithItems[]>([])
   const [loadingGroups, setLoadingGroups] = useState(false)
+
+  // Prerequisite dialog state
+  const [prerequisiteDialogOpen, setPrerequisiteDialogOpen] = useState(false)
+  const [prerequisiteCheck, setPrerequisiteCheck] = useState<{
+    product: Product
+    result: PrerequisiteCheckResult
+  } | null>(null)
+
+  // Skeleton addon dialog state
+  const [skeletonDialogOpen, setSkeletonDialogOpen] = useState(false)
+  const [pendingSkeleton, setPendingSkeleton] = useState<Product | null>(null)
+  const [pendingSkeletonDimensions, setPendingSkeletonDimensions] = useState<{
+    shape: PoolShape
+    dimensions: PoolDimensions
+  } | null>(null)
 
   // Customer info
   const [customerName, setCustomerName] = useState(
@@ -393,8 +561,17 @@ export function QuoteEditor({
     []
   )
 
-  // Add product to active variant (at the beginning)
-  const addProduct = useCallback(
+  // Get pool shape from configuration for prerequisite checking
+  const poolShape = configuration?.pool_shape as PoolShape | undefined
+
+  // Get skeleton addon products
+  const skeletonAddons = useMemo(
+    () => products.filter((p) => p.tags?.includes('skeleton_addon') && p.active),
+    [products]
+  )
+
+  // Add single product directly (no prerequisite check)
+  const addProductDirectly = useCallback(
     (product: Product) => {
       const newItem: QuoteItem = {
         id: crypto.randomUUID(),
@@ -409,6 +586,115 @@ export function QuoteEditor({
         variant_keys: [activeVariant],
       }
       setItems((prev) => [newItem, ...prev])
+    },
+    [activeVariant]
+  )
+
+  // Add multiple products at once (for prerequisites + product)
+  const addProductsDirectly = useCallback(
+    (productsToAdd: Product[]) => {
+      const newItems: QuoteItem[] = productsToAdd.map((product) => ({
+        id: crypto.randomUUID(),
+        product_id: product.id,
+        name: product.name,
+        description: product.description || '',
+        category: product.category as QuoteItemCategory,
+        quantity: 1,
+        unit: product.unit,
+        unit_price: product.unit_price,
+        total_price: product.unit_price,
+        variant_keys: [activeVariant],
+      }))
+      setItems((prev) => [...newItems, ...prev])
+    },
+    [activeVariant]
+  )
+
+  // Add product to active variant (at the beginning) with prerequisite check
+  const addProduct = useCallback(
+    (product: Product) => {
+      // Check if this is a skeleton product with available addons
+      if (product.category === 'skelety' && skeletonAddons.length > 0) {
+        const parsed = parseSkeletonCode(product.code)
+        if (parsed) {
+          // Open skeleton addon dialog
+          setPendingSkeleton(product)
+          setPendingSkeletonDimensions({
+            shape: parsed.shape,
+            dimensions: parsed.dimensions,
+          })
+          setSkeletonDialogOpen(true)
+          return
+        }
+      }
+
+      // Convert current items to QuoteItem format for prerequisite checking
+      const currentQuoteItems = items.map((item) => ({
+        ...item,
+        id: item.id,
+        created_at: '',
+        quote_id: '',
+        sort_order: 0,
+      }))
+
+      // Check prerequisites
+      const result = checkProductPrerequisites(
+        product,
+        currentQuoteItems,
+        poolShape,
+        products
+      )
+
+      if (result.canAdd) {
+        // No missing prerequisites, add directly
+        addProductDirectly(product)
+      } else {
+        // Missing prerequisites - show dialog
+        setPrerequisiteCheck({ product, result })
+        setPrerequisiteDialogOpen(true)
+      }
+    },
+    [items, poolShape, products, addProductDirectly, skeletonAddons]
+  )
+
+  // Handle adding product with its prerequisites
+  const handleAddWithPrerequisites = useCallback(() => {
+    if (!prerequisiteCheck) return
+
+    const { product, result } = prerequisiteCheck
+    // Add prerequisites first, then the product
+    const allProducts = [...result.missingPrerequisites, product]
+    addProductsDirectly(allProducts)
+
+    // Close dialog and reset state
+    setPrerequisiteDialogOpen(false)
+    setPrerequisiteCheck(null)
+
+    toast.success(`Přidáno ${allProducts.length} položek včetně prerekvizit`)
+  }, [prerequisiteCheck, addProductsDirectly])
+
+  // Handle skeleton addon dialog confirm - creates single item with addons in name/price
+  const handleSkeletonConfirm = useCallback(
+    (result: { product: Product; name: string; price: number }) => {
+      const newItem: QuoteItem = {
+        id: crypto.randomUUID(),
+        product_id: result.product.id,
+        name: result.name,
+        description: result.product.description || '',
+        category: result.product.category as QuoteItemCategory,
+        quantity: 1,
+        unit: result.product.unit,
+        unit_price: result.price,
+        total_price: result.price,
+        variant_keys: [activeVariant],
+      }
+
+      setItems((prev) => [newItem, ...prev])
+      setSkeletonDialogOpen(false)
+      setPendingSkeleton(null)
+      setPendingSkeletonDimensions(null)
+
+      toast.success('Skelet přidán do nabídky')
     },
     [activeVariant]
   )
@@ -516,6 +802,138 @@ export function QuoteEditor({
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))
   }, [])
+
+  // Toggle skeleton addon - modifies skeleton item's name and price directly
+  const onToggleSkeletonAddon = useCallback(
+    (skeletonItemId: string, addonType: 'sharp_corners' | '8mm', checked: boolean) => {
+      // Find the skeleton item
+      const skeletonItem = items.find((i) => i.id === skeletonItemId)
+      if (!skeletonItem) return
+
+      // Get base product to calculate prices
+      const baseProduct = skeletonItem.product_id
+        ? products.find((p) => p.id === skeletonItem.product_id)
+        : null
+
+      // Parse dimensions from product code or item name
+      const parsed = (baseProduct ? parseSkeletonCode(baseProduct.code) : null) ||
+        (() => {
+          const rectMatch = skeletonItem.name.match(/(\d+(?:[.,]\d+)?)\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*[×x]\s*(\d+(?:[.,]\d+)?)/i)
+          if (rectMatch) {
+            return {
+              shape: 'rectangle_rounded' as PoolShape,
+              dimensions: {
+                width: parseFloat(rectMatch[1].replace(',', '.')),
+                length: parseFloat(rectMatch[2].replace(',', '.')),
+                depth: parseFloat(rectMatch[3].replace(',', '.')),
+              }
+            }
+          }
+          const circleMatch = skeletonItem.name.match(/(\d+(?:[.,]\d+)?)\s*m?\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*m?/i)
+          if (circleMatch && skeletonItem.name.toLowerCase().includes('kruh')) {
+            return {
+              shape: 'circle' as PoolShape,
+              dimensions: {
+                diameter: parseFloat(circleMatch[1].replace(',', '.')),
+                depth: parseFloat(circleMatch[2].replace(',', '.')),
+              }
+            }
+          }
+          return null
+        })()
+
+      if (!parsed) return
+
+      const isCircle = parsed.shape === 'circle'
+      const baseSkeletonPrice = baseProduct?.unit_price ?? skeletonItem.unit_price
+
+      // Calculate addon prices
+      const sharpCornersPrice = Math.round(baseSkeletonPrice * (SHARP_CORNERS_PERCENTAGE / 100))
+      const poolSurface = calculatePoolSurface(parsed.shape, parsed.dimensions)
+      const thickness8mmPrice = Math.round(poolSurface * THICKNESS_8MM_PRICE_PER_M2)
+
+      // Current addon state (from item name)
+      const itemNameLower = skeletonItem.name.toLowerCase()
+      const hasSharpCorners = itemNameLower.includes('ostré rohy')
+      const has8mm = itemNameLower.includes('8mm')
+
+      // Helper to build addon suffix
+      const buildAddonSuffix = (sharpCorners: boolean, mm8: boolean): string => {
+        const addons: string[] = []
+        if (sharpCorners) addons.push('ostré rohy')
+        if (mm8) addons.push('8mm')
+        return addons.length > 0 ? ` (${addons.join(', ')})` : ''
+      }
+
+      // Helper to get base name (without addon suffix)
+      const getBaseName = (name: string): string => {
+        return name.replace(/\s*\([^)]*ostré rohy[^)]*\)\s*$/, '').replace(/\s*\([^)]*8mm[^)]*\)\s*$/, '').trim()
+      }
+
+      // Calculate new state
+      let newSharpCorners = hasSharpCorners
+      let new8mm = has8mm
+
+      if (addonType === 'sharp_corners') {
+        newSharpCorners = checked
+        // If removing sharp corners, also remove 8mm (for rectangles)
+        if (!checked && !isCircle) {
+          new8mm = false
+        }
+      } else if (addonType === '8mm') {
+        new8mm = checked
+        // If adding 8mm and not a circle, also add sharp corners
+        if (checked && !isCircle && !hasSharpCorners) {
+          newSharpCorners = true
+        }
+      }
+
+      // Calculate new price
+      let newPrice = baseSkeletonPrice
+      if (newSharpCorners) newPrice += sharpCornersPrice
+      if (new8mm) newPrice += thickness8mmPrice
+
+      // Build new name
+      const baseName = getBaseName(skeletonItem.name)
+      const newName = baseName + buildAddonSuffix(newSharpCorners, new8mm)
+
+      // Update the item
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === skeletonItemId
+            ? {
+                ...item,
+                name: newName,
+                unit_price: newPrice,
+                total_price: newPrice * item.quantity,
+              }
+            : item
+        )
+      )
+
+      // Show appropriate toast
+      if (addonType === 'sharp_corners') {
+        if (checked) {
+          toast.success('Přidány ostré rohy')
+        } else if (!isCircle && has8mm) {
+          toast.success('Odebrány ostré rohy a 8mm materiál')
+        } else {
+          toast.success('Odebrány ostré rohy')
+        }
+      } else {
+        if (checked) {
+          if (!isCircle && !hasSharpCorners) {
+            toast.success('Přidán 8mm materiál a ostré rohy')
+          } else {
+            toast.success('Přidán 8mm materiál')
+          }
+        } else {
+          toast.success('Odebrán 8mm materiál')
+        }
+      }
+    },
+    [items, products]
+  )
 
   // Generate items from configuration for active variant
   const generateItems = useCallback(async () => {
@@ -901,12 +1319,39 @@ export function QuoteEditor({
     }
   }
 
-  // Filter products by search term
-  const filteredProducts = products.filter((product) =>
-    productSearch
-      ? product.name.toLowerCase().includes(productSearch.toLowerCase())
-      : true
-  )
+  // Category toggle functions
+  const toggleCategory = useCallback((category: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }, [])
+
+  const expandAllCategories = useCallback(() => {
+    setExpandedCategories(new Set(QUOTE_CATEGORY_ORDER))
+  }, [])
+
+  const collapseAllCategories = useCallback(() => {
+    setExpandedCategories(new Set())
+  }, [])
+
+  // Normalize search text - replace × with x for dimension matching
+  const normalizeSearchText = (text: string) =>
+    text.toLowerCase().replace(/×/g, 'x').replace(/\s+/g, '')
+
+  // Filter products by search term (name or code)
+  const filteredProducts = products.filter((product) => {
+    if (!productSearch) return true
+    const normalizedSearch = normalizeSearchText(productSearch)
+    const normalizedName = normalizeSearchText(product.name)
+    const normalizedCode = product.code ? normalizeSearchText(product.code) : ''
+    return normalizedName.includes(normalizedSearch) || normalizedCode.includes(normalizedSearch)
+  })
 
   // Group products by category
   const productsByCategory = filteredProducts.reduce(
@@ -1233,6 +1678,9 @@ export function QuoteEditor({
                               removeItem={removeItem}
                               toggleItemVariant={toggleItemVariant}
                               formatPrice={formatPrice}
+                              skeletonAddons={skeletonAddons}
+                              products={products}
+                              onToggleSkeletonAddon={onToggleSkeletonAddon}
                             />
                           ))}
                         </SortableContext>
@@ -1316,98 +1764,155 @@ export function QuoteEditor({
       </div>
 
       {/* Sidebar - Actions and Product catalog */}
-      <div className="space-y-6">
-        {/* Sticky actions at top */}
-        <div className="sticky top-6 z-10 space-y-4">
-          <Card className="border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <CardContent className="pt-4 pb-4 space-y-2">
-              <Button
-                className="w-full"
-                onClick={handleSave}
-                disabled={saving || !customerName}
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Uložit nabídku
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleSaveAndDownloadPdf}
-                disabled={saving || !customerName.trim()}
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FileDown className="w-4 h-4 mr-2" />
-                )}
-                Uložit a stáhnout PDF
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="sticky top-6 h-[calc(100vh-3rem)] flex flex-col gap-4">
+        {/* Actions */}
+        <Card className="border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shrink-0">
+          <CardContent className="pt-4 pb-4 space-y-2">
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={saving || !customerName}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Uložit nabídku
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleSaveAndDownloadPdf}
+              disabled={saving || !customerName.trim()}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4 mr-2" />
+              )}
+              Uložit a stáhnout PDF
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Product catalog */}
-        <Card>
+        <Card className="flex-1 min-h-0 flex flex-col">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Katalog produktů
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Katalog produktů
+              </CardTitle>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={expandAllCategories}
+                  className="text-xs h-7 px-2"
+                >
+                  Rozbalit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={collapseAllCategories}
+                  className="text-xs h-7 px-2"
+                >
+                  Sbalit
+                </Button>
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
               {/* eslint-disable-next-line react/no-unescaped-entities */}
               Přidá do varianty „{variants.find((v) => v.key === activeVariant)?.name}"
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
+          <CardContent className="flex-1 min-h-0 flex flex-col gap-3 pt-0">
+            {/* Search */}
+            <div className="relative shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Hledat produkt..."
+                placeholder="Hledat podle názvu nebo kódu..."
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
-            <div className="max-h-[50vh] overflow-y-auto space-y-4">
-              {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
-                <div key={category}>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">
-                    {CATEGORY_LABELS[category as QuoteItemCategory] || category}
-                  </h4>
-                  <div className="space-y-1">
-                    {categoryProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="group flex items-center justify-between p-2 rounded-lg hover:bg-muted/80 hover:shadow-sm transition-all cursor-pointer border border-transparent hover:border-border"
-                        onClick={() => addProduct(product)}
+
+            {/* Search results count */}
+            {productSearch && (
+              <p className="text-sm text-muted-foreground shrink-0">
+                {filteredProducts.length} výsledků
+              </p>
+            )}
+
+            {/* Categories with Collapsible */}
+            <div className="space-y-2 overflow-y-auto flex-1">
+              {QUOTE_CATEGORY_ORDER.map((category) => {
+                const categoryProducts = productsByCategory[category] || []
+                if (categoryProducts.length === 0) return null
+
+                const isExpanded = expandedCategories.has(category)
+
+                return (
+                  <Collapsible
+                    key={category}
+                    open={isExpanded}
+                    onOpenChange={() => toggleCategory(category)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-between p-2 h-auto hover:bg-muted"
                       >
-                        <div className="flex-1 min-w-0 text-sm">
-                          <div className="font-medium truncate">{product.name}</div>
-                          <div className="text-muted-foreground">
-                            {formatPrice(product.unit_price)} / {product.unit}
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform ${
+                              isExpanded ? 'rotate-0' : '-rotate-90'
+                            }`}
+                          />
+                          <span className="font-medium text-sm">
+                            {CATEGORY_LABELS[category] || category}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {categoryProducts.length}
+                          </Badge>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2 text-primary hover:text-primary hover:bg-primary/10"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            addProduct(product)
-                          }}
-                          title="Přidat do nabídky"
+                      </Button>
+                    </CollapsibleTrigger>
+
+                    <CollapsibleContent className="space-y-1 pt-1">
+                      {categoryProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="group flex items-start justify-between p-2 pl-8 rounded hover:bg-muted/80 cursor-pointer border border-transparent hover:border-border"
+                          onClick={() => addProduct(product)}
                         >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                          <div className="flex-1 min-w-0 text-sm pr-2">
+                            <div className="font-medium leading-tight">{product.name}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {formatPrice(product.unit_price)} / {product.unit}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              addProduct(product)
+                            }}
+                            title="Přidat do nabídky"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              })}
 
               {products.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
@@ -1424,6 +1929,66 @@ export function QuoteEditor({
           </CardContent>
         </Card>
       </div>
+
+      {/* Prerequisite dialog */}
+      <AlertDialog open={prerequisiteDialogOpen} onOpenChange={setPrerequisiteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Chybí požadované produkty</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Pro přidání produktu <strong>{prerequisiteCheck?.product.name}</strong> je
+                  nutné nejprve přidat:
+                </p>
+                <ul className="list-disc list-inside space-y-1">
+                  {prerequisiteCheck?.result.missingPrerequisites.map((p) => (
+                    <li key={p.id}>
+                      <strong>{p.name}</strong>
+                      {p.price_type === 'percentage' && p.price_percentage && (
+                        <span className="text-muted-foreground"> (+{p.price_percentage}% z ceny bazénu)</span>
+                      )}
+                      {p.price_type === 'fixed' && (
+                        <span className="text-muted-foreground"> ({formatPrice(p.unit_price)})</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-muted-foreground">
+                  Chcete přidat všechny produkty najednou?
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPrerequisiteCheck(null)}>
+              Zrušit
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddWithPrerequisites}>
+              Přidat vše
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Skeleton addon dialog */}
+      {pendingSkeletonDimensions && (
+        <SkeletonAddonDialog
+          open={skeletonDialogOpen}
+          onOpenChange={(open) => {
+            setSkeletonDialogOpen(open)
+            if (!open) {
+              setPendingSkeleton(null)
+              setPendingSkeletonDimensions(null)
+            }
+          }}
+          skeleton={pendingSkeleton}
+          addons={skeletonAddons}
+          poolShape={pendingSkeletonDimensions.shape}
+          dimensions={pendingSkeletonDimensions.dimensions}
+          onConfirm={handleSkeletonConfirm}
+        />
+      )}
     </div>
   )
 }
