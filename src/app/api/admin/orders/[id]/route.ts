@@ -71,6 +71,16 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (body.deposit_paid_at !== undefined) updateData.deposit_paid_at = body.deposit_paid_at
     if (body.final_payment_at !== undefined) updateData.final_payment_at = body.final_payment_at
 
+    // Contract fields
+    if (body.fulfillment_address !== undefined) updateData.fulfillment_address = sanitizeText(body.fulfillment_address)
+    if (body.construction_readiness_date !== undefined) updateData.construction_readiness_date = body.construction_readiness_date
+    if (body.expected_delivery_date !== undefined) updateData.expected_delivery_date = body.expected_delivery_date
+    if (body.delivery_method !== undefined) updateData.delivery_method = sanitizeText(body.delivery_method)
+    if (body.delivery_cost !== undefined) updateData.delivery_cost = body.delivery_cost
+    if (body.delivery_cost_free !== undefined) updateData.delivery_cost_free = body.delivery_cost_free
+    if (body.total_weight !== undefined) updateData.total_weight = body.total_weight
+    if (body.vat_rate !== undefined) updateData.vat_rate = body.vat_rate
+
     // Notes (sanitized)
     if (body.notes !== undefined) updateData.notes = sanitizeText(body.notes)
     if (body.internal_notes !== undefined) updateData.internal_notes = sanitizeText(body.internal_notes)

@@ -29,6 +29,9 @@ import {
   Pencil,
   ChevronDown,
   Printer,
+  Truck,
+  Weight,
+  Receipt,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -115,6 +118,16 @@ function formatPrice(price: number) {
     currency: 'CZK',
     maximumFractionDigits: 0,
   }).format(price)
+}
+
+const DELIVERY_METHOD_LABELS: Record<string, string> = {
+  rentmil_dap: 'Doprava Rentmil s.r.o. (DAP)',
+  self_pickup: 'Vlastní odběr',
+}
+
+function getDeliveryMethodLabel(method: string | null): string {
+  if (!method) return 'Neuvedeno'
+  return DELIVERY_METHOD_LABELS[method] || method
 }
 
 export default async function OrderDetailPage({ params }: PageProps) {
@@ -292,9 +305,32 @@ export default async function OrderDetailPage({ params }: PageProps) {
               <CardTitle>Platební informace</CardTitle>
             </CardHeader>
             <CardContent>
+              {/* VAT breakdown */}
+              {(() => {
+                const vatRate = order.vat_rate ?? 12
+                const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
+                const vatAmount = order.total_price - priceWithoutVat
+                return (
+                  <div className="mb-4 p-3 rounded-lg bg-muted/20 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cena bez DPH</span>
+                      <span>{formatPrice(priceWithoutVat)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">DPH ({vatRate}%)</span>
+                      <span>{formatPrice(vatAmount)}</span>
+                    </div>
+                    <Separator className="my-1" />
+                    <div className="flex justify-between font-semibold">
+                      <span>Celkem vč. DPH</span>
+                      <span>{formatPrice(order.total_price)}</span>
+                    </div>
+                  </div>
+                )
+              })()}
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="p-4 rounded-lg border bg-muted/30">
-                  <p className="text-sm text-muted-foreground">Záloha</p>
+                  <p className="text-sm text-muted-foreground">1. splátka (záloha)</p>
                   <p className="text-xl font-bold">{formatPrice(order.deposit_amount)}</p>
                   {order.deposit_paid_at && (
                     <p className="text-xs text-green-600 mt-1">
@@ -303,7 +339,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                   )}
                 </div>
                 <div className="p-4 rounded-lg border bg-muted/30">
-                  <p className="text-sm text-muted-foreground">Doplatek</p>
+                  <p className="text-sm text-muted-foreground">2. splátka (doplatek)</p>
                   <p className="text-xl font-bold">
                     {formatPrice(order.total_price - order.deposit_amount)}
                   </p>
@@ -560,8 +596,80 @@ export default async function OrderDetailPage({ params }: PageProps) {
                   </div>
                 </div>
               )}
-              {!order.contract_date && !order.delivery_date && (
+              {order.construction_readiness_date && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Stavební připravenost</p>
+                    <p className="font-medium">
+                      {format(new Date(order.construction_readiness_date), 'd. MMMM yyyy', { locale: cs })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {order.expected_delivery_date && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Předpokládané dodání</p>
+                    <p className="font-medium">
+                      {format(new Date(order.expected_delivery_date), 'd. MMMM yyyy', { locale: cs })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {order.fulfillment_address && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Místo plnění</p>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.fulfillment_address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium hover:underline hover:text-primary transition-colors"
+                    >
+                      {order.fulfillment_address}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {!order.contract_date && !order.delivery_date && !order.construction_readiness_date && !order.expected_delivery_date && (
                 <p className="text-muted-foreground text-sm">Termíny ještě nebyly stanoveny</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Delivery info */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="w-5 h-5" />
+                Doprava
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Způsob</span>
+                <span className="font-medium">{getDeliveryMethodLabel(order.delivery_method)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Náklady</span>
+                <span className="font-medium">
+                  {order.delivery_cost_free ? 'Zdarma' : formatPrice(order.delivery_cost)}
+                </span>
+              </div>
+              {order.total_weight != null && order.total_weight > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Hmotnost</span>
+                  <span className="font-medium">{order.total_weight} kg</span>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -32,6 +32,12 @@ This is a pool configurator application for Rentmil (Czech pool manufacturer) bu
 
 **Language**: Czech application - UI texts, URL slugs (`/admin/uzivatele`, `/admin/objednavky`), and database values are in Czech.
 
+**Path alias**: `@/*` maps to `./src/*` (e.g., `import { cn } from '@/lib/utils'`)
+
+**Styling**: Tailwind CSS v4 with CSS-based configuration (no `tailwind.config.ts`). Theme tokens and brand colors defined in `src/app/globals.css` via `@theme inline`. Uses `tw-animate-css` for animations.
+
+**Testing**: No test suite is configured. Do not attempt to run tests.
+
 ## Brand Guidelines
 
 Brandboard: `/graphic/brandboard.pdf`
@@ -93,6 +99,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Step 5 (Stairs) is automatically skipped for circular pools
 - Configuration constants in `src/lib/constants/configurator.ts`
 - Storage: Uses localStorage with memory fallback for Safari ITP (`src/lib/storage.ts`)
+- Zustand selectors: Use `useShallow` for multiple state selections to prevent unnecessary re-renders
 
 **Embedded Mode** (`/embed`)
 - Minimal UI version for iframe embedding in WordPress or other sites
@@ -107,14 +114,21 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Route groups: `(admin)/admin/` for admin layouts
 - `/admin/uzivatele` is admin-only (role check in middleware)
 - `/admin/profil`: User profile settings
+- `/admin/produkty`: Product catalog with CRUD, bulk operations
 - `/admin/produkty/mapovani`: Product mapping rules editor
-- `/admin/nastaveni`: Settings hub with sub-pages for products and users
+- `/admin/nastaveni`: Settings hub with sub-pages:
+  - `/admin/nastaveni/produkty`: Product settings overview
+  - `/admin/nastaveni/produkty/skupiny`: Product groups management
+  - `/admin/nastaveni/produkty/precenovani`: Bulk price updates
+  - `/admin/nastaveni/produkty/mapovani`: Mapping rules (alternate path)
+  - `/admin/nastaveni/uzivatele`: User management
 - `/admin/novinky`: Changelog page showing version history with user-friendly Czech descriptions
 
 **Quotes System**
 - Creates formal quotes from configurations with line items
 - Version tracking for quote history
 - PDF generation via Puppeteer (HTML-to-PDF) at `/api/admin/quotes/[id]/pdf`
+- PDF quality selection: `email` (optimized size) or `print` (full quality)
 - Auto-generation of quote items from configuration via `src/lib/quote-generator.ts`
 - Quote variants: Support for multiple pricing tiers (`ekonomicka`, `optimalni`, `premiova`)
 - Quote statuses: `draft`, `sent`, `accepted`, `rejected`
@@ -140,6 +154,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - `ProductMappingRule`: Maps config fields (stairs, technology, heating, etc.) to products
 - Pool products are matched by code format: `BAZ-{SHAPE}-{TYPE}-{DIMENSIONS}` (e.g., `BAZ-OBD-SK-3-6-1.2`)
 - Rules support constraints by pool shape and type
+- Generated items track their source: `pool_base_price`, `mapping_rule`, `required_surcharge`, or `product_group`
 
 **Changelog/Novinky System**
 - In-app changelog displayed to users in admin panel (`/admin/novinky`)
@@ -169,7 +184,8 @@ Located in `src/app/api/admin/`:
 - **quotes/**: CRUD, PDF generation, versioning, status updates, convert to order, generate-items
 - **orders/**: CRUD, PDF generation, status updates
 - **production/**: CRUD, PDF generation, checklist items
-- **products/**: Pipedrive sync, bulk operations (bulk-update, bulk-delete)
+- **products/**: CRUD, Pipedrive sync, bulk operations (bulk-update, bulk-delete, bulk-price-update)
+- **product-groups/**: Product group CRUD with items
 - **mapping-rules/**: Product mapping CRUD, auto-assign
 - **sidebar-counts/**: Badge counts for admin sidebar
 - **export/**: Data export
@@ -207,12 +223,66 @@ All database types defined in `src/lib/supabase/types.ts`:
 - `Configuration`: Pool configurations from customers
 - `Quote`, `QuoteItem`, `QuoteVersion`, `QuoteVariant`: Quote management
 - `Order`: Customer orders (created from accepted quotes)
-- `ProductionOrder`, `ProductionChecklist`: Manufacturing tracking
-- `Product`: Product catalog synced with Pipedrive (categories: `bazeny`, `prislusenstvi`, `sluzby`, `doprava`)
+- `ProductionOrder`, `ProductionOrderItem`: Manufacturing tracking with material checklist
+- `Product`: Product catalog with dynamic pricing (see Pricing System below)
+- `ProductGroup`, `ProductGroupItem`: Product bundles for quick quote additions
 - `UserProfile`: User profiles with roles
 - `SyncLog`: Pipedrive sync tracking
 - `ProductMappingRule`: Maps configurator choices to products
 - `GeneratedQuoteItem`: Generated items before saving to DB
+
+### Product Categories
+
+Products are organized into categories (`ProductCategory` type):
+- `skelety`: Pool shells/skeletons
+- `sety`: Complete pool sets
+- `schodiste`: Stairs
+- `technologie`: Filtration, skimmers, jets, shafts
+- `osvetleni`: LED lights, transformers
+- `uprava_vody`: Salt water, UV lamps, dosing systems
+- `protiproud`: Counter-current systems
+- `ohrev`: Heat pumps
+- `material`: Edge tubes, penetrations, fittings
+- `priplatky`: Surcharges (8mm thickness, sharp corners, depth changes)
+- `chemie`: Chlorine, pH, salt
+- `zatepleni`: Wall and floor insulation
+- `vysavace`: Manual and robotic vacuums
+- `sluzby`: Services
+- `doprava`: Delivery
+- `jine`: Other
+
+### Pricing System
+
+Products support three pricing types (`src/lib/pricing/`):
+
+1. **Fixed** (`price_type: 'fixed'`): Direct `unit_price`
+2. **Percentage** (`price_type: 'percentage'`): Percentage of a reference product's price
+   - `price_reference_product_id`: The product to calculate from
+   - `price_percentage`: Percentage value (e.g., 10 = 10%)
+   - `price_minimum`: Optional minimum price floor
+3. **Coefficient** (`price_type: 'coefficient'`): Multiplied by pool measurement
+   - `price_coefficient`: Value per unit
+   - `coefficient_unit`: `'m2'` (surface area) or `'bm'` (perimeter in running meters)
+
+Additional product fields:
+- `material_thickness`: `'5mm'` | `'8mm'` for skeleton variants
+- `prerequisite_product_ids`: Products that must be in quote for this product to apply
+- `prerequisite_pool_shapes`: Pool shapes where prerequisites are NOT checked (e.g., circle pools skip sharp corner prerequisite for 8mm material)
+- `required_surcharge_ids`: Surcharges auto-added when this product is selected
+- `tags`: Array of tags for filtering/grouping
+
+**Pricing utilities** (`src/lib/pricing/`):
+- `calculate-price.ts`: Price calculation with context (pool dimensions, existing items)
+- `pool-surface.ts`: Pool surface area, perimeter, volume calculations
+- `check-prerequisites.ts`: Validates prerequisite products are in quote before adding
+- `parse-skeleton-code.ts`: Parses `BAZ-{SHAPE}-{TYPE}-{DIMENSIONS}` codes to extract pool parameters
+
+### Product Groups
+
+Bundles of products that can be added to quotes together:
+- Managed at `/admin/nastaveni/produkty/skupiny`
+- API: `/api/admin/product-groups/`
+- Each group has items with quantities and sort order
 
 ### Form Validation
 
@@ -248,6 +318,7 @@ Required for integrations:
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
+- `ANTHROPIC_API_KEY` (changelog translation only)
 
 ## Pool Configuration Options
 

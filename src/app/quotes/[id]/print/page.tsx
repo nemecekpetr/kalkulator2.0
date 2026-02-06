@@ -271,8 +271,8 @@ function ItemsSection({
                   <div key={item.id} className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
                     <div className="flex-1">
                       <p className="font-medium text-[#01384B] text-sm">{item.name}</p>
-                      {item.description && (
-                        <p className="text-xs text-gray-500 leading-snug mt-0.5">{item.description}</p>
+                      {item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && (
+                        <p className="text-xs text-gray-500 leading-snug mt-0.5 whitespace-pre-line">{item.description.replace(/^\[SA:[^\]]+\]\s*/, '')}</p>
                       )}
                     </div>
                     <div className="text-right ml-4">

@@ -77,9 +77,10 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
-import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey, ProductGroupWithItems, PoolShape, PoolDimensions } from '@/lib/supabase/types'
+import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey, ProductGroupWithItems, PoolShape, PoolDimensions, SetAddon } from '@/lib/supabase/types'
 import { checkProductPrerequisites, parseSkeletonCode, calculatePoolSurface, type PrerequisiteCheckResult } from '@/lib/pricing'
 import { SkeletonAddonDialog } from './skeleton-addon-dialog'
+import { SetAddonDialog, type SetAddonResult } from './set-addon-dialog'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -101,6 +102,9 @@ interface QuoteItem {
   unit_price: number
   total_price: number
   variant_keys: QuoteVariantKey[]
+  // Set addon fields
+  parent_item_id?: string   // For addon items: ID of parent set item
+  set_addon_id?: string     // For addon items: addon ID from set_addons JSONB
 }
 
 interface QuoteVariantState {
@@ -154,6 +158,7 @@ const THICKNESS_8MM_PRICE_PER_M2 = 650 // 650 Kč/m²
 // Sortable item component for drag and drop
 interface SortableItemProps {
   item: QuoteItem
+  items: QuoteItem[]
   variants: QuoteVariantState[]
   updateItem: (id: string, updates: Partial<QuoteItem>) => void
   removeItem: (id: string) => void
@@ -163,10 +168,13 @@ interface SortableItemProps {
   skeletonAddons: Product[]
   products: Product[]
   onToggleSkeletonAddon: (skeletonItemId: string, addonType: 'sharp_corners' | '8mm', checked: boolean) => void
+  // Set addon props
+  onToggleSetAddon: (setItemId: string, addon: SetAddon, checked: boolean) => void
 }
 
 function SortableQuoteItem({
   item,
+  items,
   variants,
   updateItem,
   removeItem,
@@ -175,6 +183,7 @@ function SortableQuoteItem({
   skeletonAddons,
   products,
   onToggleSkeletonAddon,
+  onToggleSetAddon,
 }: SortableItemProps) {
   const {
     attributes,
@@ -271,11 +280,39 @@ function SortableQuoteItem({
     }
   }, [item, skeletonAddons, products])
 
+  // Detect if this is a set item with available addons
+  const setInfo = useMemo(() => {
+    // This is a set parent item (not an addon child)
+    if (item.category !== 'sety' || item.parent_item_id) return null
+
+    const setProduct = item.product_id
+      ? products.find((p) => p.id === item.product_id)
+      : null
+
+    const addons = setProduct?.set_addons
+    if (!addons || addons.length === 0) return null
+
+    // Find which addons are currently active (exist as child items)
+    const activeAddonIds = new Set(
+      items
+        .filter((i) => i.parent_item_id === item.id && i.set_addon_id)
+        .map((i) => i.set_addon_id!)
+    )
+
+    return {
+      addons: addons.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+      activeAddonIds,
+    }
+  }, [item, items, products])
+
+  // Check if this is a set addon child item
+  const isSetAddonChild = !!item.parent_item_id
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col gap-3 p-4 rounded-lg border bg-background ${isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}`}
+      className={`flex flex-col gap-3 p-4 rounded-lg border bg-background ${isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''} ${isSetAddonChild ? 'ml-6 border-l-2 border-l-primary/30' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1">
@@ -407,6 +444,28 @@ function SortableQuoteItem({
           )}
         </div>
       )}
+      {/* Set addons inline toggles */}
+      {setInfo && (
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t">
+          <span className="text-sm text-muted-foreground">Doplňky:</span>
+          {setInfo.addons.map((addon) => (
+            <label key={addon.id} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={setInfo.activeAddonIds.has(addon.id)}
+                onCheckedChange={(checked) =>
+                  onToggleSetAddon(item.id, addon, !!checked)
+                }
+              />
+              <span>
+                {addon.name}{' '}
+                <span className="text-muted-foreground">
+                  (+{formatPrice(addon.price)})
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -449,6 +508,10 @@ export function QuoteEditor({
     shape: PoolShape
     dimensions: PoolDimensions
   } | null>(null)
+
+  // Set addon dialog state
+  const [setAddonDialogOpen, setSetAddonDialogOpen] = useState(false)
+  const [pendingSetProduct, setPendingSetProduct] = useState<Product | null>(null)
 
   // Customer info
   const [customerName, setCustomerName] = useState(
@@ -499,22 +562,37 @@ export function QuoteEditor({
         variantIdToKey[v.id] = v.variant_key
       })
 
-      return existingQuote.items.map((item) => {
+      const loadedItems = existingQuote.items.map((item) => {
         // If variant_keys are already provided directly, use them
-        if (item.variant_keys && item.variant_keys.length > 0) {
-          return {
-            ...item,
-            variant_keys: item.variant_keys,
-          }
-        }
-        // Otherwise, map from variant_ids (legacy support)
+        const variant_keys = (item.variant_keys && item.variant_keys.length > 0)
+          ? item.variant_keys
+          : (item.variant_ids || [])
+              .map((id) => variantIdToKey[id])
+              .filter(Boolean) as QuoteVariantKey[]
+
+        // Parse set addon info from description prefix [SA:addonId]
+        const saMatch = item.description?.match(/^\[SA:([^\]]+)\]/)
+        const set_addon_id = saMatch?.[1] || undefined
+
         return {
           ...item,
-          variant_keys: (item.variant_ids || [])
-            .map((id) => variantIdToKey[id])
-            .filter(Boolean) as QuoteVariantKey[],
+          variant_keys,
+          set_addon_id,
         }
       })
+
+      // Reconstruct parent_item_id: for items with set_addon_id,
+      // find the nearest preceding set item (category 'sety', no set_addon_id)
+      let lastSetItemId: string | undefined
+      for (const item of loadedItems) {
+        if (item.category === 'sety' && !item.set_addon_id) {
+          lastSetItemId = item.id
+        } else if (item.set_addon_id && lastSetItemId) {
+          item.parent_item_id = lastSetItemId
+        }
+      }
+
+      return loadedItems
     }
     return []
   })
@@ -628,6 +706,13 @@ export function QuoteEditor({
         }
       }
 
+      // Check if this is a set product with set addons
+      if (product.category === 'sety' && product.set_addons && product.set_addons.length > 0) {
+        setPendingSetProduct(product)
+        setSetAddonDialogOpen(true)
+        return
+      }
+
       // Convert current items to QuoteItem format for prerequisite checking
       const currentQuoteItems = items.map((item) => ({
         ...item,
@@ -695,6 +780,50 @@ export function QuoteEditor({
       setPendingSkeletonDimensions(null)
 
       toast.success('Skelet přidán do nabídky')
+    },
+    [activeVariant]
+  )
+
+  // Handle set addon dialog confirm - creates set item + addon items as separate rows
+  const handleSetAddonConfirm = useCallback(
+    (result: SetAddonResult) => {
+      const setItemId = crypto.randomUUID()
+
+      // Create main set item
+      const setItem: QuoteItem = {
+        id: setItemId,
+        product_id: result.setItem.product.id,
+        name: result.setItem.name,
+        description: result.setItem.product.description || '',
+        category: result.setItem.product.category as QuoteItemCategory,
+        quantity: 1,
+        unit: result.setItem.product.unit,
+        unit_price: result.setItem.price,
+        total_price: result.setItem.price,
+        variant_keys: [activeVariant],
+      }
+
+      // Create addon items
+      const addonItems: QuoteItem[] = result.addonItems.map((addon) => ({
+        id: crypto.randomUUID(),
+        product_id: result.setItem.product.id,
+        name: addon.name,
+        description: `[SA:${addon.addonId}]`,
+        category: 'sety' as QuoteItemCategory,
+        quantity: 1,
+        unit: 'ks',
+        unit_price: addon.price,
+        total_price: addon.price,
+        variant_keys: [activeVariant],
+        parent_item_id: setItemId,
+        set_addon_id: addon.addonId,
+      }))
+
+      setItems((prev) => [setItem, ...addonItems, ...prev])
+      setSetAddonDialogOpen(false)
+      setPendingSetProduct(null)
+
+      toast.success('Set přidán do nabídky')
     },
     [activeVariant]
   )
@@ -798,9 +927,9 @@ export function QuoteEditor({
     )
   }, [])
 
-  // Remove item
+  // Remove item (cascade delete set addon children)
   const removeItem = useCallback((id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id))
+    setItems((prev) => prev.filter((item) => item.id !== id && item.parent_item_id !== id))
   }, [])
 
   // Toggle skeleton addon - modifies skeleton item's name and price directly
@@ -933,6 +1062,56 @@ export function QuoteEditor({
       }
     },
     [items, products]
+  )
+
+  // Toggle set addon - adds/removes addon as a separate item
+  const onToggleSetAddon = useCallback(
+    (setItemId: string, addon: SetAddon, checked: boolean) => {
+      if (checked) {
+        // Add addon item right after the set and its existing addons
+        const newAddonItem: QuoteItem = {
+          id: crypto.randomUUID(),
+          product_id: items.find((i) => i.id === setItemId)?.product_id || null,
+          name: addon.name,
+          description: `[SA:${addon.id}]`,
+          category: 'sety' as QuoteItemCategory,
+          quantity: 1,
+          unit: 'ks',
+          unit_price: addon.price,
+          total_price: addon.price,
+          variant_keys: items.find((i) => i.id === setItemId)?.variant_keys || [activeVariant],
+          parent_item_id: setItemId,
+          set_addon_id: addon.id,
+        }
+
+        setItems((prev) => {
+          // Find the set item index
+          const setIdx = prev.findIndex((i) => i.id === setItemId)
+          if (setIdx < 0) return prev
+
+          // Find the last addon of this set
+          let insertIdx = setIdx + 1
+          while (insertIdx < prev.length && prev[insertIdx].parent_item_id === setItemId) {
+            insertIdx++
+          }
+
+          const next = [...prev]
+          next.splice(insertIdx, 0, newAddonItem)
+          return next
+        })
+
+        toast.success(`Přidán příplatek: ${addon.name}`)
+      } else {
+        // Remove addon item
+        setItems((prev) =>
+          prev.filter(
+            (i) => !(i.parent_item_id === setItemId && i.set_addon_id === addon.id)
+          )
+        )
+        toast.success(`Odebrán příplatek: ${addon.name}`)
+      }
+    },
+    [items, activeVariant]
   )
 
   // Generate items from configuration for active variant
@@ -1673,6 +1852,7 @@ export function QuoteEditor({
                             <SortableQuoteItem
                               key={item.id}
                               item={item}
+                              items={items}
                               variants={variants}
                               updateItem={updateItem}
                               removeItem={removeItem}
@@ -1681,6 +1861,7 @@ export function QuoteEditor({
                               skeletonAddons={skeletonAddons}
                               products={products}
                               onToggleSkeletonAddon={onToggleSkeletonAddon}
+                              onToggleSetAddon={onToggleSetAddon}
                             />
                           ))}
                         </SortableContext>
@@ -1989,6 +2170,19 @@ export function QuoteEditor({
           onConfirm={handleSkeletonConfirm}
         />
       )}
+
+      {/* Set addon dialog */}
+      <SetAddonDialog
+        open={setAddonDialogOpen}
+        onOpenChange={(open) => {
+          setSetAddonDialogOpen(open)
+          if (!open) {
+            setPendingSetProduct(null)
+          }
+        }}
+        product={pendingSetProduct}
+        onConfirm={handleSetAddonConfirm}
+      />
     </div>
   )
 }

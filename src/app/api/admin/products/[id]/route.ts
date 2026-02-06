@@ -93,6 +93,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     if (body.required_surcharge_ids !== undefined)
       updateData.required_surcharge_ids = body.required_surcharge_ids
     if (body.tags !== undefined) updateData.tags = body.tags
+    if (body.set_addons !== undefined) updateData.set_addons = body.set_addons
 
     // Pipedrive fields (if syncing)
     if (body.pipedrive_id !== undefined) updateData.pipedrive_id = body.pipedrive_id

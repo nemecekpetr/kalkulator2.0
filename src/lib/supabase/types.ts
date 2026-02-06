@@ -222,6 +222,15 @@ export type ConfigurationInsert = Database['public']['Tables']['configurations']
 export type ConfigurationUpdate = Database['public']['Tables']['configurations']['Update']
 export type SyncLog = Database['public']['Tables']['sync_log']['Row']
 
+// Set addon type (stored as JSONB on set products)
+export interface SetAddon {
+  id: string
+  name: string
+  price: number
+  description?: string
+  sort_order?: number
+}
+
 // Price calculation types
 export type PriceType = 'fixed' | 'percentage' | 'coefficient'
 export type CoefficientUnit = 'm2' | 'bm'
@@ -261,6 +270,8 @@ export interface Product {
   // Prerequisite products
   prerequisite_product_ids: string[] | null
   prerequisite_pool_shapes: PoolShape[] | null
+  // Set addons (for category 'sety')
+  set_addons: SetAddon[] | null
 }
 
 export interface ProductInsert {
@@ -292,6 +303,7 @@ export interface ProductInsert {
   compatible_shapes?: PoolShape[] | null
   prerequisite_product_ids?: string[] | null
   prerequisite_pool_shapes?: PoolShape[] | null
+  set_addons?: SetAddon[] | null
 }
 
 export interface ProductUpdate {
@@ -322,6 +334,7 @@ export interface ProductUpdate {
   compatible_shapes?: PoolShape[] | null
   prerequisite_product_ids?: string[] | null
   prerequisite_pool_shapes?: PoolShape[] | null
+  set_addons?: SetAddon[] | null
 }
 
 // Reference photo types
@@ -701,6 +714,15 @@ export interface Order {
   deposit_amount: number
   deposit_paid_at: string | null
   final_payment_at: string | null
+  // Contract fields
+  fulfillment_address: string | null
+  construction_readiness_date: string | null
+  expected_delivery_date: string | null
+  delivery_method: string | null
+  delivery_cost: number
+  delivery_cost_free: boolean
+  total_weight: number | null
+  vat_rate: number
   // Notes
   notes: string | null
   internal_notes: string | null
@@ -731,6 +753,14 @@ export interface OrderInsert {
   deposit_amount?: number
   deposit_paid_at?: string | null
   final_payment_at?: string | null
+  fulfillment_address?: string | null
+  construction_readiness_date?: string | null
+  expected_delivery_date?: string | null
+  delivery_method?: string | null
+  delivery_cost?: number
+  delivery_cost_free?: boolean
+  total_weight?: number | null
+  vat_rate?: number
   notes?: string | null
   internal_notes?: string | null
   created_by?: string | null
@@ -758,6 +788,14 @@ export interface OrderUpdate {
   deposit_amount?: number
   deposit_paid_at?: string | null
   final_payment_at?: string | null
+  fulfillment_address?: string | null
+  construction_readiness_date?: string | null
+  expected_delivery_date?: string | null
+  delivery_method?: string | null
+  delivery_cost?: number
+  delivery_cost_free?: boolean
+  total_weight?: number | null
+  vat_rate?: number
   notes?: string | null
   internal_notes?: string | null
 }

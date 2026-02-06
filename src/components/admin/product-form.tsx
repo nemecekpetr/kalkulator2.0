@@ -22,9 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Loader2, Save, ArrowLeft, Info, X, Plus } from 'lucide-react'
+import { Loader2, Save, ArrowLeft, Info, X, Plus, ArrowUp, ArrowDown, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Product, ProductCategory, PriceType, CoefficientUnit } from '@/lib/supabase/types'
+import type { Product, ProductCategory, PriceType, CoefficientUnit, SetAddon } from '@/lib/supabase/types'
 import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants/categories'
 
 interface ProductFormProps {
@@ -93,6 +93,11 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
   )
   const [tags, setTags] = useState<string[]>(product?.tags || [])
   const [newTag, setNewTag] = useState('')
+
+  // Set addons (only for category 'sety')
+  const [setAddons, setSetAddons] = useState<SetAddon[]>(
+    product?.set_addons || []
+  )
 
   // Reference product for display
   const [referenceProduct, setReferenceProduct] = useState<Product | null>(null)
@@ -180,6 +185,7 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
         coefficient_unit: priceType === 'coefficient' ? coefficientUnit : 'm2',
         required_surcharge_ids: requiredSurchargeIds.length > 0 ? requiredSurchargeIds : null,
         tags: tags.length > 0 ? tags : null,
+        set_addons: category === 'sety' && setAddons.length > 0 ? setAddons : null,
       }
 
       const url =
@@ -229,6 +235,35 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
 
   const removeRequiredSurcharge = (productId: string) => {
     setRequiredSurchargeIds(requiredSurchargeIds.filter((id) => id !== productId))
+  }
+
+  // Set addon management
+  const addSetAddon = () => {
+    const newAddon: SetAddon = {
+      id: crypto.randomUUID(),
+      name: '',
+      price: 0,
+      sort_order: setAddons.length,
+    }
+    setSetAddons([...setAddons, newAddon])
+  }
+
+  const updateSetAddon = (id: string, updates: Partial<SetAddon>) => {
+    setSetAddons(setAddons.map((a) => (a.id === id ? { ...a, ...updates } : a)))
+  }
+
+  const removeSetAddon = (id: string) => {
+    setSetAddons(setAddons.filter((a) => a.id !== id))
+  }
+
+  const moveSetAddon = (id: string, direction: 'up' | 'down') => {
+    const idx = setAddons.findIndex((a) => a.id === id)
+    if (idx < 0) return
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (newIdx < 0 || newIdx >= setAddons.length) return
+    const next = [...setAddons]
+    ;[next[idx], next[newIdx]] = [next[newIdx], next[idx]]
+    setSetAddons(next.map((a, i) => ({ ...a, sort_order: i })))
   }
 
   const formatPrice = (price: number) => {
@@ -673,6 +708,94 @@ export function ProductForm({ product, products = [], mode }: ProductFormProps) 
             )}
           </CardContent>
         </Card>
+
+        {/* Set addons - only for 'sety' category */}
+        {category === 'sety' && (
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <CardTitle>Doplňky setu</CardTitle>
+              <CardDescription>
+                Volitelné příplatky specifické pro tento set (hloubka, rohy, schody apod.)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {setAddons.length > 0 && (
+                <div className="space-y-2">
+                  {setAddons.map((addon, idx) => (
+                    <div
+                      key={addon.id}
+                      className="flex items-center gap-2 p-2 bg-muted rounded"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          disabled={idx === 0}
+                          onClick={() => moveSetAddon(addon.id, 'up')}
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5"
+                          disabled={idx === setAddons.length - 1}
+                          onClick={() => moveSetAddon(addon.id, 'down')}
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <Input
+                        value={addon.name}
+                        onChange={(e) =>
+                          updateSetAddon(addon.id, { name: e.target.value })
+                        }
+                        placeholder="Název příplatku"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number"
+                        value={addon.price}
+                        onChange={(e) =>
+                          updateSetAddon(addon.id, {
+                            price: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        placeholder="Cena"
+                        className="w-32"
+                        min={0}
+                      />
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        Kč
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => removeSetAddon(addon.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addSetAddon}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Přidat příplatek
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </form>
   )

@@ -147,6 +147,7 @@ export async function POST(request: Request) {
       coefficient_unit: body.coefficient_unit || 'm2',
       required_surcharge_ids: body.required_surcharge_ids || null,
       tags: body.tags || null,
+      set_addons: body.set_addons || null,
     }
 
     const { data, error } = await supabase
