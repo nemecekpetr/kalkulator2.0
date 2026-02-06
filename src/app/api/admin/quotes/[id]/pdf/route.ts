@@ -93,6 +93,15 @@ export async function GET(request: Request, { params }: RouteParams) {
     const [titlePage] = await mergedPdf.copyPages(titlePdf, [0])
     mergedPdf.addPage(titlePage)
 
+    // Step 2: Generate intro page (personal letter, no header/footer)
+    const introPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=intro&quality=${quality}`, printToken)
+
+    const introPdfBuffer = await generatePdfFromPage(page, introPageUrl, contentOptions)
+    metrics.step('intro-page')
+    const introPdf = await PDFDocument.load(introPdfBuffer)
+    const [introPage] = await mergedPdf.copyPages(introPdf, [0])
+    mergedPdf.addPage(introPage)
+
     if (hasVariants) {
       // Multi-variant PDF generation
       // Sort variants: cheapest, most expensive, middle
@@ -145,8 +154,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       }
     }
 
-    // Always generate closing page as the last page
-    // This page contains: 7 důvodů, business terms, validity, CTA, slogan
+    // Generate closing page (7 důvodů pro Rentmil)
     const closingPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=closing&quality=${quality}`, printToken)
 
     const closingPdfBuffer = await generatePdfFromPage(page, closingPageUrl, contentOptions)
@@ -156,6 +164,18 @@ export async function GET(request: Request, { params }: RouteParams) {
     for (let i = 0; i < closingPageCount; i++) {
       const [closingPage] = await mergedPdf.copyPages(closingPdf, [i])
       mergedPdf.addPage(closingPage)
+    }
+
+    // Generate next steps page (reviews, timeline, CTA) - always last
+    const nextStepsPageUrl = addTokenToUrl(`${baseUrl}/quotes/${id}/print?page=nextsteps&quality=${quality}`, printToken)
+
+    const nextStepsPdfBuffer = await generatePdfFromPage(page, nextStepsPageUrl, contentOptions)
+    metrics.step('nextsteps-page')
+    const nextStepsPdf = await PDFDocument.load(nextStepsPdfBuffer)
+    const nextStepsPageCount = nextStepsPdf.getPageCount()
+    for (let i = 0; i < nextStepsPageCount; i++) {
+      const [nextStepsPage] = await mergedPdf.copyPages(nextStepsPdf, [i])
+      mergedPdf.addPage(nextStepsPage)
     }
 
     // Set PDF metadata

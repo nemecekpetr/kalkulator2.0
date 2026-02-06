@@ -407,6 +407,13 @@ export interface Quote {
   status: QuoteStatus
   sent_at: string | null
   accepted_at: string | null
+  // Customer salutation in vocative case (e.g. "Vážený pane Nováku")
+  customer_salutation: string | null
+  // Urgency / seasonal availability
+  order_deadline: string | null
+  delivery_deadline: string | null
+  capacity_month: string | null
+  available_installations: number | null
 }
 
 export interface QuoteInsert {
@@ -432,6 +439,13 @@ export interface QuoteInsert {
   status?: QuoteStatus
   sent_at?: string | null
   accepted_at?: string | null
+  // Customer salutation in vocative case
+  customer_salutation?: string | null
+  // Urgency / seasonal availability
+  order_deadline?: string | null
+  delivery_deadline?: string | null
+  capacity_month?: string | null
+  available_installations?: number | null
 }
 
 export interface QuoteUpdate {
@@ -456,6 +470,13 @@ export interface QuoteUpdate {
   status?: QuoteStatus
   sent_at?: string | null
   accepted_at?: string | null
+  // Customer salutation in vocative case
+  customer_salutation?: string | null
+  // Urgency / seasonal availability
+  order_deadline?: string | null
+  delivery_deadline?: string | null
+  capacity_month?: string | null
+  available_installations?: number | null
 }
 
 // Quote item types

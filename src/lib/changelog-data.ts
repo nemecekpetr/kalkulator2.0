@@ -4,9 +4,58 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.4.0'
+export const CURRENT_VERSION = '0.5.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.5.0',
+      date: '2026-02-07',
+      time: '00:30',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Oslovení zákazníka v českém vokativu (5. pádu) v PDF nabídce',
+          userDescription: 'PDF nabídky nyní oslovují zákazníka správně česky — „Vážený pane Nováku" nebo „Vážená paní Nováková". Oslovení se generuje automaticky z jména a můžete ho kdykoliv ručně upravit v editoru nabídky.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Úvodní dopis jednatele v PDF nabídce (IntroPage)',
+          userDescription: 'PDF nabídky obsahují novou druhou stranu s osobním dopisem od jednatele Rentmil. Text dopisu se automaticky přizpůsobí pohlaví zákazníka.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Sezónní dostupnost a urgency banner v editoru nabídek',
+          userDescription: 'V editoru nabídek najdete novou sekci „Sezónní dostupnost" — zadejte termín objednání, dodání, měsíc kapacity a počet volných montáží. Tyto údaje se zobrazí jako urgency banner v PDF nabídce.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Redesign PDF nabídky: titulní strana, 7 důvodů pro Rentmil, další kroky',
+          userDescription: 'PDF nabídky mají zcela nový design — efektní titulní strana s fotografií bazénu, stránka „7 důvodů pro Rentmil" s obchodními podmínkami, stránka s recenzemi zákazníků, časovou osou realizace a kontaktem na obchodníka.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Vyhledávání produktů přes combobox s fulltextovým hledáním',
+          userDescription: 'Při přidávání produktu do nabídky můžete nyní vyhledávat přes combobox s fulltextovým hledáním podle názvu i kódu produktu.'
+        },
+        {
+          type: 'feature',
+          scope: 'integrace',
+          description: 'Napojení na Pipedrive custom field "oslovení" pro persony',
+          userDescription: 'Systém je připraven na načítání oslovení zákazníka přímo z Pipedrive CRM, pokud je tam zadáno.'
+        },
+        {
+          type: 'fix',
+          scope: 'pdf',
+          description: 'Zarovnání hvězdiček Google hodnocení v PDF nabídce',
+          userDescription: 'Opraveno zarovnání hvězdiček v sekci Google hodnocení — půlhvězdička je nyní ve stejné rovině jako ostatní.'
+        }
+      ]
+    },
     {
       version: '0.4.0',
       date: '2026-02-06',

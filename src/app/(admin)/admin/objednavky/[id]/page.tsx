@@ -121,7 +121,7 @@ function formatPrice(price: number) {
 }
 
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
-  rentmil_dap: 'Doprava Rentmil s.r.o. (DAP)',
+  rentmil_dap: 'Rentmil s.r.o. (DAP)',
   self_pickup: 'Vlastní odběr',
 }
 

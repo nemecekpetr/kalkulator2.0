@@ -118,15 +118,10 @@ export async function createHeaderTemplate(documentNumber: string): Promise<stri
 export function createFooterTemplate(options: { showTotalPages?: boolean } = {}): string {
   const { showTotalPages = true } = options
 
-  const pageNumbers = showTotalPages
-    ? `Strana <span class="pageNumber"></span> z <span class="totalPages"></span>`
-    : `Strana <span class="pageNumber"></span>`
-
   return `
     <div style="width: 100%; height: 40px; padding: 10px 40px; box-sizing: border-box; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; font-size: 9px; color: #6b7280; font-family: Arial, sans-serif; background: white;">
       <span style="flex: 1;">${COMPANY.name} | ${COMPANY.address.full}</span>
       <span style="flex: 1; text-align: center;">${COMPANY.phone} | ${COMPANY.email} | ${COMPANY.web}</span>
-      <span style="flex: 0; text-align: right; color: #01384B; font-weight: 500;">${pageNumbers}</span>
     </div>
   `
 }

@@ -468,38 +468,10 @@ function formatDate(dateString: string): string {
   })
 }
 
-// Detect gender from Czech first name
-function detectGender(fullName: string): 'male' | 'female' | 'unknown' {
-  const firstName = fullName.trim().split(/\s+/)[0]?.toLowerCase() || ''
-
-  // Common Czech female name endings
-  const femaleEndings = ['a', 'ie', 'e']
-  // Exceptions - male names ending in 'a'
-  const maleExceptions = ['nikita', 'saša', 'sascha', 'miša', 'ilja', 'jirka', 'honza', 'pepa', 'vašek', 'franta']
-
-  if (maleExceptions.includes(firstName)) {
-    return 'male'
-  }
-
-  for (const ending of femaleEndings) {
-    if (firstName.endsWith(ending)) {
-      return 'female'
-    }
-  }
-
-  return 'male' // Default to male for names ending in consonants (typical for Czech male names)
-}
-
-// Get formal greeting based on gender
-function getFormalGreeting(fullName: string): string {
-  const gender = detectGender(fullName)
-  const nameParts = fullName.trim().split(/\s+/)
-  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ''
-
-  if (gender === 'female') {
-    return `Vážená paní ${lastName}`
-  }
-  return `Vážený pane ${lastName}`
+// Get formal greeting - uses stored salutation or falls back to simple format
+function getFormalGreeting(quote: { customer_name: string; customer_salutation?: string | null }): string {
+  if (quote.customer_salutation) return quote.customer_salutation
+  return `Vážený/á ${quote.customer_name}`
 }
 
 // Header component for reuse
@@ -637,10 +609,10 @@ function ItemsTable({ items }: { items: QuoteItem[] }) {
             {item.quantity} {item.unit}
           </Text>
           <Text style={[styles.tableCell, styles.tableCellPrice]}>
-            {formatPrice(item.unit_price)}
+            {item.category === 'doprava' && item.total_price === 0 ? '' : formatPrice(item.unit_price)}
           </Text>
-          <Text style={[styles.tableCell, styles.tableCellTotal]}>
-            {formatPrice(item.total_price)}
+          <Text style={[styles.tableCell, styles.tableCellTotal, item.category === 'doprava' && item.total_price === 0 ? { color: '#16a34a' } : {}]}>
+            {item.category === 'doprava' && item.total_price === 0 ? 'Zdarma' : formatPrice(item.total_price)}
           </Text>
         </View>
       ))}
@@ -658,7 +630,7 @@ function SummaryPage({
   logoUrl?: string
   poolConfig?: PoolConfigFull
 }) {
-  const greeting = getFormalGreeting(quote.customer_name)
+  const greeting = getFormalGreeting(quote)
 
   // Helper to check if value exists and is not 'none'
   const hasValue = (val?: string) => val && val !== 'none'

@@ -51,6 +51,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import {
   User,
@@ -61,26 +62,20 @@ import {
   Trash2,
   Save,
   FileDown,
-  Package,
   Loader2,
   Sparkles,
-  Search,
   Pencil,
   GripVertical,
   Layers,
-  ChevronDown,
+  RefreshCw,
+  CalendarDays,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import { Badge } from '@/components/ui/badge'
 import type { Product, Configuration, QuoteItemCategory, GeneratedQuoteItem, QuoteVariantKey, ProductGroupWithItems, PoolShape, PoolDimensions, SetAddon } from '@/lib/supabase/types'
 import { checkProductPrerequisites, parseSkeletonCode, calculatePoolSurface, type PrerequisiteCheckResult } from '@/lib/pricing'
 import { SkeletonAddonDialog } from './skeleton-addon-dialog'
 import { SetAddonDialog, type SetAddonResult } from './set-addon-dialog'
+import { ProductCombobox } from './product-combobox'
 import {
   getShapeLabel,
   getTypeLabel,
@@ -90,6 +85,8 @@ import {
   formatDimensions,
 } from '@/lib/constants/configurator'
 import { QUOTE_CATEGORY_LABELS, QUOTE_CATEGORY_ORDER } from '@/lib/constants/categories'
+import { czechMonth, CZECH_MONTHS } from '@/lib/utils/czech-month'
+import { generateSalutation } from '@/lib/utils/czech-salutation'
 
 interface QuoteItem {
   id: string
@@ -124,9 +121,15 @@ interface QuoteEditorProps {
     customer_email: string
     customer_phone: string
     customer_address: string
+    customer_salutation: string | null
     notes: string
     valid_until: string
     delivery_term: string | null
+    // Urgency / seasonal availability
+    order_deadline: string | null
+    delivery_deadline: string | null
+    capacity_month: string | null
+    available_installations: number | null
     items: (QuoteItem & { variant_ids?: string[] })[]
     variants?: {
       id: string
@@ -136,6 +139,7 @@ interface QuoteEditorProps {
       discount_amount: number
     }[]
   }
+  existingOrder?: { id: string; order_number: string; status: string } | null
 }
 
 // Use centralized category labels from constants
@@ -170,6 +174,8 @@ interface SortableItemProps {
   onToggleSkeletonAddon: (skeletonItemId: string, addonType: 'sharp_corners' | '8mm', checked: boolean) => void
   // Set addon props
   onToggleSetAddon: (setItemId: string, addon: SetAddon, checked: boolean) => void
+  // Product combobox
+  onProductSelect: (itemId: string, product: Product) => void
 }
 
 function SortableQuoteItem({
@@ -184,6 +190,7 @@ function SortableQuoteItem({
   products,
   onToggleSkeletonAddon,
   onToggleSetAddon,
+  onProductSelect,
 }: SortableItemProps) {
   const {
     attributes,
@@ -312,7 +319,7 @@ function SortableQuoteItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col gap-3 p-4 rounded-lg border bg-background ${isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''} ${isSetAddonChild ? 'ml-6 border-l-2 border-l-primary/30' : ''}`}
+      className={`flex flex-col gap-2 p-3 rounded-lg border bg-background ${isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''} ${isSetAddonChild ? 'ml-6 border-l-2 border-l-primary/30' : ''}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-1">
@@ -324,11 +331,13 @@ function SortableQuoteItem({
           >
             <GripVertical className="w-4 h-4 text-muted-foreground" />
           </button>
-          <Input
+          <ProductCombobox
             value={item.name}
-            onChange={(e) => updateItem(item.id, { name: e.target.value })}
-            placeholder="Název položky"
-            className="font-medium"
+            productId={item.product_id}
+            products={products}
+            onProductSelect={(product) => onProductSelect(item.id, product)}
+            onNameChange={(name) => updateItem(item.id, { name, product_id: null })}
+            onClear={() => updateItem(item.id, { product_id: null })}
           />
         </div>
         <Button
@@ -340,7 +349,7 @@ function SortableQuoteItem({
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-5">
         <Select
           value={item.category}
           onValueChange={(value) =>
@@ -384,12 +393,12 @@ function SortableQuoteItem({
           min={0}
           placeholder="Cena/ks"
         />
-        <div className="flex items-center justify-end font-semibold">
+        <div className="flex items-center justify-end font-semibold sm:col-span-2 text-right">
           {formatPrice(item.total_price)}
         </div>
       </div>
       {/* Variant checkboxes */}
-      <div className="flex items-center gap-4 pt-2 border-t">
+      <div className="flex items-center gap-4 pt-1 border-t">
         <span className="text-sm text-muted-foreground">Ve variantách:</span>
         {variants.map((v) => (
           <label
@@ -475,19 +484,14 @@ export function QuoteEditor({
   products,
   configuration,
   existingQuote,
+  existingOrder,
 }: QuoteEditorProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [hasGenerated, setHasGenerated] = useState(false)
-  const [productSearch, setProductSearch] = useState('')
   const [activeVariant, setActiveVariant] = useState<QuoteVariantKey>('ekonomicka')
   const [editingVariantName, setEditingVariantName] = useState<QuoteVariantKey | null>(null)
-
-  // Collapsible categories state
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(['skelety', 'technologie'])
-  )
 
   // Product groups state
   const [groupsDialogOpen, setGroupsDialogOpen] = useState(false)
@@ -513,6 +517,9 @@ export function QuoteEditor({
   const [setAddonDialogOpen, setSetAddonDialogOpen] = useState(false)
   const [pendingSetProduct, setPendingSetProduct] = useState<Product | null>(null)
 
+  // Pending item ID for combobox-triggered dialogs (skeleton/set/prerequisite)
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null)
+
   // Customer info
   const [customerName, setCustomerName] = useState(
     existingQuote?.customer_name || configuration?.contact_name || ''
@@ -527,6 +534,16 @@ export function QuoteEditor({
     existingQuote?.customer_address || configuration?.contact_address || ''
   )
 
+  // Customer salutation (vocative)
+  const initialName = existingQuote?.customer_name || configuration?.contact_name || ''
+  const [customerSalutation, setCustomerSalutation] = useState(
+    existingQuote?.customer_salutation || (initialName ? generateSalutation(initialName) : '')
+  )
+  // Track whether user has manually edited the salutation
+  const [salutationManuallyEdited, setSalutationManuallyEdited] = useState(
+    !!existingQuote?.customer_salutation
+  )
+
   // Quote details
   const [notes, setNotes] = useState(existingQuote?.notes || '')
   const [validUntil, setValidUntil] = useState(
@@ -534,6 +551,29 @@ export function QuoteEditor({
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   )
   const [deliveryTerm, setDeliveryTerm] = useState(existingQuote?.delivery_term || '4-8 týdnů')
+
+  // Urgency / seasonal availability
+  const [orderDeadline, setOrderDeadline] = useState(
+    existingQuote?.order_deadline ||
+      (existingQuote?.valid_until || new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+  )
+  const [deliveryDeadline, setDeliveryDeadline] = useState(() => {
+    if (existingQuote?.delivery_deadline) return existingQuote.delivery_deadline
+    const base = new Date(orderDeadline)
+    base.setDate(base.getDate() + 42) // 6 weeks
+    return base.toISOString().split('T')[0]
+  })
+  const [capacityMonth, setCapacityMonth] = useState(() => {
+    if (existingQuote?.capacity_month) return existingQuote.capacity_month
+    const base = new Date(deliveryDeadline)
+    return czechMonth(base)
+  })
+  const [availableInstallations, setAvailableInstallations] = useState(
+    existingQuote?.available_installations ?? 3
+  )
+  const [manualDeliveryDeadline, setManualDeliveryDeadline] = useState(
+    !!existingQuote?.delivery_deadline
+  )
 
   // Variants
   const [variants, setVariants] = useState<QuoteVariantState[]>(() => {
@@ -609,6 +649,21 @@ export function QuoteEditor({
     })
   )
 
+  // Update item
+  const updateItem = useCallback((id: string, updates: Partial<QuoteItem>) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== id) return item
+        const updated = { ...item, ...updates }
+        // Recalculate total price
+        if ('quantity' in updates || 'unit_price' in updates) {
+          updated.total_price = updated.quantity * updated.unit_price
+        }
+        return updated
+      })
+    )
+  }, [])
+
   // Handle drag end for reordering items
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
@@ -648,26 +703,6 @@ export function QuoteEditor({
     [products]
   )
 
-  // Add single product directly (no prerequisite check)
-  const addProductDirectly = useCallback(
-    (product: Product) => {
-      const newItem: QuoteItem = {
-        id: crypto.randomUUID(),
-        product_id: product.id,
-        name: product.name,
-        description: product.description || '',
-        category: product.category as QuoteItemCategory,
-        quantity: 1,
-        unit: product.unit,
-        unit_price: product.unit_price,
-        total_price: product.unit_price,
-        variant_keys: [activeVariant],
-      }
-      setItems((prev) => [newItem, ...prev])
-    },
-    [activeVariant]
-  )
-
   // Add multiple products at once (for prerequisites + product)
   const addProductsDirectly = useCallback(
     (productsToAdd: Product[]) => {
@@ -688,144 +723,180 @@ export function QuoteEditor({
     [activeVariant]
   )
 
-  // Add product to active variant (at the beginning) with prerequisite check
-  const addProduct = useCallback(
-    (product: Product) => {
-      // Check if this is a skeleton product with available addons
-      if (product.category === 'skelety' && skeletonAddons.length > 0) {
-        const parsed = parseSkeletonCode(product.code)
-        if (parsed) {
-          // Open skeleton addon dialog
-          setPendingSkeleton(product)
-          setPendingSkeletonDimensions({
-            shape: parsed.shape,
-            dimensions: parsed.dimensions,
-          })
-          setSkeletonDialogOpen(true)
-          return
-        }
-      }
-
-      // Check if this is a set product with set addons
-      if (product.category === 'sety' && product.set_addons && product.set_addons.length > 0) {
-        setPendingSetProduct(product)
-        setSetAddonDialogOpen(true)
-        return
-      }
-
-      // Convert current items to QuoteItem format for prerequisite checking
-      const currentQuoteItems = items.map((item) => ({
-        ...item,
-        id: item.id,
-        created_at: '',
-        quote_id: '',
-        sort_order: 0,
-      }))
-
-      // Check prerequisites
-      const result = checkProductPrerequisites(
-        product,
-        currentQuoteItems,
-        poolShape,
-        products
-      )
-
-      if (result.canAdd) {
-        // No missing prerequisites, add directly
-        addProductDirectly(product)
-      } else {
-        // Missing prerequisites - show dialog
-        setPrerequisiteCheck({ product, result })
-        setPrerequisiteDialogOpen(true)
-      }
-    },
-    [items, poolShape, products, addProductDirectly, skeletonAddons]
-  )
-
   // Handle adding product with its prerequisites
   const handleAddWithPrerequisites = useCallback(() => {
     if (!prerequisiteCheck) return
 
     const { product, result } = prerequisiteCheck
-    // Add prerequisites first, then the product
-    const allProducts = [...result.missingPrerequisites, product]
-    addProductsDirectly(allProducts)
+
+    if (pendingItemId) {
+      // Combobox flow: update existing item + add prerequisite items
+      updateItem(pendingItemId, {
+        product_id: product.id,
+        name: product.name,
+        category: product.category as QuoteItemCategory,
+        unit: product.unit,
+        unit_price: product.unit_price,
+        total_price: product.unit_price * (items.find((i) => i.id === pendingItemId)?.quantity || 1),
+      })
+      // Add missing prerequisites as new items
+      const prerequisiteItems: QuoteItem[] = result.missingPrerequisites.map((p) => ({
+        id: crypto.randomUUID(),
+        product_id: p.id,
+        name: p.name,
+        description: p.description || '',
+        category: p.category as QuoteItemCategory,
+        quantity: 1,
+        unit: p.unit,
+        unit_price: p.unit_price,
+        total_price: p.unit_price,
+        variant_keys: [activeVariant],
+      }))
+      if (prerequisiteItems.length > 0) {
+        setItems((prev) => [...prerequisiteItems, ...prev])
+      }
+      setPendingItemId(null)
+      toast.success(`Produkt aktualizován, přidáno ${result.missingPrerequisites.length} prerekvizit`)
+    } else {
+      // Sidebar/catalog flow: add all as new items
+      const allProducts = [...result.missingPrerequisites, product]
+      addProductsDirectly(allProducts)
+      toast.success(`Přidáno ${allProducts.length} položek včetně prerekvizit`)
+    }
 
     // Close dialog and reset state
     setPrerequisiteDialogOpen(false)
     setPrerequisiteCheck(null)
-
-    toast.success(`Přidáno ${allProducts.length} položek včetně prerekvizit`)
-  }, [prerequisiteCheck, addProductsDirectly])
+  }, [prerequisiteCheck, addProductsDirectly, pendingItemId, updateItem, items, activeVariant])
 
   // Handle skeleton addon dialog confirm - creates single item with addons in name/price
   const handleSkeletonConfirm = useCallback(
     (result: { product: Product; name: string; price: number }) => {
-      const newItem: QuoteItem = {
-        id: crypto.randomUUID(),
-        product_id: result.product.id,
-        name: result.name,
-        description: result.product.description || '',
-        category: result.product.category as QuoteItemCategory,
-        quantity: 1,
-        unit: result.product.unit,
-        unit_price: result.price,
-        total_price: result.price,
-        variant_keys: [activeVariant],
+      if (pendingItemId) {
+        // Combobox flow: update existing item
+        updateItem(pendingItemId, {
+          product_id: result.product.id,
+          name: result.name,
+          category: result.product.category as QuoteItemCategory,
+          unit: result.product.unit,
+          unit_price: result.price,
+          total_price: result.price * (items.find((i) => i.id === pendingItemId)?.quantity || 1),
+        })
+        setPendingItemId(null)
+        toast.success('Skelet aktualizován')
+      } else {
+        // Catalog/group flow: add new item
+        const newItem: QuoteItem = {
+          id: crypto.randomUUID(),
+          product_id: result.product.id,
+          name: result.name,
+          description: result.product.description || '',
+          category: result.product.category as QuoteItemCategory,
+          quantity: 1,
+          unit: result.product.unit,
+          unit_price: result.price,
+          total_price: result.price,
+          variant_keys: [activeVariant],
+        }
+        setItems((prev) => [newItem, ...prev])
+        toast.success('Skelet přidán do nabídky')
       }
 
-      setItems((prev) => [newItem, ...prev])
       setSkeletonDialogOpen(false)
       setPendingSkeleton(null)
       setPendingSkeletonDimensions(null)
-
-      toast.success('Skelet přidán do nabídky')
     },
-    [activeVariant]
+    [activeVariant, pendingItemId, updateItem, items]
   )
 
   // Handle set addon dialog confirm - creates set item + addon items as separate rows
   const handleSetAddonConfirm = useCallback(
     (result: SetAddonResult) => {
-      const setItemId = crypto.randomUUID()
+      if (pendingItemId) {
+        // Combobox flow: update existing item + replace its children
+        const existingItem = items.find((i) => i.id === pendingItemId)
 
-      // Create main set item
-      const setItem: QuoteItem = {
-        id: setItemId,
-        product_id: result.setItem.product.id,
-        name: result.setItem.name,
-        description: result.setItem.product.description || '',
-        category: result.setItem.product.category as QuoteItemCategory,
-        quantity: 1,
-        unit: result.setItem.product.unit,
-        unit_price: result.setItem.price,
-        total_price: result.setItem.price,
-        variant_keys: [activeVariant],
+        // Update the existing parent item
+        updateItem(pendingItemId, {
+          product_id: result.setItem.product.id,
+          name: result.setItem.name,
+          category: result.setItem.product.category as QuoteItemCategory,
+          unit: result.setItem.product.unit,
+          unit_price: result.setItem.price,
+          total_price: result.setItem.price * (existingItem?.quantity || 1),
+        })
+
+        // Remove old children, add new addon children
+        const addonItems: QuoteItem[] = result.addonItems.map((addon) => ({
+          id: crypto.randomUUID(),
+          product_id: result.setItem.product.id,
+          name: addon.name,
+          description: `[SA:${addon.addonId}]`,
+          category: 'sety' as QuoteItemCategory,
+          quantity: 1,
+          unit: 'ks',
+          unit_price: addon.price,
+          total_price: addon.price,
+          variant_keys: existingItem?.variant_keys || [activeVariant],
+          parent_item_id: pendingItemId,
+          set_addon_id: addon.addonId,
+        }))
+
+        setItems((prev) => {
+          // Remove old set addon children of this item
+          const withoutOldChildren = prev.filter(
+            (i) => i.parent_item_id !== pendingItemId
+          )
+          // Insert new addon items after the parent
+          const parentIdx = withoutOldChildren.findIndex((i) => i.id === pendingItemId)
+          if (parentIdx < 0) return [...withoutOldChildren, ...addonItems]
+          const result2 = [...withoutOldChildren]
+          result2.splice(parentIdx + 1, 0, ...addonItems)
+          return result2
+        })
+
+        setPendingItemId(null)
+        toast.success('Set aktualizován')
+      } else {
+        // Catalog/group flow: add new items
+        const setItemId = crypto.randomUUID()
+
+        const setItem: QuoteItem = {
+          id: setItemId,
+          product_id: result.setItem.product.id,
+          name: result.setItem.name,
+          description: result.setItem.product.description || '',
+          category: result.setItem.product.category as QuoteItemCategory,
+          quantity: 1,
+          unit: result.setItem.product.unit,
+          unit_price: result.setItem.price,
+          total_price: result.setItem.price,
+          variant_keys: [activeVariant],
+        }
+
+        const addonItems: QuoteItem[] = result.addonItems.map((addon) => ({
+          id: crypto.randomUUID(),
+          product_id: result.setItem.product.id,
+          name: addon.name,
+          description: `[SA:${addon.addonId}]`,
+          category: 'sety' as QuoteItemCategory,
+          quantity: 1,
+          unit: 'ks',
+          unit_price: addon.price,
+          total_price: addon.price,
+          variant_keys: [activeVariant],
+          parent_item_id: setItemId,
+          set_addon_id: addon.addonId,
+        }))
+
+        setItems((prev) => [setItem, ...addonItems, ...prev])
+        toast.success('Set přidán do nabídky')
       }
 
-      // Create addon items
-      const addonItems: QuoteItem[] = result.addonItems.map((addon) => ({
-        id: crypto.randomUUID(),
-        product_id: result.setItem.product.id,
-        name: addon.name,
-        description: `[SA:${addon.addonId}]`,
-        category: 'sety' as QuoteItemCategory,
-        quantity: 1,
-        unit: 'ks',
-        unit_price: addon.price,
-        total_price: addon.price,
-        variant_keys: [activeVariant],
-        parent_item_id: setItemId,
-        set_addon_id: addon.addonId,
-      }))
-
-      setItems((prev) => [setItem, ...addonItems, ...prev])
       setSetAddonDialogOpen(false)
       setPendingSetProduct(null)
-
-      toast.success('Set přidán do nabídky')
     },
-    [activeVariant]
+    [activeVariant, pendingItemId, updateItem, items]
   )
 
   // Add custom item to active variant (at the beginning)
@@ -860,6 +931,37 @@ export function QuoteEditor({
       setLoadingGroups(false)
     }
   }, [])
+
+  // Auto-recalculate urgency fields when orderDeadline changes
+  useEffect(() => {
+    if (!manualDeliveryDeadline) {
+      const base = new Date(orderDeadline)
+      if (!isNaN(base.getTime())) {
+        base.setDate(base.getDate() + 42) // 6 weeks
+        const dd = base.toISOString().split('T')[0]
+        setDeliveryDeadline(dd)
+        setCapacityMonth(czechMonth(base))
+      }
+    }
+  }, [orderDeadline, manualDeliveryDeadline])
+
+  // Update capacity_month when deliveryDeadline changes manually
+  useEffect(() => {
+    if (manualDeliveryDeadline) {
+      const d = new Date(deliveryDeadline)
+      if (!isNaN(d.getTime())) {
+        setCapacityMonth(czechMonth(d))
+      }
+    }
+  }, [deliveryDeadline, manualDeliveryDeadline])
+
+  // Sync orderDeadline with validUntil when validUntil changes (unless already edited)
+  useEffect(() => {
+    if (!existingQuote?.order_deadline) {
+      setOrderDeadline(validUntil)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [validUntil])
 
   // Load groups when dialog opens
   useEffect(() => {
@@ -896,20 +998,67 @@ export function QuoteEditor({
     [activeVariant]
   )
 
-  // Update item
-  const updateItem = useCallback((id: string, updates: Partial<QuoteItem>) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item
-        const updated = { ...item, ...updates }
-        // Recalculate total price
-        if ('quantity' in updates || 'unit_price' in updates) {
-          updated.total_price = updated.quantity * updated.unit_price
+  // Select product for an existing item (combobox flow)
+  const selectProductForItem = useCallback(
+    (itemId: string, product: Product) => {
+      // Skeleton with addons → open dialog
+      if (product.category === 'skelety' && skeletonAddons.length > 0) {
+        const parsed = parseSkeletonCode(product.code)
+        if (parsed) {
+          setPendingItemId(itemId)
+          setPendingSkeleton(product)
+          setPendingSkeletonDimensions({
+            shape: parsed.shape,
+            dimensions: parsed.dimensions,
+          })
+          setSkeletonDialogOpen(true)
+          return
         }
-        return updated
+      }
+
+      // Set with addons → open dialog
+      if (product.category === 'sety' && product.set_addons && product.set_addons.length > 0) {
+        setPendingItemId(itemId)
+        setPendingSetProduct(product)
+        setSetAddonDialogOpen(true)
+        return
+      }
+
+      // Check prerequisites
+      const currentQuoteItems = items.map((item) => ({
+        ...item,
+        id: item.id,
+        created_at: '',
+        quote_id: '',
+        sort_order: 0,
+      }))
+
+      const result = checkProductPrerequisites(
+        product,
+        currentQuoteItems,
+        poolShape,
+        products
+      )
+
+      if (!result.canAdd) {
+        setPendingItemId(itemId)
+        setPrerequisiteCheck({ product, result })
+        setPrerequisiteDialogOpen(true)
+        return
+      }
+
+      // Direct update - no dialogs needed
+      updateItem(itemId, {
+        product_id: product.id,
+        name: product.name,
+        category: product.category as QuoteItemCategory,
+        unit: product.unit,
+        unit_price: product.unit_price,
+        total_price: product.unit_price * (items.find((i) => i.id === itemId)?.quantity || 1),
       })
-    )
-  }, [])
+    },
+    [items, poolShape, products, skeletonAddons, updateItem]
+  )
 
   // Toggle item variant association
   const toggleItemVariant = useCallback((itemId: string, variantKey: QuoteVariantKey) => {
@@ -1303,95 +1452,105 @@ export function QuoteEditor({
     return { valid: errors.length === 0, errors }
   }, [items])
 
-  // Save quote
-  const handleSave = async () => {
+  // Reusable save logic — returns quote ID on success, null on failure
+  const saveQuote = async (): Promise<string | null> => {
     if (!customerName.trim()) {
       toast.error('Vyplňte jméno zákazníka')
-      return
+      return null
     }
 
-    // Check if at least one variant has items
     const hasAnyItems = variants.some((v) => getVariantItems(v.key).length > 0)
     if (!hasAnyItems) {
       toast.error('Přidejte alespoň jednu položku do některé varianty')
-      return
+      return null
     }
 
-    // Validate items
     const validation = validateItems()
     if (!validation.valid) {
       toast.error('Nelze uložit nabídku', {
         description: validation.errors.join('\n'),
         duration: 8000,
       })
-      return
+      return null
     }
 
+    const variantsWithItems = variants.filter((v) => getVariantItems(v.key).length > 0)
+
+    const response = await fetch('/api/admin/quotes', {
+      method: existingQuote ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: existingQuote?.id,
+        quote_number: quoteNumber,
+        configuration_id: configuration?.id || null,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        customer_address: customerAddress,
+        customer_salutation: customerSalutation || null,
+        pool_config: configuration
+          ? {
+              shape: configuration.pool_shape,
+              type: configuration.pool_type,
+              dimensions: configuration.dimensions,
+              color: configuration.color,
+              stairs: configuration.stairs,
+              technology: configuration.technology,
+              lighting: configuration.lighting,
+              counterflow: configuration.counterflow,
+              waterTreatment: configuration.water_treatment,
+              heating: configuration.heating,
+              roofing: configuration.roofing,
+            }
+          : null,
+        valid_until: validUntil,
+        delivery_term: deliveryTerm,
+        notes,
+        order_deadline: orderDeadline || null,
+        delivery_deadline: deliveryDeadline || null,
+        capacity_month: capacityMonth || null,
+        available_installations: availableInstallations || null,
+        variants: variantsWithItems.map((v, idx) => ({
+          variant_key: v.key,
+          variant_name: v.name,
+          sort_order: idx,
+          discount_percent: v.discount_percent,
+          discount_amount: v.discount_amount,
+        })),
+        items: items.map((item, index) => ({
+          product_id: item.product_id,
+          name: item.name,
+          description: item.description,
+          category: item.category,
+          quantity: item.quantity,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          sort_order: index,
+          variant_keys: item.variant_keys,
+        })),
+      }),
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.id as string
+    } else {
+      const error = await response.json()
+      console.error('Save error:', error)
+      toast.error(error.error || 'Chyba při ukládání')
+      return null
+    }
+  }
+
+  // Save quote
+  const handleSave = async () => {
     setSaving(true)
-
     try {
-      // Filter out empty variants
-      const variantsWithItems = variants.filter((v) => getVariantItems(v.key).length > 0)
-
-      const response = await fetch('/api/admin/quotes', {
-        method: existingQuote ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: existingQuote?.id,
-          quote_number: quoteNumber,
-          configuration_id: configuration?.id || null,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          customer_address: customerAddress,
-          pool_config: configuration
-            ? {
-                shape: configuration.pool_shape,
-                type: configuration.pool_type,
-                dimensions: configuration.dimensions,
-                color: configuration.color,
-                stairs: configuration.stairs,
-                technology: configuration.technology,
-                lighting: configuration.lighting,
-                counterflow: configuration.counterflow,
-                waterTreatment: configuration.water_treatment,
-                heating: configuration.heating,
-                roofing: configuration.roofing,
-              }
-            : null,
-          valid_until: validUntil,
-          delivery_term: deliveryTerm,
-          notes,
-          variants: variantsWithItems.map((v, idx) => ({
-            variant_key: v.key,
-            variant_name: v.name,
-            sort_order: idx,
-            discount_percent: v.discount_percent,
-            discount_amount: v.discount_amount,
-          })),
-          items: items.map((item, index) => ({
-            product_id: item.product_id,
-            name: item.name,
-            description: item.description,
-            category: item.category,
-            quantity: item.quantity,
-            unit: item.unit,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            sort_order: index,
-            variant_keys: item.variant_keys,
-          })),
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
+      const quoteId = await saveQuote()
+      if (quoteId) {
         toast.success('Nabídka uložena')
-        router.push(`/admin/nabidky/${data.id}`)
-      } else {
-        const error = await response.json()
-        console.error('Save error:', error)
-        toast.error(error.error || 'Chyba při ukládání')
+        router.push(`/admin/nabidky/${quoteId}`)
       }
     } catch (err) {
       console.error('Connection error:', err)
@@ -1403,92 +1562,13 @@ export function QuoteEditor({
 
   // Save and download PDF
   const handleSaveAndDownloadPdf = async () => {
-    if (!customerName.trim()) {
-      toast.error('Vyplňte jméno zákazníka')
-      return
-    }
-
-    const hasAnyItems = variants.some((v) => getVariantItems(v.key).length > 0)
-    if (!hasAnyItems) {
-      toast.error('Přidejte alespoň jednu položku do některé varianty')
-      return
-    }
-
-    // Validate items
-    const validation = validateItems()
-    if (!validation.valid) {
-      toast.error('Nelze uložit nabídku', {
-        description: validation.errors.join('\n'),
-        duration: 8000,
-      })
-      return
-    }
-
     setSaving(true)
-
     try {
-      const variantsWithItems = variants.filter((v) => getVariantItems(v.key).length > 0)
-
-      const response = await fetch('/api/admin/quotes', {
-        method: existingQuote ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: existingQuote?.id,
-          quote_number: quoteNumber,
-          configuration_id: configuration?.id || null,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
-          customer_address: customerAddress,
-          pool_config: configuration
-            ? {
-                shape: configuration.pool_shape,
-                type: configuration.pool_type,
-                dimensions: configuration.dimensions,
-                color: configuration.color,
-                stairs: configuration.stairs,
-                technology: configuration.technology,
-                lighting: configuration.lighting,
-                counterflow: configuration.counterflow,
-                waterTreatment: configuration.water_treatment,
-                heating: configuration.heating,
-                roofing: configuration.roofing,
-              }
-            : null,
-          valid_until: validUntil,
-          delivery_term: deliveryTerm,
-          notes,
-          variants: variantsWithItems.map((v, idx) => ({
-            variant_key: v.key,
-            variant_name: v.name,
-            sort_order: idx,
-            discount_percent: v.discount_percent,
-            discount_amount: v.discount_amount,
-          })),
-          items: items.map((item, index) => ({
-            product_id: item.product_id,
-            name: item.name,
-            description: item.description,
-            category: item.category,
-            quantity: item.quantity,
-            unit: item.unit,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            sort_order: index,
-            variant_keys: item.variant_keys,
-          })),
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
+      const quoteId = await saveQuote()
+      if (quoteId) {
         toast.success('Nabídka uložena, stahuji PDF...')
-        window.open(`/api/admin/quotes/${data.id}/pdf`, '_blank')
-        router.push(`/admin/nabidky/${data.id}`)
-      } else {
-        const error = await response.json()
-        console.error('Save error:', error)
-        toast.error(error.error || 'Chyba při ukládání')
+        window.open(`/api/admin/quotes/${quoteId}/pdf`, '_blank')
+        router.push(`/admin/nabidky/${quoteId}`)
       }
     } catch (err) {
       console.error('Connection error:', err)
@@ -1498,56 +1578,107 @@ export function QuoteEditor({
     }
   }
 
-  // Category toggle functions
-  const toggleCategory = useCallback((category: string) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev)
-      if (next.has(category)) {
-        next.delete(category)
+  // Save quote and sync items to existing order
+  const handleSaveAndSyncOrder = async () => {
+    if (!existingOrder) return
+
+    setSaving(true)
+    try {
+      const quoteId = await saveQuote()
+      if (!quoteId) return
+
+      const syncResponse = await fetch(`/api/admin/quotes/${quoteId}/sync-order`, {
+        method: 'POST',
+      })
+
+      if (syncResponse.ok) {
+        const data = await syncResponse.json()
+        toast.success(`Objednávka ${data.orderNumber} aktualizována`)
+        router.push(`/admin/nabidky/${quoteId}`)
       } else {
-        next.add(category)
+        const error = await syncResponse.json().catch(() => ({}))
+        toast.error(error.error || 'Nepodařilo se aktualizovat objednávku')
       }
-      return next
-    })
-  }, [])
-
-  const expandAllCategories = useCallback(() => {
-    setExpandedCategories(new Set(QUOTE_CATEGORY_ORDER))
-  }, [])
-
-  const collapseAllCategories = useCallback(() => {
-    setExpandedCategories(new Set())
-  }, [])
-
-  // Normalize search text - replace × with x for dimension matching
-  const normalizeSearchText = (text: string) =>
-    text.toLowerCase().replace(/×/g, 'x').replace(/\s+/g, '')
-
-  // Filter products by search term (name or code)
-  const filteredProducts = products.filter((product) => {
-    if (!productSearch) return true
-    const normalizedSearch = normalizeSearchText(productSearch)
-    const normalizedName = normalizeSearchText(product.name)
-    const normalizedCode = product.code ? normalizeSearchText(product.code) : ''
-    return normalizedName.includes(normalizedSearch) || normalizedCode.includes(normalizedSearch)
-  })
-
-  // Group products by category
-  const productsByCategory = filteredProducts.reduce(
-    (acc, product) => {
-      const cat = product.category
-      if (!acc[cat]) acc[cat] = []
-      acc[cat].push(product)
-      return acc
-    },
-    {} as Record<string, Product[]>
-  )
+    } catch (err) {
+      console.error('Sync order error:', err)
+      toast.error('Chyba připojení')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Main content */}
-      <div className="lg:col-span-2 space-y-6">
-        {/* Customer info */}
+    <div className="space-y-6">
+      {/* Sticky header with actions */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-6 px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Nabídka {quoteNumber}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={saving || !customerName}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Uložit nabídku
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSaveAndDownloadPdf}
+              disabled={saving || !customerName.trim()}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileDown className="w-4 h-4 mr-2" />
+              )}
+              Uložit a stáhnout PDF
+            </Button>
+            {existingOrder && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={saving || !customerName.trim()}
+                  >
+                    {saving ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Uložit a aktualizovat objednávku
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Aktualizovat objednávku {existingOrder.order_number}?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Položky a ceny objednávky budou přepsány aktuálními položkami z nabídky.
+                      Smluvní údaje (záloha, doprava, DPH, adresy) zůstanou beze změny.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Zrušit</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSaveAndSyncOrder}>
+                      Aktualizovat objednávku
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Customer info + Seasonal availability side by side */}
+      <div className="grid grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Zákazník</CardTitle>
@@ -1561,7 +1692,12 @@ export function QuoteEditor({
               <Input
                 id="name"
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => {
+                  setCustomerName(e.target.value)
+                  if (!salutationManuallyEdited && e.target.value.trim()) {
+                    setCustomerSalutation(generateSalutation(e.target.value))
+                  }
+                }}
                 placeholder="Jan Novák"
               />
             </div>
@@ -1602,8 +1738,109 @@ export function QuoteEditor({
                 placeholder="Ulice, Město"
               />
             </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="salutation">Oslovení zákazníka</Label>
+              <Input
+                id="salutation"
+                value={customerSalutation}
+                onChange={(e) => {
+                  setCustomerSalutation(e.target.value)
+                  setSalutationManuallyEdited(true)
+                }}
+                placeholder="Vážený pane Nováku"
+              />
+              <p className="text-xs text-muted-foreground">
+                Automaticky vygenerováno z jména, můžete upravit
+              </p>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Urgency / Seasonal availability */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CalendarDays className="h-5 w-5" />
+              Sezónní dostupnost
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="order_deadline">Objednat do</Label>
+                <Input
+                  id="order_deadline"
+                  type="date"
+                  value={orderDeadline}
+                  onChange={(e) => setOrderDeadline(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="delivery_deadline">Dodání do</Label>
+                <Input
+                  id="delivery_deadline"
+                  type="date"
+                  value={deliveryDeadline}
+                  onChange={(e) => {
+                    setManualDeliveryDeadline(true)
+                    setDeliveryDeadline(e.target.value)
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Měsíc kapacity</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={capacityMonth.split(' ')[0] || ''}
+                    onValueChange={(month) => {
+                      const year = capacityMonth.split(' ')[1] || new Date().getFullYear().toString()
+                      setCapacityMonth(`${month} ${year}`)
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Měsíc" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CZECH_MONTHS.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={capacityMonth.split(' ')[1] || ''}
+                    onValueChange={(year) => {
+                      const month = capacityMonth.split(' ')[0] || CZECH_MONTHS[0]
+                      setCapacityMonth(`${month} ${year}`)
+                    }}
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue placeholder="Rok" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 4 }, (_, i) => new Date().getFullYear() + i).map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="available_installations">Volné montáže</Label>
+                <Input
+                  id="available_installations"
+                  type="number"
+                  min={0}
+                  value={availableInstallations}
+                  onChange={(e) => setAvailableInstallations(parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Zobrazí se na PDF v urgency banneru. Výchozí hodnoty se počítají z platnosti nabídky.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
         {/* Pool configuration (if from configurator) */}
         {configuration && (
@@ -1821,7 +2058,7 @@ export function QuoteEditor({
                     </Dialog>
                     <Button variant="outline" size="sm" onClick={addCustomItem}>
                       <Plus className="w-4 h-4 mr-2" />
-                      Vlastní položka
+                      Přidat položku
                     </Button>
                   </div>
 
@@ -1835,8 +2072,8 @@ export function QuoteEditor({
                     ) : activeVariantItems.length === 0 ? (
                       <p className="text-center py-8 text-muted-foreground">
                         {configuration
-                          ? 'Klikněte na "Generovat" pro automatické vytvoření položek, nebo přidejte produkty z katalogu.'
-                          : 'Zatím žádné položky. Přidejte produkty z katalogu vpravo.'}
+                          ? 'Klikněte na "Generovat" pro automatické vytvoření položek, nebo přidejte vlastní položku.'
+                          : 'Zatím žádné položky. Přidejte vlastní položku a začněte psát název pro výběr z katalogu.'}
                       </p>
                     ) : (
                       <DndContext
@@ -1862,6 +2099,7 @@ export function QuoteEditor({
                               products={products}
                               onToggleSkeletonAddon={onToggleSkeletonAddon}
                               onToggleSetAddon={onToggleSetAddon}
+                              onProductSelect={selectProductForItem}
                             />
                           ))}
                         </SortableContext>
@@ -1942,174 +2180,6 @@ export function QuoteEditor({
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Sidebar - Actions and Product catalog */}
-      <div className="sticky top-6 h-[calc(100vh-3rem)] flex flex-col gap-4">
-        {/* Actions */}
-        <Card className="border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shrink-0">
-          <CardContent className="pt-4 pb-4 space-y-2">
-            <Button
-              className="w-full"
-              onClick={handleSave}
-              disabled={saving || !customerName}
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Uložit nabídku
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleSaveAndDownloadPdf}
-              disabled={saving || !customerName.trim()}
-            >
-              {saving ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <FileDown className="w-4 h-4 mr-2" />
-              )}
-              Uložit a stáhnout PDF
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Product catalog */}
-        <Card className="flex-1 min-h-0 flex flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Katalog produktů
-              </CardTitle>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={expandAllCategories}
-                  className="text-xs h-7 px-2"
-                >
-                  Rozbalit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={collapseAllCategories}
-                  className="text-xs h-7 px-2"
-                >
-                  Sbalit
-                </Button>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {/* eslint-disable-next-line react/no-unescaped-entities */}
-              Přidá do varianty „{variants.find((v) => v.key === activeVariant)?.name}"
-            </p>
-          </CardHeader>
-          <CardContent className="flex-1 min-h-0 flex flex-col gap-3 pt-0">
-            {/* Search */}
-            <div className="relative shrink-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Hledat podle názvu nebo kódu..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {/* Search results count */}
-            {productSearch && (
-              <p className="text-sm text-muted-foreground shrink-0">
-                {filteredProducts.length} výsledků
-              </p>
-            )}
-
-            {/* Categories with Collapsible */}
-            <div className="space-y-2 overflow-y-auto flex-1">
-              {QUOTE_CATEGORY_ORDER.map((category) => {
-                const categoryProducts = productsByCategory[category] || []
-                if (categoryProducts.length === 0) return null
-
-                const isExpanded = expandedCategories.has(category)
-
-                return (
-                  <Collapsible
-                    key={category}
-                    open={isExpanded}
-                    onOpenChange={() => toggleCategory(category)}
-                  >
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-between p-2 h-auto hover:bg-muted"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ChevronDown
-                            className={`w-4 h-4 transition-transform ${
-                              isExpanded ? 'rotate-0' : '-rotate-90'
-                            }`}
-                          />
-                          <span className="font-medium text-sm">
-                            {CATEGORY_LABELS[category] || category}
-                          </span>
-                          <Badge variant="secondary" className="text-xs">
-                            {categoryProducts.length}
-                          </Badge>
-                        </div>
-                      </Button>
-                    </CollapsibleTrigger>
-
-                    <CollapsibleContent className="space-y-1 pt-1">
-                      {categoryProducts.map((product) => (
-                        <div
-                          key={product.id}
-                          className="group flex items-start justify-between p-2 pl-8 rounded hover:bg-muted/80 cursor-pointer border border-transparent hover:border-border"
-                          onClick={() => addProduct(product)}
-                        >
-                          <div className="flex-1 min-w-0 text-sm pr-2">
-                            <div className="font-medium leading-tight">{product.name}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {formatPrice(product.unit_price)} / {product.unit}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              addProduct(product)
-                            }}
-                            title="Přidat do nabídky"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </CollapsibleContent>
-                  </Collapsible>
-                )
-              })}
-
-              {products.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Žádné produkty. Synchronizujte z Pipedrive.
-                </p>
-              )}
-
-              {products.length > 0 && filteredProducts.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Žádné produkty neodpovídají vyhledávání.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Prerequisite dialog */}
       <AlertDialog open={prerequisiteDialogOpen} onOpenChange={setPrerequisiteDialogOpen}>
@@ -2142,7 +2212,7 @@ export function QuoteEditor({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPrerequisiteCheck(null)}>
+            <AlertDialogCancel onClick={() => { setPrerequisiteCheck(null); setPendingItemId(null) }}>
               Zrušit
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleAddWithPrerequisites}>
@@ -2161,6 +2231,7 @@ export function QuoteEditor({
             if (!open) {
               setPendingSkeleton(null)
               setPendingSkeletonDimensions(null)
+              setPendingItemId(null)
             }
           }}
           skeleton={pendingSkeleton}
@@ -2178,6 +2249,7 @@ export function QuoteEditor({
           setSetAddonDialogOpen(open)
           if (!open) {
             setPendingSetProduct(null)
+            setPendingItemId(null)
           }
         }}
         product={pendingSetProduct}

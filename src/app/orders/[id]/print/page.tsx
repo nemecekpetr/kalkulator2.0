@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Order, OrderItem, QuoteItemCategory } from '@/lib/supabase/types'
-import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
+import type { Order, OrderItem } from '@/lib/supabase/types'
 import { COMPANY } from '@/lib/constants/company'
 import { verifyPrintToken } from '@/lib/pdf/print-token'
 import { formatPrice, formatDate } from '@/lib/utils/format'
@@ -30,8 +29,6 @@ const IMAGE_PATHS: Record<'email' | 'print', ImagePaths> = {
     maskotHolding: '/maskot-holding-hq.png',
   },
 }
-
-const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 async function getOrder(id: string) {
   const supabase = await createAdminClient()
@@ -74,7 +71,7 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
         {/* Logo */}
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
           <img
-            src="/logo-orange-gradient.svg"
+            src="/Sunset.png"
             alt="Rentmil"
             className="h-20 object-contain"
           />
@@ -160,7 +157,7 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
 }
 
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
-  rentmil_dap: 'Doprava Rentmil s.r.o. (DAP)',
+  rentmil_dap: 'Rentmil s.r.o. (DAP)',
   self_pickup: 'Vlastní odběr',
 }
 
@@ -226,7 +223,6 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
           <thead>
             <tr className="bg-[#01384B] text-white">
               <th className="py-2 px-3 text-left rounded-tl-lg">Položka</th>
-              <th className="py-2 px-3 text-left">Kategorie</th>
               <th className="py-2 px-3 text-center">Množství</th>
               <th className="py-2 px-3 text-right">Cena/ks</th>
               <th className="py-2 px-3 text-right rounded-tr-lg">Celkem</th>
@@ -239,11 +235,6 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
                 className={index % 2 === 1 ? 'bg-gray-50' : ''}
               >
                 <td className="py-2 px-3 font-medium">{item.name}</td>
-                <td className="py-2 px-3">
-                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">
-                    {CATEGORY_LABELS[item.category as QuoteItemCategory]}
-                  </span>
-                </td>
                 <td className="py-2 px-3 text-center">
                   {item.quantity} {item.unit}
                 </td>
@@ -253,6 +244,23 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
                 </td>
               </tr>
             ))}
+            {/* Delivery row */}
+            <tr className={order.items.length % 2 === 1 ? 'bg-gray-50' : ''}>
+              <td className="py-2 px-3 font-medium">
+                Doprava{order.delivery_method ? ` — ${getDeliveryMethodLabel(order.delivery_method)}` : ''}
+              </td>
+              <td className="py-2 px-3 text-center">1 ks</td>
+              <td className="py-2 px-3 text-right">
+                {order.delivery_cost_free || order.delivery_cost === 0 ? '' : formatPrice(order.delivery_cost)}
+              </td>
+              <td className="py-2 px-3 text-right font-semibold">
+                {order.delivery_cost_free || order.delivery_cost === 0 ? (
+                  <span className="text-green-600">Zdarma</span>
+                ) : (
+                  formatPrice(order.delivery_cost)
+                )}
+              </td>
+            </tr>
           </tbody>
         </table>
 

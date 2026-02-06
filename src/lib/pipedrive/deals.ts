@@ -85,6 +85,12 @@ const PIPEDRIVE_CUSTOM_FIELDS = {
   source: '07bb20cb4f4ab20a15d40490c2a96b2ce50267d4',
 } as const
 
+// Pipedrive person custom field API keys
+const PIPEDRIVE_PERSON_FIELDS = {
+  // "oslovení" field - formal salutation (text type)
+  salutation: '0331bfadfa9a3ddea9af757f93015ccf482ee72b',
+} as const
+
 // Pipedrive enum option IDs for "Zdroj" field
 export const PIPEDRIVE_SOURCE_OPTIONS = {
   POPTAVKA_WEB: 43,
@@ -249,6 +255,28 @@ class PipedriveDealsClient {
 
     // Create new person
     return this.createPerson(data)
+  }
+
+  /**
+   * Get person by ID (includes custom fields like salutation)
+   */
+  async getPersonById(personId: number): Promise<Record<string, unknown> | null> {
+    try {
+      const response = await this.fetch<Record<string, unknown>>(`/persons/${personId}`)
+      return response.data
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Get the "oslovení" (salutation) custom field from a Pipedrive person
+   */
+  async getPersonSalutation(personId: number): Promise<string | null> {
+    const person = await this.getPersonById(personId)
+    if (!person) return null
+    const salutation = person[PIPEDRIVE_PERSON_FIELDS.salutation]
+    return typeof salutation === 'string' && salutation.trim() ? salutation.trim() : null
   }
 
   // ============================================

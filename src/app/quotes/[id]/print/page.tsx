@@ -142,7 +142,7 @@ function TitlePage({ quote, images }: { quote: QuoteWithCreator; images: ImagePa
         <div className="flex items-start justify-between">
           {/* Logo - large and prominent */}
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl">
-            <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
+            <img src="/Sunset.png" alt="Rentmil" className="h-20 object-contain" />
           </div>
 
           {/* Quote info badge */}
@@ -227,6 +227,88 @@ function TitlePage({ quote, images }: { quote: QuoteWithCreator; images: ImagePa
   )
 }
 
+// Intro page - personal letter from the company director
+function IntroPage({ quote }: { quote: QuoteWithCreator }) {
+  const salutation = quote.customer_salutation || `Vážený/á ${quote.customer_name}`
+  const isFemale = salutation.startsWith('Vážená')
+  const projevVerb = isFemale ? 'projevila' : 'projevil'
+
+  return (
+    <div className="w-[210mm] mx-auto bg-white relative flex flex-col py-12 px-10" style={{ minHeight: '260mm' }}>
+      {/* Letter content */}
+      <div className="flex-1 flex flex-col">
+        {/* Salutation */}
+        <div className="mt-4 mb-8">
+          <h2 className="text-2xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            {salutation},
+          </h2>
+        </div>
+
+        {/* Letter body */}
+        <div className="space-y-5 text-[15px] leading-relaxed text-gray-700 max-w-[150mm]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+          <p>
+            moc si vážím Vašeho zájmu a důvěry, kterou jste nám {projevVerb}.
+          </p>
+
+          <p>
+            Bazén není jen stavba na zahradě. Je to místo, kde se zastavíte,
+            vydechnete a necháte svět kolem sebe zpomalit.
+            Místo Vašeho osobního <strong className="text-[#01384B]">zenu</strong>.
+          </p>
+
+          <p>
+            A přesně to Vám chceme pomoci vytvořit.
+          </p>
+
+          <p>
+            Bazény vyrábím přes dvacet let. Za tu dobu jsem poznal, že nejdůležitější
+            není jen kvalitní materiál nebo precizní výroba — i když na tom si zakládáme.
+            Nejdůležitější je pocit, že se o Vás někdo stará. Že máte po ruce člověka,
+            který ví, co dělá, a na kterého se můžete spolehnout.
+          </p>
+
+          <p>
+            Od prvního telefonátu až po chvíli, kdy poprvé vstoupíte do svého nového
+            bazénu, <strong className="text-[#01384B]">budeme Vaším průvodcem</strong>.
+            Postaráme se, aby vše proběhlo hladce — bez starostí a bez komplikací.
+          </p>
+
+          <p className="text-lg font-semibold text-[#01384B] italic">
+            Vy zenujete, my bazénujeme.
+          </p>
+
+          <p>
+            Těším se, až společně vytvoříme Váš bazénový zen.
+          </p>
+        </div>
+
+        {/* Signature */}
+        <div className="mt-10 flex items-end justify-between">
+          <div>
+            <p className="text-gray-500 text-sm mb-3">S přátelským pozdravem,</p>
+            <p className="text-xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              Drahoslav Houška
+            </p>
+            <p className="text-sm text-gray-500 mt-1">jednatel Rentmil s.r.o.</p>
+          </div>
+
+          {/* Mascot */}
+          <img
+            src="/maskot-thinking.png"
+            alt="Bazénový mistr"
+            className="h-72 object-contain opacity-90"
+          />
+        </div>
+
+        {/* Decorative divider */}
+        <div className="mt-auto pb-10">
+          <div className="w-24 h-1 bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Items display component - used by both regular and variant content
 function ItemsSection({
   items,
@@ -276,10 +358,16 @@ function ItemsSection({
                       )}
                     </div>
                     <div className="text-right ml-4">
-                      <p className="text-xs text-gray-500">
-                        {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                      </p>
-                      <p className="font-semibold text-[#01384B] text-sm">{formatPrice(item.total_price)}</p>
+                      {item.category === 'doprava' && item.total_price === 0 ? (
+                        <p className="font-semibold text-green-600 text-sm">Zdarma</p>
+                      ) : (
+                        <>
+                          <p className="text-xs text-gray-500">
+                            {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                          </p>
+                          <p className="font-semibold text-[#01384B] text-sm">{formatPrice(item.total_price)}</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -388,196 +476,334 @@ function VariantContentPages({ quote, variant }: { quote: QuoteWithCreator; vari
   )
 }
 
-// Closing page component - always last, fits on one page
-// Varianta 3: Moderní asymetrický layout s foto pozadím v CTA
-// Designed to fit within header (100px) and footer (50px) margins on A4
-function ClosingPage({ quote, images }: { quote: QuoteWithCreator; images: ImagePaths }) {
-  // Calculate validity date (30 days from creation if not set)
+// Czech month locative (6. pád) for "V lednu", "V dubnu" etc.
+const MONTH_LOCATIVE: Record<string, string> = {
+  'leden': 'lednu', 'únor': 'únoru', 'březen': 'březnu', 'duben': 'dubnu',
+  'květen': 'květnu', 'červen': 'červnu', 'červenec': 'červenci', 'srpen': 'srpnu',
+  'září': 'září', 'říjen': 'říjnu', 'listopad': 'listopadu', 'prosinec': 'prosinci',
+}
+
+function monthToLocative(capacityMonth: string): string {
+  const parts = capacityMonth.trim().split(/\s+/)
+  const monthName = parts[0]?.toLowerCase() || ''
+  const rest = parts.slice(1).join(' ')
+  const locative = MONTH_LOCATIVE[monthName] || monthName
+  return rest ? `${locative} ${rest}` : locative
+}
+
+// Czech pluralization for "montáž": 1 volnou montáž, 2-4 volné montáže, 5+ volných montáží
+function pluralizeMontaz(n: number): string {
+  if (n === 1) return `${n} volnou montáž`
+  if (n >= 2 && n <= 4) return `${n} volné montáže`
+  return `${n} volných montáží`
+}
+
+// Closing page - 7 důvodů pro Rentmil + obchodní podmínky
+function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
   const validUntil = quote.valid_until
     ? new Date(quote.valid_until)
     : new Date(new Date(quote.created_at).getTime() + 30 * 24 * 60 * 60 * 1000)
 
+  const reasons = [
+    { title: '24 let výroby, 2 000+ bazénů po celé ČR', desc: 'Přímý český výrobce od roku 2002' },
+    { title: 'Prémiový německý materiál Polystone P', desc: 'UV stabilizovaný plast Röchling — 20 let+ bez ztráty barvy' },
+    { title: 'Showroom v Plzni s reálnými bazény', desc: 'Přijďte si prohlédnout — Lidická 1233/26, Plzeň' },
+    { title: 'Kompletní servis po celý rok', desc: 'Zprovoznění, údržba, zazimování — záruční i pozáruční' },
+    { title: 'Autorizovaný partner Alukov zastřešení', desc: 'Oficiální dodavatel a partner evropského lídra s bazénovým zastřešením' },
+    { title: 'Realizace na klíč od návrhu po instalaci', desc: 'Výroba, doprava, montáž — vše zařídíme za vás' },
+    { title: 'Zákazníci nás doporučují dál', desc: 'Oceňují osobní přístup, odborné poradenství a spolehlivost v každém kroku' },
+  ]
+
   return (
-    <div className="w-[210mm] mx-auto bg-white px-10 pt-4 pb-4">
+    <div className="w-[210mm] mx-auto bg-white px-10 pt-6 pb-8">
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="text-[#48A9A6] text-xs font-semibold uppercase tracking-widest mb-1">Proč právě my?</p>
-          <h2 className="text-2xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>7 důvodů pro Rentmil</h2>
-        </div>
+      <div className="mb-6">
+        <p className="text-[#48A9A6] text-xs font-semibold uppercase tracking-widest mb-1">Proč právě my?</p>
+        <h2 className="text-3xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>7 důvodů pro Rentmil</h2>
       </div>
 
       {/* Two column layout */}
-      <div className="grid grid-cols-5 gap-6 mb-4">
+      <div className="flex gap-8 mb-6">
         {/* Left column - 7 důvodů */}
-        <div className="col-span-3 space-y-2">
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">1</div>
-            <p className="font-semibold text-[#01384B] text-sm">Showroom s ukázkami bazénů</p>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">2</div>
-            <p className="font-semibold text-[#01384B] text-sm">Široký výběr tvarů a velikostí</p>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">3</div>
-            <p className="font-semibold text-[#01384B] text-sm">Zastřešení pro celoroční koupání</p>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">4</div>
-            <p className="font-semibold text-[#01384B] text-sm">Celoroční servis a údržba</p>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">5</div>
-            <p className="font-semibold text-[#01384B] text-sm">Příslušenství na jednom místě</p>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">6</div>
-            <p className="font-semibold text-[#01384B] text-sm">Realizace bazénu na klíč *</p>
-          </div>
-
-          <div className="flex items-center gap-3 p-2.5 rounded-lg bg-gradient-to-r from-[#48A9A6]/10 to-transparent border-l-4 border-[#48A9A6]">
-            <div className="w-8 h-8 rounded-full bg-[#48A9A6]/20 text-[#48A9A6] flex items-center justify-center font-bold text-sm">7</div>
-            <p className="font-semibold text-[#01384B] text-sm">Profesionální poradenství zdarma</p>
-          </div>
+        <div className="flex-1">
+          {reasons.map((reason, index) => (
+            <div key={index}>
+              <div className="py-3.5">
+                <p className="font-bold text-[#01384B] text-sm">
+                  <span className="text-[#48A9A6] mr-1">{index + 1}.</span> {reason.title}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{reason.desc}</p>
+              </div>
+              {index < reasons.length - 1 && <div className="h-px bg-gray-200" />}
+            </div>
+          ))}
         </div>
 
         {/* Right column - Conditions card */}
-        <div className="col-span-2">
-          <div className="bg-[#01384B] rounded-2xl p-4 text-white h-full">
-            <h3 className="text-sm font-bold mb-3 text-[#48A9A6]">Obchodní podmínky v kostce</h3>
-
-            <div className="space-y-2.5">
+        <div className="w-[240px] flex-shrink-0">
+          <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3">
+              <h3 className="text-sm font-bold text-[#48A9A6]">Obchodní podmínky v kostce</h3>
+            </div>
+            <div className="px-4 pb-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70">Ceny</span>
-                <span className="font-semibold">vč. DPH</span>
+                <span className="text-gray-500">Ceny</span>
+                <span className="font-semibold text-[#01384B]">bez DPH</span>
               </div>
-              <div className="h-px bg-white/10"></div>
-
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70">Záruka konstrukce</span>
+                <span className="text-gray-500">Záruka konstrukce</span>
                 <span className="font-semibold text-[#48A9A6]">10 let</span>
               </div>
-              <div className="h-px bg-white/10"></div>
-
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70">Záruka technologie</span>
-                <span className="font-semibold">2 roky</span>
+                <span className="text-gray-500">Záruka technologie</span>
+                <span className="font-semibold text-[#01384B]">2 roky</span>
               </div>
-              <div className="h-px bg-white/10"></div>
-
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70">Materiál</span>
-                <span className="font-semibold">Polystone P</span>
+                <span className="text-gray-500">Materiál</span>
+                <span className="font-semibold text-[#01384B]">Polystone P (Röchling)</span>
               </div>
-              <div className="h-px bg-white/10"></div>
-
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/70">Dodání</span>
-                <span className="font-semibold">4–8 týdnů</span>
+                <span className="text-gray-500">Dodání</span>
+                <span className="font-semibold text-[#01384B]">4–8 týdnů</span>
               </div>
-              <div className="h-px bg-white/10"></div>
-
-              <div className="text-xs">
-                <span className="text-white/70">Platba: </span>
-                <span className="font-semibold">50 % záloha</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Záloha</span>
+                <span className="font-semibold text-[#01384B]">50 %</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Doplatek</span>
+                <span className="font-semibold text-[#01384B]">50 % před expedicí</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Doprava</span>
+                <span className="font-semibold text-[#01384B]">Do 100 km od Plzně zdarma</span>
               </div>
             </div>
+          </div>
 
-            {/* Validity badge inside */}
-            <div className="mt-4 pt-3 border-t border-white/10">
-              <div className="bg-white/10 rounded-lg p-2.5 text-center">
-                <p className="text-[10px] text-white/60 uppercase">Platnost nabídky</p>
-                <p className="text-lg font-bold">{formatDate(validUntil.toISOString())}</p>
-              </div>
-            </div>
+          {/* Validity box */}
+          <div className="mt-4 bg-gray-50 rounded-xl border border-gray-200 p-3 text-center">
+            <p className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Platnost nabídky</p>
+            <p className="text-lg font-bold text-[#01384B]">{formatDate(validUntil.toISOString())}</p>
+          </div>
 
-            {/* Link to full terms */}
-            <div className="mt-3 text-center">
-              <a href="https://www.rentmil.cz/obchodni-podminky" className="text-[#48A9A6] text-[10px] hover:underline">
-                Kompletní obchodní podmínky →
-              </a>
-            </div>
+          {/* Link to full terms */}
+          <div className="mt-3 text-center">
+            <a href="https://www.rentmil.cz/obchodni-podminky" className="text-[#48A9A6] text-[10px]">
+              Kompletní obchodní podmínky →
+            </a>
           </div>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-4 mb-4 py-3 border-y border-gray-100">
+      <div className="grid grid-cols-4 gap-4 py-5 border-y border-gray-200 mb-5">
         <div className="text-center">
-          <p className="text-3xl font-bold text-[#48A9A6]">24</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Let zkušeností</p>
+          <p className="text-4xl font-bold text-[#48A9A6]">24</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Let zkušeností</p>
         </div>
         <div className="text-center">
-          <p className="text-3xl font-bold text-[#48A9A6]">10</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Let záruka</p>
+          <p className="text-4xl font-bold text-[#48A9A6]">10</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Let záruka</p>
         </div>
         <div className="text-center">
-          <p className="text-3xl font-bold text-[#48A9A6]">2000+</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Realizací po celé ČR</p>
+          <p className="text-4xl font-bold text-[#48A9A6]">2000+</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Realizací po celé ČR</p>
         </div>
         <div className="text-center">
-          <p className="text-3xl font-bold text-[#48A9A6]">{quote.delivery_term || '4-8 týdnů'}</p>
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider">Dodání</p>
+          <p className="text-4xl font-bold text-[#48A9A6]">4–8</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Týdnů dodání</p>
         </div>
       </div>
 
-      {/* Footnote */}
-      <p className="text-[9px] text-gray-400 mb-3">* po předchozí domluvě</p>
+      {/* Urgency banner */}
+      {(quote.order_deadline || quote.delivery_deadline) && (() => {
+        const orderDeadlineFormatted = quote.order_deadline
+          ? new Date(quote.order_deadline).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })
+          : null
+        const deliveryDeadlineFormatted = quote.delivery_deadline
+          ? new Date(quote.delivery_deadline).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long', year: 'numeric' })
+          : null
+        return (
+          <div className="bg-gradient-to-r from-[#FF8621]/10 to-[#ED6663]/10 border border-[#FF8621]/30 rounded-2xl p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="font-bold text-[#01384B] text-base mb-1">Zajistěte si koupání na vlastní zahradě</p>
+                {orderDeadlineFormatted && deliveryDeadlineFormatted && (
+                  <p className="text-sm text-[#01384B]">
+                    Při objednání do <strong>{orderDeadlineFormatted}</strong> je velmi pravděpodobné dodání do <strong>{deliveryDeadlineFormatted}</strong>.
+                  </p>
+                )}
+                {orderDeadlineFormatted && !deliveryDeadlineFormatted && (
+                  <p className="text-sm text-[#01384B]">
+                    Objednejte do <strong>{orderDeadlineFormatted}</strong>
+                  </p>
+                )}
+              </div>
+              {quote.capacity_month && quote.available_installations != null && (
+                <div className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-xl px-5 py-3 text-white text-center ml-4 shadow-lg flex-shrink-0">
+                  <p className="text-sm font-bold leading-snug whitespace-nowrap">V {monthToLocative(quote.capacity_month)} máme<br />ještě {pluralizeMontaz(quote.available_installations)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
-      {/* CTA Section with photo background - larger with mascot and slogan inside */}
-      <div className="relative rounded-2xl overflow-hidden">
-        {/* Background image */}
-        <div className="absolute inset-0">
-          <img src={images.poolHero} alt="Bazén" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#01384B]/95 via-[#01384B]/85 to-[#01384B]/70"></div>
+    </div>
+  )
+}
+
+// Next steps page - reviews, timeline, CTA (last page in document)
+function NextStepsPage({ quote, images }: { quote: QuoteWithCreator; images: ImagePaths }) {
+  const creatorName = quote.creator?.full_name || 'Rentmil tým'
+  const creatorPhone = quote.creator?.phone || COMPANY.phone
+
+  return (
+    <div className="w-[210mm] mx-auto bg-white px-10 pt-4 pb-2">
+      {/* Reviews section */}
+      <div className="border border-gray-200 rounded-xl p-5 mb-5">
+        <h3 className="text-sm font-bold text-[#01384B] uppercase tracking-wider mb-4">
+          Co říkají naši zákazníci
+        </h3>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex gap-0.5 mb-2">
+              {[1,2,3,4,5].map(i => (
+                <span key={i} className="text-[#FF8621] text-sm">&#9733;</span>
+              ))}
+            </div>
+            <p className="text-sm text-[#01384B] italic leading-relaxed">
+              &bdquo;Výborná spolupráce od první návštěvy. Bazén dodán v domluveném termínu, usazení, montáž, vše proběhlo na jedničku. Firma rovněž poskytuje nadstandardní servis.&ldquo;
+            </p>
+            <p className="text-xs text-gray-500 mt-2">&mdash; Lukáš Wilhelm</p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="flex gap-0.5 mb-2">
+              {[1,2,3,4,5].map(i => (
+                <span key={i} className="text-[#FF8621] text-sm">&#9733;</span>
+              ))}
+            </div>
+            <p className="text-sm text-[#01384B] italic leading-relaxed">
+              &bdquo;Názorné centrum s ukázkou téměř celého sortimentu. Ujmou se vás velmi ochotně a poradí s tím, co přesně potřebujete. Objednávku pak splní přesně podle slibu.&ldquo;
+            </p>
+            <p className="text-xs text-gray-500 mt-2">&mdash; Vladimír Dolejš</p>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="relative p-6 flex items-center justify-between">
-          <div className="flex-1">
-            <h3 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>Připraveni začít?</h3>
-            <p className="text-white/70 text-base mb-4">Ozvěte se nám a probereme vaše požadavky</p>
+        {/* Google rating */}
+        <div className="flex items-center justify-center gap-3 bg-white border border-gray-200 rounded-lg px-4 py-2.5">
+          {/* Google "G" logo */}
+          <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          <span className="text-lg font-bold text-[#01384B]">4,6</span>
+          <div className="flex items-center gap-0.5">
+            {[1,2,3,4].map(i => (
+              <span key={i} className="text-[#FF8621] text-sm leading-none">&#9733;</span>
+            ))}
+            <span className="text-sm leading-none relative">
+              <span className="text-[#D1D5DB]">&#9733;</span>
+              <span className="absolute inset-0 overflow-hidden w-[60%] text-[#FF8621]">&#9733;</span>
+            </span>
+          </div>
+          <span className="text-xs text-gray-500">50+ recenzí</span>
+          <a href="https://www.google.com/maps/place/Rentmil+s.r.o.+-+v%C3%BDroba+baz%C3%A9n%C5%AF/@49.7666927,13.3745379,17z" className="text-xs text-[#48A9A6] font-medium ml-2">
+            Zobrazit všechny recenze &rarr;
+          </a>
+        </div>
+      </div>
 
-            <div className="flex items-center gap-8 mb-5">
-              {quote.creator && (
-                <>
-                  <div>
-                    <p className="text-[#48A9A6] text-xs uppercase tracking-wider mb-1">Váš specialista</p>
-                    <p className="text-white font-bold text-lg">{quote.creator.full_name}</p>
-                  </div>
-                  <div className="h-12 w-px bg-white/20"></div>
-                </>
-              )}
-              <div className="space-y-1 text-base">
-                <p className="text-white/90 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#48A9A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                  </svg>
-                  {quote.creator?.phone || COMPANY.phone}
-                </p>
-                <p className="text-white/90 flex items-center gap-2">
-                  <svg className="w-4 h-4 text-[#48A9A6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                  </svg>
-                  {quote.creator?.email || COMPANY.email}
-                </p>
+      {/* Timeline section */}
+      <div className="mb-5">
+        <h3 className="text-sm font-bold text-[#01384B] uppercase tracking-wider mb-5">
+          Jak probíhá realizace
+        </h3>
+
+        <div className="flex items-start justify-between relative">
+          {/* Connecting line */}
+          <div className="absolute top-5 left-[10%] right-[10%] h-0.5 bg-gray-200" />
+
+          {[
+            { num: '1', title: 'Objednání', desc: 'Podpis smlouvy\na záloha 50 %', time: 'Den 0', color: '#8CC5C3' },
+            { num: '2', title: 'Výroba', desc: 'Bazén na míru\nv naší dílně', time: '4–8 týdnů', color: '#6BB5B2' },
+            { num: '3', title: 'Dodání', desc: 'Transport\nna vaši adresu', time: '1 den', color: '#48A9A6' },
+            { num: '4', title: 'Instalace', desc: 'Osazení a napojení\ntechnologie', time: '2–3 dny', color: '#3A8B88' },
+            { num: '✓', title: 'Předání', desc: 'Zaškolení\na užívání', time: 'Hotovo!', color: '#2D6E6B', isLast: true },
+          ].map((step, i) => (
+            <div key={i} className="flex flex-col items-center text-center relative z-10 w-1/5">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm mb-2"
+                style={{ backgroundColor: step.color }}
+              >
+                {step.num}
+              </div>
+              <p className="font-bold text-[#01384B] text-xs mb-0.5">{step.title}</p>
+              <p className="text-[10px] text-gray-500 whitespace-pre-line leading-tight">{step.desc}</p>
+              <p className={`text-[10px] font-semibold mt-1 ${step.isLast ? 'text-[#FF8621]' : 'text-[#48A9A6]'}`}>
+                {step.time}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="relative rounded-2xl overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={images.poolHero} alt="Bazén" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#01384B]/95 via-[#01384B]/90 to-[#01384B]/75" />
+        </div>
+
+        <div className="relative p-5">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                Stačí 3 kroky k vašemu bazénu
+              </h3>
+              <p className="text-white/70 text-sm mb-4">Ozvěte se a vše zařídíme za vás</p>
+
+              <div className="space-y-2.5 mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#48A9A6] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">1</div>
+                  <p className="text-white text-sm">Zavolejte nám nebo napište</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#48A9A6] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">2</div>
+                  <p className="text-white text-sm">Probereme detaily a upravíme nabídku</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-[#48A9A6] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">3</div>
+                  <p className="text-white text-sm">Podepíšeme smlouvu a <span className="text-[#48A9A6] font-semibold italic">zahájíme výrobu</span></p>
+                </div>
+              </div>
+
+              {/* Contact box with creator info */}
+              <div className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-xl px-5 py-4 inline-block">
+                <div className="mb-2">
+                  <p className="text-white font-bold text-sm">{creatorName}</p>
+                  <p className="text-white/80 text-[10px]">Váš bazénový specialista</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-white font-bold text-lg">{creatorPhone}</p>
+                  <p className="text-white/90 text-xs">{COMPANY.email}</p>
+                </div>
               </div>
             </div>
 
-          </div>
-
-          {/* Mascot with slogan */}
-          <div className="flex flex-col items-center">
-            <img src={images.maskot} alt="Maskot" className="h-40 object-contain drop-shadow-2xl mb-2" />
-            {/* Slogan next to mascot */}
-            <div className="bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-xl px-5 py-2.5 shadow-lg">
-              <p className="text-base font-bold text-white italic whitespace-nowrap" style={{ fontFamily: 'Nunito, sans-serif' }}>&bdquo;Vy zenujete, my bazénujeme.&ldquo;</p>
+            {/* Mascot + slogan */}
+            <div className="flex flex-col items-center ml-4">
+              <img src={images.maskot} alt="Maskot" className="h-36 object-contain drop-shadow-2xl mb-2" />
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
+                <p className="text-sm font-semibold text-white italic" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                  &bdquo;Vy zenujete, my bazénujeme.&ldquo;
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -731,6 +957,15 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
     )
   }
 
+  // Render intro page (personal letter)
+  if (page === 'intro') {
+    return (
+      <div className="min-h-screen bg-white">
+        <IntroPage quote={quote} />
+      </div>
+    )
+  }
+
   // Render specific variant content (for Puppeteer multi-variant PDF)
   if (page === 'variant' && variant) {
     const selectedVariant = quote.variants?.find((v) => v.id === variant)
@@ -762,11 +997,20 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
     )
   }
 
-  // Render closing page - always last page in document
+  // Render closing page (7 důvodů)
   if (page === 'closing') {
     return (
       <div className="min-h-screen bg-white">
-        <ClosingPage quote={quote} images={images} />
+        <ClosingPage quote={quote} />
+      </div>
+    )
+  }
+
+  // Render next steps page (reviews, timeline, CTA) - last page
+  if (page === 'nextsteps') {
+    return (
+      <div className="min-h-screen bg-white">
+        <NextStepsPage quote={quote} images={images} />
       </div>
     )
   }
@@ -784,10 +1028,11 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
     return (
       <div className="min-h-screen bg-white">
         <TitlePage quote={quote} images={images} />
+        <IntroPage quote={quote} />
         {orderedVariants.map((v) => (
           <div key={v.id} className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
             <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
-              <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
+              <img src="/Sunset.png" alt="Rentmil" className="h-20 object-contain" />
               <p className="text-lg font-semibold text-[#01384B]">{quote.quote_number}</p>
             </div>
             <VariantContentPages quote={quote} variant={v} />
@@ -799,7 +1044,7 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
         {/* Comparison page */}
         <div className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
           <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
-            <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
+            <img src="/Sunset.png" alt="Rentmil" className="h-20 object-contain" />
             <p className="text-lg font-semibold text-[#01384B]">{quote.quote_number}</p>
           </div>
           <ComparisonPage quote={quote} />
@@ -815,9 +1060,10 @@ export default async function QuotePrintPage({ params, searchParams }: PageProps
   return (
     <div className="min-h-screen bg-white">
       <TitlePage quote={quote} images={images} />
+      <IntroPage quote={quote} />
       <div className="w-[210mm] mx-auto bg-white py-12 px-10" style={{ pageBreakBefore: 'always' }}>
         <div className="flex items-center justify-between mb-8 pb-4 border-b-2 border-[#48A9A6]">
-          <img src="/logo-orange-gradient.svg" alt="Rentmil" className="h-20 object-contain" />
+          <img src="/Sunset.png" alt="Rentmil" className="h-20 object-contain" />
           <p className="text-lg font-semibold text-[#01384B]">{quote.quote_number}</p>
         </div>
         <ContentPages quote={quote} />

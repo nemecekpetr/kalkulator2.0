@@ -456,7 +456,7 @@ export default async function ProductionPrintPage({ params, searchParams }: Page
           {/* Header */}
           <div className="header">
             <Image
-              src="/logo-orange-gradient.svg"
+              src="/Sunset.png"
               alt="Rentmil"
               width={100}
               height={40}

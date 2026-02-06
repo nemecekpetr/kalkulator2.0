@@ -42,7 +42,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
     contract_date: order.contract_date || '',
     delivery_date: order.delivery_date || '',
     delivery_address: order.delivery_address || '',
-    deposit_amount: order.deposit_amount || 0,
+    deposit_amount: order.deposit_amount || Math.round(order.total_price / 2),
     notes: order.notes || '',
     internal_notes: order.internal_notes || '',
     // New contract fields
@@ -292,7 +292,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
                   <SelectValue placeholder="Vyberte způsob dopravy" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rentmil_dap">Doprava Rentmil s.r.o. (DAP)</SelectItem>
+                  <SelectItem value="rentmil_dap">Rentmil s.r.o. (DAP)</SelectItem>
                   <SelectItem value="self_pickup">Vlastní odběr</SelectItem>
                   <SelectItem value="custom">Jiné...</SelectItem>
                 </SelectContent>

@@ -89,12 +89,20 @@ async function getQuoteWithDetails(id: string) {
     .eq('active', true)
     .order('name')
 
+  // Fetch existing order linked to this quote
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('id, order_number, status')
+    .eq('quote_id', quote.id)
+    .single()
+
   return {
     quote,
     items: itemsWithVariantKeys,
     variants: (variants || []) as QuoteVariant[],
     configuration,
     products: (products || []) as Product[],
+    existingOrder: existingOrder || null,
   }
 }
 
@@ -106,7 +114,7 @@ export default async function EditQuotePage({ params }: PageProps) {
     notFound()
   }
 
-  const { quote, items, variants, configuration, products } = data
+  const { quote, items, variants, configuration, products, existingOrder } = data
 
   return (
     <div className="space-y-6">
@@ -136,9 +144,14 @@ export default async function EditQuotePage({ params }: PageProps) {
           customer_email: quote.customer_email || '',
           customer_phone: quote.customer_phone || '',
           customer_address: quote.customer_address || '',
+          customer_salutation: quote.customer_salutation || null,
           notes: quote.notes || '',
           valid_until: quote.valid_until || '',
           delivery_term: quote.delivery_term || null,
+          order_deadline: quote.order_deadline || null,
+          delivery_deadline: quote.delivery_deadline || null,
+          capacity_month: quote.capacity_month || null,
+          available_installations: quote.available_installations ?? null,
           items: items.map((item) => ({
             id: item.id,
             product_id: item.product_id,
@@ -159,6 +172,7 @@ export default async function EditQuotePage({ params }: PageProps) {
             discount_amount: v.discount_amount,
           })),
         }}
+        existingOrder={existingOrder}
       />
     </div>
   )

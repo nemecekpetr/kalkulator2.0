@@ -137,6 +137,8 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Created from accepted quotes via status conversion
 - Manages customer orders with status tracking
 - Order statuses: `created`, `sent`, `in_production`
+- Contract fields: fulfillment address, construction/delivery dates, delivery method/cost, VAT rate, weight
+- PDF exports generate full purchase agreements with 13 legal articles and signature page
 
 **Production System** (`/admin/vyroba`)
 - Tracks pool manufacturing process
@@ -155,6 +157,15 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Pool products are matched by code format: `BAZ-{SHAPE}-{TYPE}-{DIMENSIONS}` (e.g., `BAZ-OBD-SK-3-6-1.2`)
 - Rules support constraints by pool shape and type
 - Generated items track their source: `pool_base_price`, `mapping_rule`, `required_surcharge`, or `product_group`
+
+**Product Addon Systems**
+- **Skeleton addons**: Addons for `skelety` products that merge into the skeleton item's price and name (inline)
+  - Dialog: `src/components/admin/skeleton-addon-dialog.tsx`
+- **Set addons**: Addons for `sety` products stored as JSONB array (`set_addons` column on Product)
+  - Each addon becomes a separate `QuoteItem` with parent-child relationship
+  - Parent-child persisted via `[SA:addonId]` prefix in description field
+  - Dialog: `src/components/admin/set-addon-dialog.tsx`
+  - Structure: `[{"id": "uuid", "name": "string", "price": number, "sort_order": number}]`
 
 **Changelog/Novinky System**
 - In-app changelog displayed to users in admin panel (`/admin/novinky`)
@@ -199,6 +210,7 @@ Deployed on Railway using Nixpacks:
 - `railway.json`: Build and deploy configuration with health checks
 - `nixpacks.toml`: System dependencies (Node.js 20, Chromium for Puppeteer)
 - Puppeteer uses Nix Chromium (`PUPPETEER_EXECUTABLE_PATH=/nix/var/nix/profiles/default/bin/chromium`)
+- PDF generation uses browser instance pooling (`src/lib/puppeteer-pool.ts`) and logo caching (`src/lib/pdf/logo-cache.ts`)
 
 ### Key Integrations
 
@@ -230,6 +242,8 @@ All database types defined in `src/lib/supabase/types.ts`:
 - `SyncLog`: Pipedrive sync tracking
 - `ProductMappingRule`: Maps configurator choices to products
 - `GeneratedQuoteItem`: Generated items before saving to DB
+- `SetAddon`: Set addon definition (stored as JSONB on Product)
+- `ProductPriceHistory`: Historical tracking of product price changes
 
 ### Product Categories
 

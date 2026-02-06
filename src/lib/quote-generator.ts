@@ -401,6 +401,23 @@ export async function generateQuoteItemsFromConfiguration(
     }
   }
 
+  // 4. Always add delivery item at the end (0 Kč = Zdarma by default)
+  const hasDelivery = items.some((item) => item.category === 'doprava')
+  if (!hasDelivery) {
+    items.push({
+      product_id: null,
+      name: 'Doprava',
+      description: null,
+      category: 'doprava',
+      quantity: 1,
+      unit: 'ks',
+      unit_price: 0,
+      total_price: 0,
+      sort_order: sortOrder++,
+      source: 'mapping_rule',
+    })
+  }
+
   return items
 }
 

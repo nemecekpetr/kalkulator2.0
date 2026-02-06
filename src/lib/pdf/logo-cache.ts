@@ -24,9 +24,9 @@ export async function getLogoDataUri(): Promise<string> {
   }
 
   try {
-    const logoPath = path.join(process.cwd(), 'public', 'logo-orange-gradient.svg')
-    const svgContent = await readFile(logoPath, 'utf-8')
-    const dataUri = `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`
+    const logoPath = path.join(process.cwd(), 'public', 'Sunset.png')
+    const pngContent = await readFile(logoPath)
+    const dataUri = `data:image/png;base64,${pngContent.toString('base64')}`
 
     // Update cache
     cache = {
