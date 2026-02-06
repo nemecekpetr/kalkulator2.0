@@ -4,9 +4,46 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.3.2'
+export const CURRENT_VERSION = '0.4.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.4.0',
+      date: '2026-02-06',
+      time: '15:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'PDF objednávky jako plná kupní smlouva s 13 právními články',
+          userDescription: 'PDF objednávky nyní slouží jako plná kupní smlouva. Obsahuje 13 smluvních článků (předmět smlouvy, platební podmínky, termíny, doprava, záruky a další), stránku s podpisy včetně razítka a nákres pro umístění schodiště.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Nová pole objednávky: místo plnění, stavební připravenost, způsob dopravy, DPH, hmotnost',
+          userDescription: 'V editoru objednávky najdete nová pole pro smluvní údaje: adresu místa plnění, datum stavební připravenosti, předpokládané dodání, způsob a náklady dopravy, hmotnost zásilky a sazbu DPH. Vše se automaticky propíše do PDF smlouvy.'
+        },
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Setové doplňky (set addons) u produktů kategorie "sety"',
+          userDescription: 'U bazénových setů nyní můžete definovat volitelné doplňky (např. protiproud, osvětlení). Při přidání setu do nabídky si vyberete, které doplňky zákazník chce - každý se přidá jako samostatná položka.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Setové doplňky v editoru nabídek s parent-child vazbou',
+          userDescription: 'Při přidání bazénového setu do nabídky se zobrazí dialog s výběrem doplňků. Vybrané doplňky se přidají jako podřazené položky setu a můžete je kdykoliv přidat nebo odebrat.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Konverze nabídky na objednávku přenáší nová smluvní pole',
+          userDescription: 'Při převodu nabídky na objednávku se nyní správně přenesou všechny údaje potřebné pro smluvní dokumentaci.'
+        }
+      ]
+    },
     {
       version: '0.3.2',
       date: '2026-01-27',
