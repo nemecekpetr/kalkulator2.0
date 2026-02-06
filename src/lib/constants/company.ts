@@ -29,11 +29,13 @@ export const COMPANY = {
     role: 'jednatel',
   },
 
-  // Bankovní spojení (pokud bude potřeba)
+  // Registrace
+  registration: 'Zapsána v OR u KS v Plzni, oddíl C, vložka 37498',
+
+  // Bankovní spojení
   bank: {
-    name: 'Fio banka',
-    iban: '',
-    accountNumber: '',
+    name: 'Raiffeisenbank Plzeň',
+    accountNumber: '793008001/5500',
   },
 } as const
 

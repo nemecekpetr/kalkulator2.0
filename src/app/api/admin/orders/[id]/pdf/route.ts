@@ -98,22 +98,35 @@ export async function GET(request: Request, { params }: RouteParams) {
       mergedPdf.addPage(contentPage)
     }
 
-    // Step 3: Generate terms page (with header/footer)
-    const termsPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=terms&quality=${quality}`, printToken)
+    // Step 3: Generate contract clauses pages (with header/footer)
+    const clausesPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=clauses&quality=${quality}`, printToken)
 
-    const termsPdfBuffer = await generatePdfFromPage(page, termsPageUrl, contentOptions)
-    metrics.step('terms-page')
+    const clausesPdfBuffer = await generatePdfFromPage(page, clausesPageUrl, contentOptions)
+    metrics.step('clauses-page')
 
-    const termsPdf = await PDFDocument.load(termsPdfBuffer)
-    const termsPageCount = termsPdf.getPageCount()
-    for (let i = 0; i < termsPageCount; i++) {
-      const [termsPage] = await mergedPdf.copyPages(termsPdf, [i])
-      mergedPdf.addPage(termsPage)
+    const clausesPdf = await PDFDocument.load(clausesPdfBuffer)
+    const clausesPageCount = clausesPdf.getPageCount()
+    for (let i = 0; i < clausesPageCount; i++) {
+      const [clausesPage] = await mergedPdf.copyPages(clausesPdf, [i])
+      mergedPdf.addPage(clausesPage)
+    }
+
+    // Step 4: Generate signature page (with header/footer)
+    const signaturePageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=signature&quality=${quality}`, printToken)
+
+    const signaturePdfBuffer = await generatePdfFromPage(page, signaturePageUrl, contentOptions)
+    metrics.step('signature-page')
+
+    const signaturePdf = await PDFDocument.load(signaturePdfBuffer)
+    const signaturePageCount = signaturePdf.getPageCount()
+    for (let i = 0; i < signaturePageCount; i++) {
+      const [signaturePage] = await mergedPdf.copyPages(signaturePdf, [i])
+      mergedPdf.addPage(signaturePage)
     }
 
     // Set PDF metadata
     setPdfMetadata(mergedPdf, {
-      title: `Smlouva o dílo ${order.order_number}`,
+      title: `Objednávka ${order.order_number}`,
       documentNumber: order.order_number,
       documentType: 'Objednávka',
     })

@@ -82,7 +82,7 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
 
         {/* Contract info badge */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 text-right">
-          <p className="text-[#48A9A6] text-sm font-medium uppercase tracking-wider mb-1">Smlouva o dílo č.</p>
+          <p className="text-[#48A9A6] text-sm font-medium uppercase tracking-wider mb-1">Objednávka č.</p>
           <p className="text-3xl font-bold text-white">{order.order_number}</p>
           <p className="text-white/70 text-sm mt-1">{formatDate(order.created_at)}</p>
         </div>
@@ -92,7 +92,7 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
       <div className="relative z-10 flex flex-col items-center justify-center mt-16">
         <div className="text-center">
           <h1 className="text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg uppercase tracking-wide">
-            Smlouva o dílo
+            Objednávka
           </h1>
           <p className="text-2xl text-white/90 mb-6 drop-shadow">
             Váš vysněný bazén je na cestě
@@ -159,6 +159,16 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
   )
 }
 
+const DELIVERY_METHOD_LABELS: Record<string, string> = {
+  rentmil_dap: 'Doprava Rentmil s.r.o. (DAP)',
+  self_pickup: 'Vlastní odběr',
+}
+
+function getDeliveryMethodLabel(method: string | null): string {
+  if (!method) return 'Dle dohody'
+  return DELIVERY_METHOD_LABELS[method] || method
+}
+
 // Contract content page
 function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
   return (
@@ -181,6 +191,7 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
             <p className="text-sm text-gray-600">{COMPANY.address.zip} {COMPANY.address.city}</p>
             <p className="text-sm text-gray-600 mt-2">IČO: {COMPANY.ico}</p>
             <p className="text-sm text-gray-600">DIČ: {COMPANY.dic}</p>
+            <p className="text-sm text-gray-500 mt-1">{COMPANY.registration}</p>
           </div>
 
           {/* Buyer */}
@@ -247,7 +258,7 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
 
         {/* Totals */}
         <div className="mt-4 flex justify-end" style={{ pageBreakInside: 'avoid' }}>
-          <div className="w-64">
+          <div className="w-72">
             <div className="flex justify-between py-1 text-sm">
               <span className="text-gray-600">Mezisoučet</span>
               <span>{formatPrice(order.subtotal)}</span>
@@ -264,6 +275,23 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
                 <span>-{formatPrice(order.discount_amount)}</span>
               </div>
             )}
+            {(() => {
+              const vatRate = order.vat_rate ?? 12
+              const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
+              const vatAmount = order.total_price - priceWithoutVat
+              return (
+                <>
+                  <div className="flex justify-between py-1 text-sm border-t border-gray-200 mt-1 pt-1">
+                    <span className="text-gray-600">Cena bez DPH</span>
+                    <span>{formatPrice(priceWithoutVat)}</span>
+                  </div>
+                  <div className="flex justify-between py-1 text-sm">
+                    <span className="text-gray-600">DPH ({vatRate}%)</span>
+                    <span>{formatPrice(vatAmount)}</span>
+                  </div>
+                </>
+              )
+            })()}
             <div className="rounded-lg border-2 border-[#01384B] p-3 bg-[#01384B]/5 mt-2">
               <div className="flex justify-between items-center">
                 <span className="text-base font-semibold text-[#01384B]">Celkem k úhradě</span>
@@ -290,114 +318,404 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
   )
 }
 
-// Terms page - poslední stránka s termíny, zárukami, podpisy a GDPR
-// Kompaktní design aby se vešla na 1 stránku, bez vlastního headeru (Puppeteer přidá header)
-function TermsPage({ order }: { order: Order }) {
-  const depositAmount = order.deposit_amount > 0 ? order.deposit_amount : order.total_price * 0.5
+// Contract clauses page - 13 legal articles
+function ContractClausesPage({ order }: { order: Order }) {
+  const vatRate = order.vat_rate ?? 12
+  const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
+  const vatAmount = order.total_price - priceWithoutVat
+  const depositAmount = order.deposit_amount > 0 ? order.deposit_amount : Math.round(order.total_price / 2)
   const remainingAmount = order.total_price - depositAmount
 
+  // Extract variable symbol from order number (digits only)
+  const variableSymbol = order.order_number.replace(/\D/g, '')
+
   return (
-    <div className="bg-white px-8 py-4 text-[#01384B]">
-      {/* Termíny plnění */}
-      <div className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-base font-bold text-[#01384B] mb-2 pb-1 border-b-2 border-[#01384B]">
-          I. Termíny plnění
-        </h2>
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <div className="grid grid-cols-2 gap-4 text-sm">
+    <div className="bg-white px-10 py-6 text-[#01384B] text-[11px] leading-relaxed">
+      {/* Article 1 */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          1. Předmět smlouvy
+        </h3>
+        <p>
+          Prodávající se zavazuje dodat Kupujícímu bazén a příslušenství dle specifikace uvedené
+          v položkách této objednávky (dále jen &bdquo;zboží&ldquo;) a Kupující se zavazuje zboží
+          převzít a zaplatit za něj sjednanou cenu. Specifikace zboží, jeho množství a cena jsou
+          uvedeny v přiložené tabulce položek objednávky, která tvoří nedílnou součást této smlouvy.
+        </p>
+      </div>
+
+      {/* Article 2 - dynamic */}
+      <div className="mb-5">
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          2. Smluvní cena a platební podmínky
+        </h3>
+        <p className="mb-2">
+          Celková cena za dodání zboží činí <strong className="text-sm">{formatPrice(order.total_price)}</strong> včetně {vatRate}% DPH
+          (z toho cena bez DPH: {formatPrice(priceWithoutVat)}, DPH: {formatPrice(vatAmount)}).
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div className="bg-[#48A9A6]/10 border border-[#48A9A6]/30 rounded-lg p-3" style={{ breakInside: 'avoid' }}>
+            <p className="font-semibold text-[#01384B] text-xs mb-1">1. splátka (záloha)</p>
+            <p className="text-base font-bold text-[#01384B]">{formatPrice(depositAmount)}</p>
+            <p className="text-gray-600 mt-1">Splatná do 5 pracovních dní od podpisu objednávky</p>
+            <p className="text-gray-600 mt-1">
+              Č. účtu: <strong>{COMPANY.bank.accountNumber}</strong>
+              {' '}{COMPANY.bank.name}
+            </p>
+            <p className="text-gray-600">
+              Variabilní symbol: <strong>{variableSymbol}</strong>
+            </p>
+          </div>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3" style={{ breakInside: 'avoid' }}>
+            <p className="font-semibold text-[#01384B] text-xs mb-1">2. splátka (doplatek)</p>
+            <p className="text-base font-bold text-[#01384B]">{formatPrice(remainingAmount)}</p>
+            <p className="text-gray-600 mt-1">
+              Splatná v den dodání zboží, případně 3 pracovní dny před plánovaným dodáním na základě výzvy Prodávajícího.
+            </p>
+          </div>
+        </div>
+
+        <p className="mb-1">
+          Na dodávku se uplatní snížená sazba DPH dle §48 zákona č. 235/2004 Sb., o dani z přidané hodnoty,
+          pokud jsou splněny zákonné podmínky (stavba pro bydlení).
+        </p>
+        <p>
+          V případě nezaplacení zálohy ve stanovené lhůtě je Prodávající oprávněn od smlouvy odstoupit
+          a požadovat náhradu vzniklých nákladů.
+        </p>
+      </div>
+
+      {/* Article 3 - dynamic */}
+      <div className="mb-5">
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          3. Místo a termín plnění
+        </h3>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3" style={{ breakInside: 'avoid' }}>
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-gray-500 uppercase">Dodací lhůta</p>
-              <p className="font-semibold text-[#01384B]">{order.delivery_term || '4-8 týdnů'} od uhrazení zálohy</p>
+              <p className="text-[10px] text-gray-500 uppercase">Místo plnění</p>
+              <p className="font-semibold text-[#01384B] text-xs">
+                {order.fulfillment_address || order.delivery_address || order.customer_address || 'Dle dohody'}
+              </p>
+            </div>
+            {order.construction_readiness_date && (
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase">Stavební připravenost</p>
+                <p className="font-semibold text-[#01384B] text-xs">{formatDate(order.construction_readiness_date)}</p>
+              </div>
+            )}
+            {order.expected_delivery_date && (
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase">Předpokládané dodání</p>
+                <p className="font-semibold text-[#01384B] text-xs">{formatDate(order.expected_delivery_date)}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <p className="mb-1">
+          Stavební připravenost zajišťuje Kupující na vlastní náklady. Konkrétní termín dodání
+          oznámí Prodávající Kupujícímu nejméně 5 pracovních dní předem telefonicky nebo emailem.
+        </p>
+        <p>
+          Dodací lhůta je {order.delivery_term || '4–8 týdnů'} od uhrazení zálohy. V případě nepříznivých
+          klimatických podmínek nebo vyšší moci se termín dodání přiměřeně prodlužuje.
+        </p>
+      </div>
+
+      {/* Article 4 - dynamic */}
+      <div className="mb-5">
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          4. Způsob dodání, náklady na dodání
+        </h3>
+
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3" style={{ breakInside: 'avoid' }}>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-[10px] text-gray-500 uppercase">Způsob dopravy</p>
+              <p className="font-semibold text-[#01384B] text-xs">{getDeliveryMethodLabel(order.delivery_method)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase">Místo dodání</p>
-              <p className="font-semibold text-[#01384B]">{order.delivery_address || order.customer_address || 'Dle dohody'}</p>
+              <p className="text-[10px] text-gray-500 uppercase">Náklady na dodání</p>
+              <p className="font-semibold text-[#01384B] text-xs">
+                {order.delivery_cost_free ? 'Zdarma' : formatPrice(order.delivery_cost)}
+              </p>
+            </div>
+            {order.total_weight != null && order.total_weight > 0 && (
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase">Hmotnost</p>
+                <p className="font-semibold text-[#01384B] text-xs">{order.total_weight} kg <span className="font-normal text-gray-500">(± 5%)</span></p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <p>
+          Vykládku zboží z přepravního vozidla zajišťuje Kupující na vlastní náklady a odpovědnost.
+          K vykládce je třeba zajistit jeřáb nebo dostatečný počet osob (min. 1 osoba na 25 kg hmotnosti zboží).
+          Prodávající neodpovídá za škody vzniklé při vykládce zajišťované Kupujícím.
+        </p>
+      </div>
+
+      {/* Article 5 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          5. Změna objednávky
+        </h3>
+        <p>
+          Kupující je oprávněn požádat o změnu objednávky (změna barvy, rozměrů, příslušenství apod.)
+          pouze písemnou formou. Změna objednávky je účinná až po písemném potvrzení Prodávajícím.
+          Prodávající si vyhrazuje právo na úpravu ceny a termínu dodání v případě změny objednávky.
+          Pokud již byla zahájena výroba, může být změna objednávky zpoplatněna dle skutečně vynaložených nákladů.
+        </p>
+      </div>
+
+      {/* Article 6 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          6. Rozsah plnění
+        </h3>
+        <p>
+          Předmětem dodávky je výhradně zboží uvedené v položkách objednávky. Zemní práce, stavební
+          příprava, elektroinstalace, vodoinstalace a další práce spojené s instalací bazénu nejsou
+          součástí dodávky, pokud není výslovně uvedeno jinak. Montáž technologie je součástí dodávky
+          pouze v případě, že je uvedena jako samostatná položka objednávky.
+        </p>
+      </div>
+
+      {/* Article 7 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          7. Změna termínu dodání
+        </h3>
+        <p className="mb-1">
+          Prodávající je oprávněn změnit termín dodání v případě:
+        </p>
+        <ul className="list-disc list-inside space-y-0.5 ml-2 mb-1">
+          <li>nepříznivých klimatických podmínek znemožňujících přepravu nebo instalaci,</li>
+          <li>vyšší moci (živelné pohromy, epidemie, válečné konflikty, výpadky dodavatelského řetězce),</li>
+          <li>prodlení Kupujícího se zajištěním stavební připravenosti,</li>
+          <li>nezaplacení zálohy nebo doplatku ve stanoveném termínu.</li>
+        </ul>
+        <p>
+          O změně termínu je Prodávající povinen informovat Kupujícího bez zbytečného odkladu.
+          Změna termínu dodání z výše uvedených důvodů nezakládá právo Kupujícího na odstoupení
+          od smlouvy ani na náhradu škody.
+        </p>
+      </div>
+
+      {/* Article 8 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          8. Součinnost Kupujícího
+        </h3>
+        <p className="mb-1">
+          Kupující je povinen poskytnout Prodávajícímu veškerou součinnost potřebnou k řádnému plnění
+          této smlouvy, zejména:
+        </p>
+        <ul className="list-disc list-inside space-y-0.5 ml-2 mb-1">
+          <li>zajistit přístup na místo plnění pro nákladní vozidlo a mechanizaci,</li>
+          <li>zajistit stavební připravenost dle pokynů Prodávajícího,</li>
+          <li>být přítomen při předání zboží nebo pověřit zástupce k převzetí,</li>
+          <li>zajistit přípojku elektrické energie (230V/400V) a přívod vody na místo instalace.</li>
+        </ul>
+        <p>
+          V případě, že Kupující neposkytne potřebnou součinnost a pracovníci Prodávajícího budou
+          nuceni čekat nebo se vrátit, je Prodávající oprávněn účtovat prostoje ve výši
+          750 Kč + DPH za každou započatou hodinu čekání, včetně nákladů na opakovanou dopravu.
+        </p>
+      </div>
+
+      {/* Article 9 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          9. Zajištění dodávky vody
+        </h3>
+        <p>
+          Kupující zajistí na místě plnění dostatečný přívod čisté vody pro napuštění bazénu a zprovoznění
+          technologie. Minimální potřebné množství vody je 2 000 litrů (pro účely testování, proplachování
+          a prvního napuštění). Voda musí být přivedena hadicí k bazénu v den instalace.
+          Náklady na vodu nese Kupující. Bez zajištění vody nelze provést zprovoznění technologie
+          a zkušební provoz.
+        </p>
+      </div>
+
+      {/* Article 10 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          10. Pracovní dny a pracovní doba
+        </h3>
+        <p>
+          Dodání a montáž se provádí v pracovních dnech (pondělí–pátek) v době od 6:00 do 14:30 hodin.
+          V případě požadavku Kupujícího na dodání nebo montáž v sobotu, neděli nebo ve svátek
+          je Prodávající oprávněn účtovat příplatek ve výši 10 000 Kč + DPH za každý takový den.
+          Příplatek za práci mimo pracovní dobu musí být odsouhlasen Kupujícím předem.
+        </p>
+      </div>
+
+      {/* Article 11 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          11. Reference
+        </h3>
+        <p>
+          Kupující souhlasí s tím, že Prodávající může pořídit fotodokumentaci realizovaného díla
+          a použít ji pro své marketingové a obchodní účely (reference na webu, sociálních sítích,
+          v tištěných materiálech apod.). Fotodokumentace nebude obsahovat osobní údaje Kupujícího
+          ani přesnou adresu místa plnění bez výslovného souhlasu Kupujícího. Kupující může tento
+          souhlas kdykoli písemně odvolat.
+        </p>
+      </div>
+
+      {/* Article 12 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          12. Záruka
+        </h3>
+        <p className="mb-1">
+          Prodávající poskytuje na dodané zboží následující záruky:
+        </p>
+        <ul className="list-disc list-inside space-y-0.5 ml-2 mb-1">
+          <li><strong>Bazénová konstrukce (skelet)</strong>: záruka 10 let od data předání</li>
+          <li><strong>Technologie a příslušenství</strong>: záruka 24 měsíců od data předání</li>
+        </ul>
+        <p className="mb-1">
+          Záruka se nevztahuje na vady způsobené nesprávným užíváním, mechanickým poškozením,
+          zásahem třetí osoby, nedodržením pokynů k údržbě, přirozeným opotřebením nebo působením
+          vyšší moci. Reklamace musí být uplatněna písemně bez zbytečného odkladu po zjištění vady.
+        </p>
+        <p>
+          Podrobné záruční podmínky a reklamační řád jsou k dispozici na {COMPANY.web}/zarucni-podminky.
+        </p>
+      </div>
+
+      {/* Article 13 - static */}
+      <div className="mb-5" style={{ breakInside: 'avoid' }}>
+        <h3 className="text-sm font-bold mb-2 pb-1 border-b border-[#48A9A6]">
+          13. Závěrečná ustanovení
+        </h3>
+        <p className="mb-1">
+          Práva a povinnosti touto smlouvou výslovně neupravené se řídí zákonem č. 89/2012 Sb.,
+          občanský zákoník, v platném znění, a dalšími právními předpisy České republiky.
+        </p>
+        <p className="mb-1">
+          Kompletní obchodní podmínky Prodávajícího jsou k dispozici na{' '}
+          <span className="text-[#48A9A6] font-semibold">{COMPANY.web}/obchodni-podminky</span>{' '}
+          a tvoří nedílnou součást této smlouvy. Kupující potvrzuje, že se s obchodními podmínkami
+          seznámil a souhlasí s nimi.
+        </p>
+        <p className="mb-1">
+          Smlouva je vyhotovena ve dvou stejnopisech, z nichž každá smluvní strana obdrží
+          po jednom výtisku. Smlouva nabývá platnosti a účinnosti dnem podpisu oběma smluvními stranami.
+        </p>
+        <p>
+          Veškeré změny a doplnění této smlouvy musí být provedeny písemnou formou a odsouhlaseny
+          oběma smluvními stranami.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// Signature page - stairs sketch + signatures with stamp + GDPR
+function SignaturePage({ order }: { order: Order }) {
+  return (
+    <div className="bg-white px-10 py-6 text-[#01384B]">
+      {/* Stairs placement sketch */}
+      <div className="mb-8" style={{ breakInside: 'avoid' }}>
+        <h2 className="text-base font-bold mb-2 pb-1 border-b-2 border-[#48A9A6]">
+          Nákres umístění schodiště v bazénu
+        </h2>
+        <p className="text-xs text-gray-600 mb-4">
+          Slouží k vyznačení umístění schodiště Kupujícím. Bez vyznačení umístění schodiště
+          nelze bazén zadat do výroby!
+        </p>
+
+        {/* Pool sketch */}
+        <div className="border-2 border-gray-300 rounded-lg p-6 flex items-center justify-center" style={{ minHeight: '200px' }}>
+          <div className="relative" style={{ width: '400px', height: '160px' }}>
+            {/* Pool rectangle */}
+            <div className="absolute inset-0 border-2 border-[#01384B] rounded-lg" />
+
+            {/* A label - top left corner */}
+            <div className="absolute -top-6 -left-1 flex items-center gap-1">
+              <span className="text-sm font-semibold text-[#01384B]">A</span>
+              <div className="h-px w-12 bg-gray-400" />
+            </div>
+
+            {/* B label - bottom left corner */}
+            <div className="absolute -bottom-6 -left-1 flex items-center gap-1">
+              <span className="text-sm font-semibold text-[#01384B]">B</span>
+              <div className="h-px w-12 bg-gray-400" />
+            </div>
+
+            {/* Center text */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-sm text-gray-400 italic">prostor pro nákres</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Platební podmínky */}
-      <div className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-base font-bold text-[#01384B] mb-2 pb-1 border-b-2 border-[#01384B]">
-          II. Platební podmínky
+      {/* Signatures */}
+      <div className="mb-6" style={{ breakInside: 'avoid' }}>
+        <h2 className="text-base font-bold mb-4 pb-1 border-b-2 border-[#48A9A6]">
+          Podpisy smluvních stran
         </h2>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="p-3 border-2 border-[#48A9A6] rounded-lg text-center bg-[#48A9A6]/5">
-            <p className="text-xs text-gray-500 mb-1">Záloha</p>
-            <p className="text-xl font-bold text-[#01384B]">{formatPrice(depositAmount)}</p>
-            <p className="text-xs text-gray-500">Splatná při podpisu</p>
-          </div>
-          <div className="p-3 border-2 border-gray-200 rounded-lg text-center">
-            <p className="text-xs text-gray-500 mb-1">Doplatek</p>
-            <p className="text-xl font-bold text-[#01384B]">{formatPrice(remainingAmount)}</p>
-            <p className="text-xs text-gray-500">Splatný při předání</p>
-          </div>
-          <div className="p-3 bg-[#01384B] rounded-lg text-center text-white">
-            <p className="text-xs text-white/70 mb-1">Celkem</p>
-            <p className="text-xl font-bold">{formatPrice(order.total_price)}</p>
-            <p className="text-xs text-white/60">Včetně DPH</p>
-          </div>
-        </div>
-      </div>
 
-      {/* Záruční podmínky */}
-      <div className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-base font-bold text-[#01384B] mb-2 pb-1 border-b-2 border-[#01384B]">
-          III. Záruční podmínky
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-3 p-3 bg-[#48A9A6]/10 rounded-lg border-l-4 border-[#48A9A6]">
-            <div className="text-2xl font-bold text-[#48A9A6]">10</div>
-            <div>
-              <p className="font-semibold text-[#01384B] text-sm">let záruka</p>
-              <p className="text-xs text-gray-500">na bazénovou konstrukci</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-gray-100 rounded-lg border-l-4 border-gray-300">
-            <div className="text-2xl font-bold text-[#01384B]">2</div>
-            <div>
-              <p className="font-semibold text-[#01384B] text-sm">roky záruka</p>
-              <p className="text-xs text-gray-500">na technologii a příslušenství</p>
-            </div>
-          </div>
-        </div>
-      </div>
+        <div className="grid grid-cols-2 gap-8">
+          {/* Seller signature */}
+          <div className="p-5 border-2 border-gray-200 rounded-lg relative">
+            <p className="text-xs text-gray-500 mb-1">Prodávající:</p>
+            <p className="text-xs text-gray-500 mb-3">Pověřený zástupce {COMPANY.name}</p>
 
-      {/* Podpisy smluvních stran */}
-      <div className="mb-4" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-base font-bold text-[#01384B] mb-2 pb-1 border-b-2 border-[#01384B]">
-          IV. Podpisy smluvních stran
-        </h2>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="p-4 border-2 border-gray-200 rounded-lg">
-            <p className="text-xs text-gray-500 mb-2">Za zhotovitele:</p>
-            <div className="border-b-2 border-[#01384B] h-16 mb-2" />
-            <p className="font-semibold text-[#01384B] text-sm">{COMPANY.name}</p>
-            <p className="text-xs text-[#01384B]">{COMPANY.representative.name}, {COMPANY.representative.role}</p>
+            {/* Stamp + signature image area */}
+            <div className="h-24 mb-3 flex items-center justify-center">
+              <img
+                src="/print/rentmil-stamp.png"
+                alt="Razítko a podpis"
+                className="max-h-24 object-contain"
+              />
+            </div>
+
+            <div className="border-t border-[#01384B] pt-2">
+              <p className="font-semibold text-sm text-[#01384B]">{COMPANY.representative.name}</p>
+              <p className="text-xs text-gray-500">{COMPANY.representative.role}</p>
+            </div>
+
             <p className="text-xs text-gray-600 mt-3">
               V Plzni dne {order.contract_date ? formatDate(order.contract_date) : formatDate(order.created_at)}
             </p>
           </div>
-          <div className="p-4 border-2 border-[#48A9A6] rounded-lg bg-[#48A9A6]/5">
-            <p className="text-xs text-[#48A9A6] mb-2">Za objednatele:</p>
-            <div className="border-b-2 border-[#01384B] h-16 mb-2" />
-            <p className="font-semibold text-[#01384B] text-sm">{order.customer_name}</p>
+
+          {/* Buyer signature */}
+          <div className="p-5 border-2 border-[#48A9A6] rounded-lg bg-[#48A9A6]/5">
+            <p className="text-xs text-[#48A9A6] mb-4">Kupující:</p>
+
+            <p className="font-semibold text-sm text-[#01384B] mb-3">{order.customer_name}</p>
+
+            {/* Signature line */}
+            <div className="h-24 mb-3" />
+
+            <div className="border-t border-[#01384B] pt-2">
+              <p className="text-xs text-gray-500">Vlastnoruční podpis</p>
+            </div>
+
             <p className="text-xs text-gray-600 mt-3">V __________ dne __________</p>
           </div>
         </div>
       </div>
 
-      {/* GDPR + Obchodní podmínky - kompaktní */}
-      <div className="p-3 bg-gray-100 rounded-lg text-xs text-gray-600" style={{ pageBreakInside: 'avoid' }}>
-        <p className="font-semibold mb-1">Ochrana osobních údajů a obchodní podmínky</p>
-        <p className="leading-relaxed">
-          Osobní údaje jsou zpracovávány společností {COMPANY.name} v souladu s GDPR (EU) 2016/679.
-          Více na {COMPANY.web}/ochrana-osobnich-udaju.
-          Podpisem této smlouvy souhlasíte s obchodními podmínkami na{' '}
-          <a href={`https://${COMPANY.web}/obchodni-podminky`} className="text-[#48A9A6] underline">
-            {COMPANY.web}/obchodni-podminky
-          </a>
+      {/* GDPR notice */}
+      <div className="p-3 bg-gray-100 rounded-lg text-[10px] text-gray-600 leading-relaxed" style={{ breakInside: 'avoid' }}>
+        <p className="font-semibold mb-1">Ochrana osobních údajů</p>
+        <p>
+          Osobní údaje Kupujícího jsou zpracovávány společností {COMPANY.name}, IČO: {COMPANY.ico},
+          jakožto správcem, v souladu s Nařízením Evropského parlamentu a Rady (EU) 2016/679 (GDPR).
+          Údaje jsou zpracovávány za účelem plnění této smlouvy a oprávněných zájmů správce.
+          Více informací o zpracování osobních údajů naleznete na {COMPANY.web}/ochrana-osobnich-udaju.
         </p>
       </div>
     </div>
@@ -428,8 +746,12 @@ export default async function OrderPrintPage({ params, searchParams }: PageProps
     return <TitlePage order={order} images={images} />
   }
 
-  if (page === 'terms') {
-    return <TermsPage order={order} />
+  if (page === 'clauses') {
+    return <ContractClausesPage order={order} />
+  }
+
+  if (page === 'signature') {
+    return <SignaturePage order={order} />
   }
 
   // Default: contract content
