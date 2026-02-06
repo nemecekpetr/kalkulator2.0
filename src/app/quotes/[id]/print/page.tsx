@@ -350,7 +350,7 @@ function ItemsSection({
               {/* Items */}
               <div className="divide-y divide-gray-100">
                 {categoryItems.map((item) => (
-                  <div key={item.id} className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
+                  <div key={item.id} className="px-4 py-1.5 flex items-center justify-between hover:bg-gray-50">
                     <div className="flex-1">
                       <p className="font-medium text-[#01384B] text-sm">{item.name}</p>
                       {item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && (
@@ -438,12 +438,9 @@ function VariantContentPages({ quote, variant }: { quote: QuoteWithCreator; vari
       {/* Variant Title */}
       <div className="mb-6 text-center">
         <div className="inline-block bg-gradient-to-r from-[#48A9A6]/20 to-[#48A9A6]/10 rounded-2xl px-8 py-4 border border-[#48A9A6]/30">
-          <h2 className="text-2xl font-bold text-[#01384B] mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
-            {variant.variant_name}
+          <h2 className="text-2xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            {variant.variant_name}{!variant.variant_name.toLowerCase().includes('varianta') && ' varianta'}
           </h2>
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-3xl font-bold text-[#48A9A6]">{formatPrice(variant.total_price)}</span>
-          </div>
         </div>
       </div>
 

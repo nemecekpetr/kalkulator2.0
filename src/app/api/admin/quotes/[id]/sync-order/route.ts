@@ -15,10 +15,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     const { id } = await params
     const supabase = await createAdminClient()
 
-    // Get quote with pricing
+    // Get quote with pricing and customer info
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
-      .select('id, subtotal, discount_percent, discount_amount, total_price')
+      .select('id, customer_name, customer_email, customer_phone, customer_address, pool_config, subtotal, discount_percent, discount_amount, total_price')
       .eq('id', id)
       .single()
 
@@ -88,10 +88,15 @@ export async function POST(request: Request, { params }: RouteParams) {
       }
     }
 
-    // Update order pricing fields
+    // Update order: customer info, pricing, pool config
     const { error: updateError } = await supabase
       .from('orders')
       .update({
+        customer_name: quote.customer_name,
+        customer_email: quote.customer_email,
+        customer_phone: quote.customer_phone,
+        customer_address: quote.customer_address,
+        pool_config: quote.pool_config,
         subtotal: quote.subtotal,
         discount_percent: quote.discount_percent,
         discount_amount: quote.discount_amount,
