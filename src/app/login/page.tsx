@@ -111,7 +111,7 @@ function LoginForm() {
               Interní systém
             </div>
             <h1 className="text-3xl font-bold text-[#01384B] font-display">
-              Nabídkovač
+              Aquazen
             </h1>
             <p className="text-muted-foreground mt-2">
               Přihlaste se pro přístup do systému

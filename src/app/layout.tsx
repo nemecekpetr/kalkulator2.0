@@ -10,12 +10,12 @@ const nunitoSans = Nunito_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Konfigurator bazenu | Rentmil",
+  title: "Aquazen | Konfigurátor bazénů Rentmil",
   description: "Nakonfigurujte si vas novy bazen online. Rentmil - Vas bazenovy mistr s 23 lety zkusenosti.",
-  keywords: ["bazen", "konfigurator", "rentmil", "plastovy bazen", "zahradni bazen"],
+  keywords: ["bazen", "konfigurator", "rentmil", "aquazen", "plastovy bazen", "zahradni bazen"],
   authors: [{ name: "Rentmil s.r.o." }],
   openGraph: {
-    title: "Konfigurator bazenu | Rentmil",
+    title: "Aquazen | Konfigurátor bazénů Rentmil",
     description: "Nakonfigurujte si vas novy bazen online. Rentmil - Vas bazenovy mistr s 23 lety zkusenosti.",
     type: "website",
     locale: "cs_CZ",

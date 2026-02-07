@@ -111,6 +111,7 @@ export function AdminHeader() {
                 priority
                 className="object-contain h-8 w-auto brightness-0 invert"
               />
+              <span className="text-xs font-medium tracking-widest text-white/50 uppercase">Aquazen</span>
             </Link>
           </div>
           <nav className="px-4 py-6 space-y-1">

@@ -254,8 +254,8 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
                 priority
               />
               <div className="hidden sm:block border-l border-white/20 pl-4">
-                <p className="text-white/90 font-medium">Konfigurator bazenu</p>
-                <p className="text-white/60 text-xs">Vytvořte si bazén na míru</p>
+                <p className="text-white/90 font-medium">Aquazen</p>
+                <p className="text-white/60 text-xs">Konfigurátor bazénů na míru</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

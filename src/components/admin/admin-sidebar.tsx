@@ -103,8 +103,8 @@ export function AdminSidebar() {
         <div className="absolute top-10 -left-10 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-40 -right-10 w-60 h-60 bg-[#48A9A6]/20 rounded-full blur-3xl" />
 
-        {/* Logo */}
-        <div className="relative z-10 flex py-8 items-center justify-center px-8 border-b border-white/10">
+        {/* Logo & App name */}
+        <div className="relative z-10 flex flex-col items-center justify-center py-6 px-8 border-b border-white/10">
           <Link href="/admin/dashboard">
             <Image
               src="/logo-blue-gradient.svg"
@@ -115,6 +115,7 @@ export function AdminSidebar() {
               className="object-contain w-auto h-10 brightness-0 invert"
             />
           </Link>
+          <span className="mt-2 text-xs font-medium tracking-widest text-white/50 uppercase">Aquazen</span>
         </div>
 
         {/* Navigation */}
