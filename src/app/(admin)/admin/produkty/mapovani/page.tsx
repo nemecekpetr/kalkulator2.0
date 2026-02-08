@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export const dynamic = 'force-dynamic'
 import { MappingRulesTable } from '@/components/admin/mapping-rules-table'
 import { PoolMappingSection } from '@/components/admin/pool-mapping-section'
+import { SetMappingSection } from '@/components/admin/set-mapping-section'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -96,6 +97,23 @@ export default async function MappingRulesPage() {
           </div>
         </div>
       </div>
+
+      {/* Set Mapping Section */}
+      <Card className="bg-amber-50/50 border-amber-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="text-amber-700">Mapování setů</span>
+          </CardTitle>
+          <CardDescription>
+            Sety se automaticky přiřazují dle rozměrů bazénu a nahrazují skelet
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<TableSkeleton />}>
+            <SetMappingSection setProducts={products.filter(p => p.category === 'sety')} />
+          </Suspense>
+        </CardContent>
+      </Card>
 
       {/* Mapping Rules Table */}
       <Card>

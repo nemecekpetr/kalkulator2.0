@@ -42,7 +42,6 @@ interface MappingRulesTableProps {
 }
 
 const CONFIG_FIELD_LABELS: Record<string, string> = {
-  stairs: 'Schodiště',
   technology: 'Technologie',
   lighting: 'Osvětlení',
   counterflow: 'Protiproud',
@@ -52,12 +51,6 @@ const CONFIG_FIELD_LABELS: Record<string, string> = {
 }
 
 const CONFIG_VALUE_LABELS: Record<string, string> = {
-  // Stairs
-  roman: 'Románské',
-  corner_triangle: 'Trojúhelníkové rohové',
-  full_width: 'Přes celou šířku',
-  with_bench: 'S relaxační lavicí',
-  corner_square: 'Hranaté rohové',
   // Technology
   shaft: 'Šachta',
   wall: 'Stěna',
@@ -78,11 +71,6 @@ const CONFIG_VALUE_LABELS: Record<string, string> = {
 
 // Define sections for visual grouping
 const CONFIG_FIELD_SECTIONS: Record<string, { label: string; description: string; color: string }> = {
-  stairs: {
-    label: 'Schodiště',
-    description: 'Krok 5 konfigurátoru',
-    color: 'bg-blue-50 border-blue-200'
-  },
   technology: {
     label: 'Technologie',
     description: 'Krok 6 konfigurátoru',
@@ -116,7 +104,7 @@ const CONFIG_FIELD_SECTIONS: Record<string, { label: string; description: string
 }
 
 // Order of sections
-const SECTION_ORDER = ['stairs', 'technology', 'lighting', 'counterflow', 'waterTreatment', 'heating', 'roofing']
+const SECTION_ORDER = ['technology', 'lighting', 'counterflow', 'waterTreatment', 'heating', 'roofing']
 
 export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
   const router = useRouter()

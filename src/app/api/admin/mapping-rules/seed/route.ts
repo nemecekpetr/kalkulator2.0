@@ -28,13 +28,6 @@ export async function POST() {
 
     // Default mapping rules
     const defaultRules = [
-      // Schodiště (Step 5)
-      { name: 'Románské schodiště', config_field: 'stairs', config_value: 'roman', pool_shape: ['rectangle_rounded', 'rectangle_sharp'], sort_order: 10 },
-      { name: 'Trojúhelníkové rohové schodiště', config_field: 'stairs', config_value: 'corner_triangle', pool_shape: ['rectangle_rounded', 'rectangle_sharp'], sort_order: 11 },
-      { name: 'Schodiště přes celou šířku', config_field: 'stairs', config_value: 'full_width', pool_shape: ['rectangle_rounded', 'rectangle_sharp'], sort_order: 12 },
-      { name: 'Schodiště s relaxační lavicí', config_field: 'stairs', config_value: 'with_bench', pool_shape: ['rectangle_rounded', 'rectangle_sharp'], sort_order: 13 },
-      { name: 'Hranaté rohové schodiště', config_field: 'stairs', config_value: 'corner_square', pool_shape: ['rectangle_rounded', 'rectangle_sharp'], sort_order: 14 },
-
       // Technologie (Step 6)
       { name: 'Technologická šachta', config_field: 'technology', config_value: 'shaft', pool_shape: null, sort_order: 20 },
       { name: 'Technologická stěna', config_field: 'technology', config_value: 'wall', pool_shape: null, sort_order: 21 },

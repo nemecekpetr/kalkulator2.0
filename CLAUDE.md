@@ -132,6 +132,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Auto-generation of quote items from configuration via `src/lib/quote-generator.ts`
 - Quote variants: Support for multiple pricing tiers (`ekonomicka`, `optimalni`, `premiova`)
 - Quote statuses: `draft`, `sent`, `accepted`, `rejected`
+- **Important**: The quote editor (`src/components/admin/quote-editor.tsx`, ~2200 lines) defines a LOCAL `QuoteItem` interface with `variant_keys: QuoteVariantKey[]` that differs from the DB `QuoteItem` which uses `variant_ids: string[]`. Be careful not to confuse them.
 
 **Orders System** (`/admin/objednavky`)
 - Created from accepted quotes via status conversion
@@ -204,6 +205,12 @@ Located in `src/app/api/admin/`:
 Other routes:
 - `/api/health`: Health check endpoint for Railway deployment
 
+### Security
+
+- **Iframe embedding**: Only `/embed` route allows iframe embedding (CSP `frame-ancestors`). All other routes use `X-Frame-Options: SAMEORIGIN`.
+- **Subdomain restriction**: Do NOT use wildcard subdomains (`*.rentmil.cz`) in CSP — explicit domains only to prevent subdomain takeover attacks. See `next.config.ts`.
+- **API routes**: Product API routes use explicit field-by-field mapping (not spread operators) for POST/PUT to prevent mass assignment.
+
 ### Deployment
 
 Deployed on Railway using Nixpacks:
@@ -231,7 +238,15 @@ Deployed on Railway using Nixpacks:
 
 ### Database Types
 
-All database types defined in `src/lib/supabase/types.ts`:
+All database types manually defined in `src/lib/supabase/types.ts` (not auto-generated from Supabase).
+
+Two patterns exist:
+- **Database-extracted types**: `Configuration`, `ConfigurationInsert`, `ConfigurationUpdate` are extracted from the `Database` interface via `Database['public']['Tables']['configurations']['Row|Insert|Update']`
+- **Standalone interfaces**: `Product`, `ProductInsert`, `ProductUpdate` (and most others) are fully manual interfaces — needed for complex fields (JSONB arrays, custom types)
+
+When adding new types, follow whichever pattern the entity already uses. For new entities with JSONB or array columns, prefer standalone interfaces.
+
+Key types:
 - `Configuration`: Pool configurations from customers
 - `Quote`, `QuoteItem`, `QuoteVersion`, `QuoteVariant`: Quote management
 - `Order`: Customer orders (created from accepted quotes)
@@ -328,14 +343,16 @@ Required for Supabase:
 - `SUPABASE_SERVICE_ROLE_KEY` (admin operations)
 
 Required for integrations:
-- `PIPEDRIVE_API_TOKEN`
+- `PIPEDRIVE_API_TOKEN`, `PIPEDRIVE_SUBDOMAIN`
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
 - `ANTHROPIC_API_KEY` (changelog translation only)
 
+Note: `.env.local.example` exists but may be incomplete — refer to this list as the source of truth.
+
 ## Pool Configuration Options
 
 Pool shapes: `circle`, `rectangle_rounded`, `rectangle_sharp`
 Pool types: `skimmer`, `overflow`
-Config fields for mapping: `stairs`, `technology`, `lighting`, `counterflow`, `waterTreatment`, `heating`, `roofing`
+Config fields for mapping: `technology`, `lighting`, `counterflow`, `waterTreatment`, `heating`, `roofing`

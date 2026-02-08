@@ -10,6 +10,7 @@ import type {
   GeneratedQuoteItem,
   ProductMappingRule,
   Product,
+  SetAddon,
   QuoteItemCategory,
   PoolShape,
   PoolType,
@@ -49,7 +50,6 @@ function getConfigValue(config: Configuration, field: string): string | null {
     counterflow: 'counterflow',
     waterTreatment: 'water_treatment',
     technology: 'technology',
-    stairs: 'stairs',
     heating: 'heating',
     roofing: 'roofing',
   }
@@ -272,6 +272,102 @@ function collectRequiredSurcharges(
   return Array.from(surchargeIds)
 }
 
+// =============================================================================
+// Set auto-assignment: maps pool dimensions to set product codes
+// When adding a new set, extend this map with the new dimension key and code.
+// =============================================================================
+
+export const SET_DIMENSION_MAP: Record<string, string> = {
+  '4-3': 'set4',
+  '5-3': 'set5',
+  '6-3': 'set6',
+  '6-3.5': 'set65',
+  '7-3': 'set7',
+  '7-3.5': 'set75',
+}
+
+/**
+ * Find a set product matching the pool dimensions.
+ * Sets are only available for rectangular pools (rounded or sharp).
+ * Returns null if no set exists for the given dimensions or for circular pools.
+ */
+async function findSetProduct(
+  config: Configuration,
+  supabase: SupabaseClient
+): Promise<Product | null> {
+  // Sets are only for rectangular pools
+  if (config.pool_shape === 'circle') return null
+
+  const { length, width } = config.dimensions
+  if (!length || !width) return null
+
+  const key = `${length}-${width}`
+  const setCode = SET_DIMENSION_MAP[key]
+  if (!setCode) return null
+
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('code', setCode)
+    .eq('category', 'sety')
+    .eq('active', true)
+    .single()
+
+  if (error || !data) return null
+
+  return data as Product
+}
+
+/**
+ * Get auto-matched set addons based on configuration.
+ * Matches depth (>1.2m), pool shape (sharp corners), and stairs type.
+ */
+function getAutoSetAddons(
+  setAddons: SetAddon[],
+  config: Configuration
+): SetAddon[] {
+  const matched: SetAddon[] = []
+  const depth = config.dimensions.depth
+
+  for (const addon of setAddons) {
+    const name = addon.name.toLowerCase()
+
+    // Depth addons - only for depth > 1.2m
+    if (depth > 1.2) {
+      // Format in addon name uses comma: "Hloubka 1,3m", "Hloubka 1,4m", "Hloubka 1,5m"
+      const depthStr = String(depth).replace('.', ',')
+      if (name.includes(`hloubka ${depthStr}`)) {
+        matched.push(addon)
+        continue
+      }
+    }
+
+    // Sharp corners addon
+    if (config.pool_shape === 'rectangle_sharp' && name.includes('ostré rohy')) {
+      matched.push(addon)
+      continue
+    }
+
+    // Stairs addons - only if stairs != 'none'
+    if (config.stairs !== 'none') {
+      if (config.stairs === 'full_width' && name.includes('schody přes šířku')) {
+        matched.push(addon)
+        continue
+      }
+      if (config.stairs === 'corner_triangle' && name.includes('trojúhelníkové schody')) {
+        matched.push(addon)
+        continue
+      }
+      if (config.stairs === 'roman' && name.includes('románské schody')) {
+        matched.push(addon)
+        continue
+      }
+    }
+  }
+
+  return matched
+}
+
 /**
  * Generate quote items from a configuration
  */
@@ -296,29 +392,73 @@ export async function generateQuoteItemsFromConfiguration(
   // Track products added for surcharge collection
   const addedProducts: Product[] = []
 
-  // 1. Find and add pool product by code
-  const poolProduct = await findPoolProduct(config, supabase)
-  if (poolProduct) {
-    const unitPrice = getProductPrice(poolProduct, priceContext)
+  // 1. Try to find a matching SET product first, then fall back to skeleton
+  let useSet = false
+  const setProduct = await findSetProduct(config, supabase)
+
+  if (setProduct) {
+    // SET found – use it as the base pool product
+    useSet = true
+    const unitPrice = getProductPrice(setProduct, priceContext)
 
     items.push({
-      product_id: poolProduct.id,
-      name: poolProduct.name,
-      description: poolProduct.description,
-      category: normalizeCategory(poolProduct.category),
+      product_id: setProduct.id,
+      name: setProduct.name,
+      description: setProduct.description,
+      category: 'sety',
       quantity: 1,
-      unit: poolProduct.unit || 'ks',
+      unit: setProduct.unit || 'ks',
       unit_price: unitPrice,
       total_price: unitPrice,
       sort_order: sortOrder++,
       source: 'pool_base_price',
     })
 
-    addedProductIds.add(poolProduct.id)
-    addedProducts.push(poolProduct)
+    addedProductIds.add(setProduct.id)
+    addedProducts.push(setProduct)
+    priceContext.productPrices.set(setProduct.id, unitPrice)
 
-    // Update price context with pool price (for percentage calculations)
-    priceContext.productPrices.set(poolProduct.id, unitPrice)
+    // Auto-add matching set addons (depth, sharp corners, stairs)
+    if (setProduct.set_addons?.length) {
+      const autoAddons = getAutoSetAddons(setProduct.set_addons, config)
+      for (const addon of autoAddons) {
+        items.push({
+          product_id: setProduct.id,
+          name: addon.name,
+          description: `[SA:${addon.id}]${addon.name}`,
+          category: 'sety',
+          quantity: 1,
+          unit: 'ks',
+          unit_price: addon.price,
+          total_price: addon.price,
+          sort_order: sortOrder++,
+          source: 'set_addon',
+        })
+      }
+    }
+  } else {
+    // No set – use skeleton product by code (existing behavior)
+    const poolProduct = await findPoolProduct(config, supabase)
+    if (poolProduct) {
+      const unitPrice = getProductPrice(poolProduct, priceContext)
+
+      items.push({
+        product_id: poolProduct.id,
+        name: poolProduct.name,
+        description: poolProduct.description,
+        category: normalizeCategory(poolProduct.category),
+        quantity: 1,
+        unit: poolProduct.unit || 'ks',
+        unit_price: unitPrice,
+        total_price: unitPrice,
+        sort_order: sortOrder++,
+        source: 'pool_base_price',
+      })
+
+      addedProductIds.add(poolProduct.id)
+      addedProducts.push(poolProduct)
+      priceContext.productPrices.set(poolProduct.id, unitPrice)
+    }
   }
 
   // 2. Get and apply mapping rules

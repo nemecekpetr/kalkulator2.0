@@ -61,8 +61,8 @@ export function configToEmailData(config: Configuration): ConfigurationEmailData
 }
 
 // Rentmil assets hosted on Supabase Storage
-const RENTMIL_LOGO_URL = 'https://imfzdbfhqxhyfyhxrfel.supabase.co/storage/v1/object/public/assets/logo%20rentmil.png'
-const RENTMIL_MASCOT_URL = 'https://imfzdbfhqxhyfyhxrfel.supabase.co/storage/v1/object/public/assets/Base%20-%20Maskot%20-%20Rentmil.png'
+const RENTMIL_LOGO_URL = 'https://nufgoaqolewnotpohaao.supabase.co/storage/v1/object/public/assets/Sunset.png'
+const RENTMIL_MASCOT_URL = 'https://nufgoaqolewnotpohaao.supabase.co/storage/v1/object/public/assets/Base%20-%20Maskot%20-%20Rentmil.png'
 
 /**
  * Generate HTML email for configuration confirmation

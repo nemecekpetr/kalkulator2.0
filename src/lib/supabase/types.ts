@@ -535,7 +535,6 @@ export interface QuoteWithItems extends Quote {
 
 // Config field types for mapping rules
 export type ConfigField =
-  | 'stairs'
   | 'technology'
   | 'lighting'
   | 'counterflow'
@@ -640,7 +639,7 @@ export interface GeneratedQuoteItem {
   total_price: number
   sort_order: number
   // Metadata for UI
-  source?: 'pool_base_price' | 'mapping_rule' | 'required_surcharge' | 'product_group'
+  source?: 'pool_base_price' | 'mapping_rule' | 'required_surcharge' | 'product_group' | 'set_addon'
   rule_id?: string
 }
 
