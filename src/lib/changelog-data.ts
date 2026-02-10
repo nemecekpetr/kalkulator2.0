@@ -4,9 +4,34 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.5.0'
+export const CURRENT_VERSION = '0.5.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.5.1',
+      date: '2026-02-10',
+      time: '12:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'pdf',
+          description: 'Číslování stránek v PDF nabídkách a objednávkách',
+          userDescription: 'PDF nabídky i objednávky nyní obsahují číslování stránek ve formátu „Strana 2 z 8" v pravém dolním rohu. Titulní strana zůstává bez čísla.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Popis položek v PDF objednávky (stejně jako v nabídce)',
+          userDescription: 'V PDF objednávky se u položek nyní zobrazuje popis produktu — stejně jako v nabídce. Díky tomu zákazník lépe vidí, co přesně objednává.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Oprava textu u 2. důvodu v sekci „7 důvodů pro Rentmil"',
+          userDescription: 'Upraven text u prémiového materiálu Polystone P — nově „životnost 20 let" místo původní formulace.'
+        }
+      ]
+    },
     {
       version: '0.5.0',
       date: '2026-02-07',

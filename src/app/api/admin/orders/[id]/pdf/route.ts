@@ -9,6 +9,7 @@ import {
   createContentPageOptions,
   waitForContent,
   setPdfMetadata,
+  addPageNumbers,
   PdfMetrics,
 } from '@/lib/pdf/generate-pdf'
 import type { Browser, Page } from 'puppeteer'
@@ -130,6 +131,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       documentNumber: order.order_number,
       documentType: 'Objednávka',
     })
+
+    // Add page numbers (skips title page)
+    await addPageNumbers(mergedPdf)
 
     const mergedPdfBytes = await mergedPdf.save({
       useObjectStreams: true,

@@ -234,7 +234,14 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
                 key={item.id}
                 className={index % 2 === 1 ? 'bg-gray-50' : ''}
               >
-                <td className="py-2 px-3 font-medium">{item.name}</td>
+                <td className="py-2 px-3">
+                  <span className="font-medium">{item.name}</span>
+                  {item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {item.description.replace(/^\[SA:[^\]]+\]\s*/, '')}
+                    </p>
+                  )}
+                </td>
                 <td className="py-2 px-3 text-center">
                   {item.quantity} {item.unit}
                 </td>

@@ -4,7 +4,7 @@ import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
 import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { generatePrintToken, addTokenToUrl } from '@/lib/pdf/print-token'
-import { generatePdfFromPage, createContentPageOptions, setPdfMetadata, PdfMetrics } from '@/lib/pdf/generate-pdf'
+import { generatePdfFromPage, createContentPageOptions, setPdfMetadata, addPageNumbers, PdfMetrics } from '@/lib/pdf/generate-pdf'
 import type { Browser, Page } from 'puppeteer'
 
 // Route segment config
@@ -184,6 +184,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       documentNumber: quote.quote_number,
       documentType: 'Nabídka',
     })
+
+    // Add page numbers (skips title page)
+    await addPageNumbers(mergedPdf)
 
     const mergedPdfBytes = await mergedPdf.save({
       useObjectStreams: true,

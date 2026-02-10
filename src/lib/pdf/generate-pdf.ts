@@ -6,6 +6,7 @@
 
 import type { Page } from 'puppeteer'
 import type { PDFDocument } from 'pdf-lib'
+import { rgb, StandardFonts } from 'pdf-lib'
 import { COMPANY } from '@/lib/constants/company'
 import { getLogoDataUri } from './logo-cache'
 
@@ -159,6 +160,32 @@ export function setPdfMetadata(
   pdf.setProducer('Puppeteer + pdf-lib')
   pdf.setCreationDate(new Date())
   pdf.setModificationDate(new Date())
+}
+
+/**
+ * Add page numbers to a merged PDF document.
+ * Draws "Strana X z Y" in the bottom-right of each page, skipping the title page (page 1).
+ */
+export async function addPageNumbers(pdf: PDFDocument): Promise<void> {
+  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  const fontSize = 8
+  const color = rgb(0.612, 0.639, 0.686) // #9CA3AF (gray-400)
+  const pageCount = pdf.getPageCount()
+
+  for (let i = 1; i < pageCount; i++) {
+    const page = pdf.getPage(i)
+    const { width } = page.getSize()
+    const text = `Strana ${i + 1} z ${pageCount}`
+    const textWidth = font.widthOfTextAtSize(text, fontSize)
+
+    page.drawText(text, {
+      x: width - 40 - textWidth,
+      y: 18,
+      size: fontSize,
+      font,
+      color,
+    })
+  }
 }
 
 /**

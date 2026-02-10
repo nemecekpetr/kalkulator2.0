@@ -503,7 +503,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
 
   const reasons = [
     { title: '24 let výroby, 2 000+ bazénů po celé ČR', desc: 'Přímý český výrobce od roku 2002' },
-    { title: 'Prémiový německý materiál Polystone P', desc: 'UV stabilizovaný plast Röchling — 20 let+ bez ztráty barvy' },
+    { title: 'Prémiový německý materiál Polystone P', desc: 'UV stabilizovaný plast Röchling — životnost 20 let' },
     { title: 'Showroom v Plzni s reálnými bazény', desc: 'Přijďte si prohlédnout — Lidická 1233/26, Plzeň' },
     { title: 'Kompletní servis po celý rok', desc: 'Zprovoznění, údržba, zazimování — záruční i pozáruční' },
     { title: 'Autorizovaný partner Alukov zastřešení', desc: 'Oficiální dodavatel a partner evropského lídra s bazénovým zastřešením' },
