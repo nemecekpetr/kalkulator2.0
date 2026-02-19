@@ -349,28 +349,41 @@ function ItemsSection({
               </div>
               {/* Items */}
               <div className="divide-y divide-gray-100">
-                {categoryItems.map((item) => (
-                  <div key={item.id} className="px-4 py-1.5 flex items-center justify-between hover:bg-gray-50">
-                    <div className="flex-1">
-                      <p className="font-medium text-[#01384B] text-sm">{item.name}</p>
-                      {item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && (
-                        <p className="text-xs text-gray-500 leading-snug mt-0.5 whitespace-pre-line">{item.description.replace(/^\[SA:[^\]]+\]\s*/, '')}</p>
+                {categoryItems.map((item) => {
+                  const isMainSetItem = item.category === 'sety' && item.description && !item.description.startsWith('[SA:')
+                  const cleanDescription = item.description?.replace(/^\[SA:[^\]]+\]\s*/, '')
+                  const showInlineDescription = item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && !isMainSetItem
+
+                  return (
+                    <div key={item.id}>
+                      <div className="px-4 py-1.5 flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-[#01384B] text-sm">{item.name}</p>
+                          {showInlineDescription && (
+                            <p className="text-xs text-gray-500 leading-snug mt-0.5 whitespace-pre-line">{cleanDescription}</p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4 flex-shrink-0">
+                          {item.category === 'doprava' && item.total_price === 0 ? (
+                            <p className="font-semibold text-green-600 text-sm">Zdarma</p>
+                          ) : (
+                            <>
+                              <p className="text-xs text-gray-500">
+                                {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                              </p>
+                              <p className="font-semibold text-[#01384B] text-sm">{formatPrice(item.total_price)}</p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {isMainSetItem && (
+                        <div className="mx-4 mb-2 px-3 py-2 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{item.description}</p>
+                        </div>
                       )}
                     </div>
-                    <div className="text-right ml-4">
-                      {item.category === 'doprava' && item.total_price === 0 ? (
-                        <p className="font-semibold text-green-600 text-sm">Zdarma</p>
-                      ) : (
-                        <>
-                          <p className="text-xs text-gray-500">
-                            {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
-                          </p>
-                          <p className="font-semibold text-[#01384B] text-sm">{formatPrice(item.total_price)}</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </PrintBlock>
