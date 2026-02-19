@@ -116,9 +116,16 @@ export function ProductCombobox({
 
   const handleNameInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      onNameChange(e.target.value)
+      const newValue = e.target.value
+      onNameChange(newValue)
+      // Sync search with typed text and open dropdown for autocomplete
+      setSearch(newValue)
+      setActiveCategory(null)
+      if (newValue.length > 0 && !open) {
+        setOpen(true)
+      }
     },
-    [onNameChange]
+    [onNameChange, open]
   )
 
   const handleClear = useCallback(
@@ -136,11 +143,16 @@ export function ProductCombobox({
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen)
+    if (nextOpen && value && !productId) {
+      // Pre-fill search with current name when opening (unlinked item)
+      setSearch(value)
+      setActiveCategory(null)
+    }
     if (!nextOpen) {
       setSearch('')
       setActiveCategory(null)
     }
-  }, [])
+  }, [value, productId])
 
   const isLinked = productId !== null
 
