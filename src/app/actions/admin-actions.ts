@@ -26,6 +26,51 @@ import {
 } from '@/lib/constants/configurator'
 import type { Configuration } from '@/lib/supabase/types'
 
+// Map DB column names to Czech labels for user-friendly error messages
+const COLUMN_LABELS: Record<string, string> = {
+  contact_name: 'Jméno',
+  contact_email: 'Email',
+  contact_phone: 'Telefon',
+  contact_address: 'Adresa',
+  pool_shape: 'Tvar bazénu',
+  pool_type: 'Typ konstrukce',
+  dimensions: 'Rozměry',
+  color: 'Barva',
+  stairs: 'Schodiště',
+  technology: 'Technologie',
+  lighting: 'Osvětlení',
+  counterflow: 'Protiproud',
+  water_treatment: 'Úprava vody',
+  heating: 'Ohřev',
+  roofing: 'Zastřešení',
+  message: 'Zpráva',
+}
+
+// Translate Supabase/PostgreSQL errors to Czech messages for non-technical users
+function formatDbError(error: { code?: string; message?: string; details?: string }): string {
+  // Extract column name from error message (e.g. 'null value in column "contact_phone"')
+  const columnMatch = error.message?.match(/"(\w+)"/)
+  const columnName = columnMatch?.[1]
+  const fieldLabel = columnName ? COLUMN_LABELS[columnName] || columnName : null
+
+  switch (error.code) {
+    case '23502': // not_null_violation
+      return fieldLabel
+        ? `Pole "${fieldLabel}" je povinné a musí být vyplněno.`
+        : 'Některé povinné pole nebylo vyplněno.'
+    case '23514': // check_violation
+      return fieldLabel
+        ? `Pole "${fieldLabel}" obsahuje neplatnou hodnotu.`
+        : 'Některé pole obsahuje neplatnou hodnotu.'
+    case '23505': // unique_violation
+      return 'Konfigurace s těmito údaji již existuje.'
+    case '23503': // foreign_key_violation
+      return 'Odkazovaný záznam neexistuje nebo byl smazán.'
+    default:
+      return `Nepodařilo se uložit data. Zkuste to prosím znovu nebo kontaktujte správce. (${error.code || 'neznámá chyba'})`
+  }
+}
+
 // Generate deal note with configuration summary
 function generateDealNote(config: Configuration): string {
   const lines = [
@@ -377,7 +422,7 @@ export async function updateConfiguration(
 
     if (error) {
       console.error('Error updating configuration:', error)
-      return { success: false, error: 'Nepodarilo se aktualizovat konfiguraci' }
+      return { success: false, error: formatDbError(error) }
     }
 
     revalidatePath('/admin/konfigurace')
@@ -386,7 +431,7 @@ export async function updateConfiguration(
     return { success: true }
   } catch (error) {
     console.error('Error updating configuration:', error)
-    return { success: false, error: 'Nepodarilo se aktualizovat konfiguraci' }
+    return { success: false, error: 'Nepodařilo se aktualizovat konfiguraci. Zkuste to prosím znovu nebo kontaktujte správce.' }
   }
 }
 
@@ -425,7 +470,7 @@ export async function createConfiguration(data: {
 
     if (error) {
       console.error('Error creating configuration:', error)
-      return { success: false, error: 'Nepodarilo se vytvorit konfiguraci', id: null }
+      return { success: false, error: formatDbError(error), id: null }
     }
 
     // 2. Pipedrive integration (using shared function from submit-configuration)
@@ -499,7 +544,7 @@ export async function createConfiguration(data: {
     return { success: true, id: config.id, error: null }
   } catch (error) {
     console.error('Error creating configuration:', error)
-    return { success: false, error: 'Nepodarilo se vytvorit konfiguraci', id: null }
+    return { success: false, error: 'Nepodařilo se vytvořit konfiguraci. Zkuste to prosím znovu nebo kontaktujte správce.', id: null }
   }
 }
 

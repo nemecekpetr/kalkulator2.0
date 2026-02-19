@@ -4,9 +4,28 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.5.1'
+export const CURRENT_VERSION = '0.5.2'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.5.2',
+      date: '2026-02-19',
+      time: '10:30',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'konfigurace',
+          description: 'Oprava vytváření konfigurace v admin panelu (chyba s povinným telefonem)',
+          userDescription: 'Opravena chyba, kdy nešlo vytvořit novou konfiguraci v admin panelu, pokud nebylo vyplněno telefonní číslo. Telefon je nyní volitelný.'
+        },
+        {
+          type: 'improvement',
+          scope: 'konfigurace',
+          description: 'Srozumitelné chybové hlášky při vytváření a úpravě konfigurací',
+          userDescription: 'Pokud se při vytváření nebo úpravě konfigurace něco nepovede, zobrazí se nyní srozumitelná česká hláška s popisem problému — např. „Pole Telefon je povinné" místo obecného „Nepodařilo se vytvořit konfiguraci".'
+        }
+      ]
+    },
     {
       version: '0.5.1',
       date: '2026-02-10',

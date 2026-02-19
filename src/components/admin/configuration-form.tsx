@@ -120,7 +120,7 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
       const data = {
         contact_name: values.contact_name,
         contact_email: values.contact_email,
-        contact_phone: values.contact_phone || undefined,
+        contact_phone: values.contact_phone || '',
         pool_shape: values.pool_shape,
         pool_type: values.pool_type,
         dimensions,
