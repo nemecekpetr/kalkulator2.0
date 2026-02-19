@@ -39,6 +39,7 @@ const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 interface QuoteItemWithVariantIds extends QuoteItem {
   variant_ids?: string[]
+  product_description?: string | null
 }
 
 interface QuoteWithCreator extends Quote {
@@ -62,7 +63,7 @@ async function getQuote(id: string): Promise<QuoteWithCreator | null> {
 
   const { data: items } = await supabase
     .from('quote_items')
-    .select('*')
+    .select('*, product:products(description)')
     .eq('quote_id', id)
     .order('sort_order', { ascending: true })
 
@@ -84,13 +85,20 @@ async function getQuote(id: string): Promise<QuoteWithCreator | null> {
     associations = assocData || []
   }
 
-  // Add variant_ids to items
-  const itemsWithVariants = (items || []).map((item) => ({
-    ...item,
-    variant_ids: associations
-      .filter((a) => a.quote_item_id === item.id)
-      .map((a) => a.quote_variant_id),
-  }))
+  // Add variant_ids and product description to items
+  const itemsWithVariants = (items || []).map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const product = (item as any).product as { description: string | null } | null
+    return {
+      ...item,
+      // Use quote item description, fall back to product description
+      description: item.description || product?.description || null,
+      product_description: product?.description || null,
+      variant_ids: associations
+        .filter((a) => a.quote_item_id === item.id)
+        .map((a) => a.quote_variant_id),
+    }
+  })
 
   // Fetch creator profile if created_by is set
   let creator: Pick<UserProfile, 'full_name' | 'email' | 'phone'> | null = null
@@ -350,9 +358,13 @@ function ItemsSection({
               {/* Items */}
               <div className="divide-y divide-gray-100">
                 {categoryItems.map((item) => {
-                  const isMainSetItem = item.category === 'sety' && item.description && !item.description.startsWith('[SA:')
+                  // For main set items, prefer product_description (always fresh from product)
+                  const setDescription = item.category === 'sety' && !item.description?.startsWith('[SA:')
+                    ? (item.product_description || item.description)
+                    : null
                   const cleanDescription = item.description?.replace(/^\[SA:[^\]]+\]\s*/, '')
-                  const showInlineDescription = item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && !isMainSetItem
+                  const isSetAddon = item.description?.startsWith('[SA:')
+                  const showInlineDescription = item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && !setDescription && !isSetAddon
 
                   return (
                     <div key={item.id}>
@@ -376,9 +388,9 @@ function ItemsSection({
                           )}
                         </div>
                       </div>
-                      {isMainSetItem && (
+                      {setDescription && (
                         <div className="mx-4 mb-2 px-3 py-2 bg-gray-50 rounded-lg">
-                          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{item.description}</p>
+                          <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{setDescription}</p>
                         </div>
                       )}
                     </div>
