@@ -4,9 +4,28 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.5.2'
+export const CURRENT_VERSION = '0.5.3'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.5.3',
+      date: '2026-02-19',
+      time: '14:30',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Popis setů v PDF nabídkách — načítání přímo z produktu',
+          userDescription: 'PDF nabídky nyní u bazénových setů zobrazují popis produktu včetně seznamu co set obsahuje. Popis se vždy načítá aktuálně z katalogu produktů — funguje i pro starší nabídky.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Autocomplete při psaní názvu položky v editoru nabídek',
+          userDescription: 'Při psaní názvu položky v nabídce se automaticky otevře katalog s filtrovanými produkty. Stačí začít psát a okamžitě vidíte odpovídající produkty — nemusíte otevírat katalog a hledat zvlášť.'
+        }
+      ]
+    },
     {
       version: '0.5.2',
       date: '2026-02-19',
