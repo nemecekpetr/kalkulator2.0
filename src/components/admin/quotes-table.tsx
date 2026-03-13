@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -14,7 +14,8 @@ import {
 import { ClickableTableRow } from '@/components/admin/clickable-table-row'
 import { StopPropagationCell } from '@/components/admin/stop-propagation-cell'
 import { Button } from '@/components/ui/button'
-import { Eye, FileDown, Pencil, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Eye, FileDown, Pencil, MoreHorizontal, Trash2, Loader2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,11 +33,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { formatDistanceToNow } from 'date-fns'
 import { cs } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
-import type { Quote, UserRole, QuoteStatus } from '@/lib/supabase/types'
+import { useAdminRole } from '@/hooks/use-admin-role'
+import type { Quote, QuoteStatus } from '@/lib/supabase/types'
 import { QUOTE_STATUS_LABELS } from '@/lib/supabase/types'
 import { Badge } from '@/components/ui/badge'
 
@@ -46,27 +53,34 @@ interface QuotesTableProps {
 
 export function QuotesTable({ quotes }: QuotesTableProps) {
   const router = useRouter()
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
+  const userRole = useAdminRole()
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single() as { data: { role: string } | null }
-        if (profile) {
-          setUserRole(profile.role as UserRole)
-        }
-      }
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+
+  const isAllSelected = quotes.length > 0 && selectedIds.size === quotes.length
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === quotes.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(quotes.map((q) => q.id)))
     }
-    fetchUserRole()
-  }, [])
+  }
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('cs-CZ', {
@@ -100,13 +114,113 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
     }
   }
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/quotes/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      })
+      if (response.ok) {
+        toast.success(`${selectedIds.size} nabídek smazáno`)
+        setSelectedIds(new Set())
+        setBulkDeleteDialogOpen(false)
+        router.refresh()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Chyba při mazání')
+      }
+    } catch {
+      toast.error('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const handleBulkStatusChange = async (status: QuoteStatus) => {
+    if (selectedIds.size === 0) return
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/quotes/bulk-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds), status }),
+      })
+      if (response.ok) {
+        toast.success(`Stav nabídek změněn na "${QUOTE_STATUS_LABELS[status]}"`)
+        setSelectedIds(new Set())
+        router.refresh()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Chyba při změně stavu')
+      }
+    } catch {
+      toast.error('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
+      {/* Bulk actions bar */}
+      {userRole === 'admin' && selectedIds.size > 0 && (
+        <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+          <span className="text-sm font-medium">
+            Vybráno: {selectedIds.size}
+          </span>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={bulkUpdating}>
+                  {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Změnit stav
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange('draft')}>
+                  Koncept
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange('sent')}>
+                  Odeslaná
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleBulkStatusChange('rejected')}>
+                  Zamítnutá
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Zrušit výběr
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={bulkUpdating}
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Smazat
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
+              {userRole === 'admin' && (
+                <TableHead className="w-12">
+                  <Checkbox checked={isAllSelected} onCheckedChange={toggleSelectAll} />
+                </TableHead>
+              )}
               <TableHead>Číslo nabídky</TableHead>
               <TableHead>Zákazník</TableHead>
               <TableHead className="w-28">Stav</TableHead>
@@ -118,7 +232,7 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
           <TableBody>
             {quotes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={userRole === 'admin' ? 7 : 6} className="text-center py-8 text-muted-foreground">
                   Žádné nabídky nenalezeny
                 </TableCell>
               </TableRow>
@@ -128,6 +242,14 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                   key={quote.id}
                   href={`/admin/nabidky/${quote.id}`}
                 >
+                  {userRole === 'admin' && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(quote.id)}
+                        onCheckedChange={() => toggleSelect(quote.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <span className="font-medium text-primary">
                       {quote.quote_number}
@@ -169,12 +291,28 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                     })}
                   </TableCell>
                   <StopPropagationCell>
+                    <TooltipProvider>
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/admin/nabidky/${quote.id}/upravit`}>
-                          <Pencil className="w-4 h-4" />
-                        </Link>
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/admin/nabidky/${quote.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Zobrazit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link href={`/admin/nabidky/${quote.id}/upravit`}>
+                              <Pencil className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Upravit</TooltipContent>
+                      </Tooltip>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -215,6 +353,7 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                    </TooltipProvider>
                   </StopPropagationCell>
                 </ClickableTableRow>
               ))
@@ -245,6 +384,30 @@ export function QuotesTable({ quotes }: QuotesTableProps) {
               className="bg-red-600 hover:bg-red-700"
             >
               {isDeleting ? 'Mažu...' : 'Smazat'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Smazat {selectedIds.size} nabídek</AlertDialogTitle>
+            <AlertDialogDescription>
+              Opravdu chcete smazat {selectedIds.size} nabídek? Tato akce je nevratná.
+              Akceptované nabídky nelze smazat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkUpdating}>Zrušit</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkUpdating}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Smazat
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -121,13 +121,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       .single()
 
     if (fetchError || !order) {
-      return new NextResponse('Objednávka nenalezena', { status: 404 })
+      return NextResponse.json({ error: 'Objednávka nenalezena' }, { status: 404 })
     }
 
     // Only allow deleting orders in 'created' status
     if (order.status !== 'created') {
-      return new NextResponse(
-        'Lze mazat pouze objednávky ve stavu "Vytvořena"',
+      return NextResponse.json(
+        { error: 'Lze mazat pouze objednávky ve stavu "Vytvořena"' },
         { status: 400 }
       )
     }
@@ -140,12 +140,12 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     if (deleteError) {
       console.error('Error deleting order:', deleteError)
-      return new NextResponse('Nepodařilo se smazat objednávku', { status: 500 })
+      return NextResponse.json({ error: 'Nepodařilo se smazat objednávku' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Order delete error:', error)
-    return new NextResponse('Chyba serveru', { status: 500 })
+    return NextResponse.json({ error: 'Chyba serveru' }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
@@ -17,6 +17,7 @@ import { ClickableTableRow } from '@/components/admin/clickable-table-row'
 import { StopPropagationCell } from '@/components/admin/stop-propagation-cell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,13 +53,14 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Loader2,
 } from 'lucide-react'
-import type { Configuration, UserRole, ConfigurationStatus } from '@/lib/supabase/types'
+import type { Configuration, ConfigurationStatus } from '@/lib/supabase/types'
 import { CONFIGURATION_STATUS_LABELS } from '@/lib/supabase/types'
 import { getShapeLabel, formatDimensions } from '@/lib/constants/configurator'
 import { deleteConfiguration, retryPipedriveSync } from '@/app/actions/admin-actions'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { useAdminRole } from '@/hooks/use-admin-role'
 
 interface ConfigurationsTableProps {
   configurations: Configuration[]
@@ -77,25 +79,32 @@ export function ConfigurationsTable({
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [retryingId, setRetryingId] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<UserRole | null>(null)
+  const userRole = useAdminRole()
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single() as { data: { role: string } | null }
-        if (profile) {
-          setUserRole(profile.role as UserRole)
-        }
-      }
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+
+  const isAllSelected = configurations.length > 0 && selectedIds.size === configurations.length
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === configurations.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(configurations.map((c) => c.id)))
     }
-    fetchUserRole()
-  }, [])
+  }
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -161,6 +170,55 @@ export function ConfigurationsTable({
     }
   }
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/configurations/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      })
+      if (response.ok) {
+        toast.success(`${selectedIds.size} konfigurací smazáno`)
+        setSelectedIds(new Set())
+        setBulkDeleteDialogOpen(false)
+        router.refresh()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Chyba při mazání')
+      }
+    } catch {
+      toast.error('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const handleBulkStatusChange = async (status: string) => {
+    if (selectedIds.size === 0) return
+    setBulkUpdating(true)
+    try {
+      const response = await fetch('/api/admin/configurations/bulk-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds), status }),
+      })
+      if (response.ok) {
+        toast.success(status === 'processed' ? 'Konfigurace označeny jako zpracované' : 'Stav změněn')
+        setSelectedIds(new Set())
+        router.refresh()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || 'Chyba při změně stavu')
+      }
+    } catch {
+      toast.error('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(window.location.search)
     params.set('page', page.toString())
@@ -169,11 +227,55 @@ export function ConfigurationsTable({
 
   return (
     <div className="space-y-4">
+      {/* Bulk actions bar */}
+      {userRole === 'admin' && selectedIds.size > 0 && (
+        <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
+          <span className="text-sm font-medium">
+            Vybráno: {selectedIds.size}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulkUpdating}
+              onClick={() => handleBulkStatusChange('processed')}
+            >
+              {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Označit jako zpracované
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Zrušit výběr
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={bulkUpdating}
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Smazat
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
+              {userRole === 'admin' && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+              )}
               <TableHead>Datum</TableHead>
               <TableHead>Kontakt</TableHead>
               <TableHead>Konfigurace</TableHead>
@@ -186,6 +288,14 @@ export function ConfigurationsTable({
             {configurations.length > 0 ? (
               configurations.map((config) => (
                 <ClickableTableRow key={config.id} href={`/admin/konfigurace/${config.id}`}>
+                  {userRole === 'admin' && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(config.id)}
+                        onCheckedChange={() => toggleSelect(config.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell className="text-muted-foreground">
                     <div>
                       <p>{format(new Date(config.created_at), 'd.M.yyyy', { locale: cs })}</p>
@@ -302,7 +412,7 @@ export function ConfigurationsTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={userRole === 'admin' ? 7 : 6} className="h-32 text-center text-muted-foreground">
                   Žádné konfigurace nenalezeny
                 </TableCell>
               </TableRow>
@@ -359,6 +469,29 @@ export function ConfigurationsTable({
               className="bg-red-600 hover:bg-red-700"
             >
               {isDeleting ? 'Mažu...' : 'Smazat'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Smazat {selectedIds.size} konfigurací</AlertDialogTitle>
+            <AlertDialogDescription>
+              Opravdu chcete smazat {selectedIds.size} konfigurací? Tato akce je nevratná.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkUpdating}>Zrušit</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkUpdating}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Smazat
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
