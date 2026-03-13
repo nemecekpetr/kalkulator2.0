@@ -4,9 +4,40 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.5.3'
+export const CURRENT_VERSION = '0.5.4'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.5.4',
+      date: '2026-03-13',
+      time: '17:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Výběr sazby DPH v nabídkách (0%, 12%, 21%)',
+          userDescription: 'V editoru nabídky je nový výběr sazby DPH — bez DPH (0%), 12% nebo 21%. Podle zvolené sazby se automaticky zobrazí rozpis DPH v rekapitulaci, na stránce detailu nabídky, v print view i v PDF. Při převodu nabídky na objednávku se sazba DPH automaticky přenese.'
+        },
+        {
+          type: 'improvement',
+          scope: 'nabidky',
+          description: 'Platnost nabídky zkrácena z 30 na 10 dnů',
+          userDescription: 'Výchozí platnost nové nabídky je nyní 10 dnů místo původních 30.'
+        },
+        {
+          type: 'improvement',
+          scope: 'pdf',
+          description: 'Úpravy textu a timeline v PDF nabídky',
+          userDescription: 'V PDF nabídky byl upraven bod „Realizace na klíč" na „Realizace v klidu". Časová osa realizace nově sloučí dodání, instalaci a předání do jednoho dne a přidává krok „Montáž zastřešení" (dle domluvy). Odkaz na Google recenze byl opraven.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Oprava záruční doby v kupní smlouvě (10 let → 24 měsíců)',
+          userDescription: 'V kupní smlouvě objednávky byla záruční doba na bazénovou konstrukci opravena z 10 let na 24 měsíců.'
+        }
+      ]
+    },
     {
       version: '0.5.3',
       date: '2026-02-19',
