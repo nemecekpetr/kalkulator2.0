@@ -152,6 +152,7 @@ export default async function EditQuotePage({ params }: PageProps) {
           delivery_deadline: quote.delivery_deadline || null,
           capacity_month: quote.capacity_month || null,
           available_installations: quote.available_installations ?? null,
+          vat_rate: quote.vat_rate ?? 0,
           items: items.map((item) => ({
             id: item.id,
             product_id: item.product_id,

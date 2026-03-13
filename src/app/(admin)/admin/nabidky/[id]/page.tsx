@@ -189,6 +189,7 @@ export default async function QuoteDetailPage({ params }: PageProps) {
                 status={(quote.status as QuoteStatus) || 'draft'}
                 validUntil={quote.valid_until}
                 existingOrder={quote.existingOrder}
+                variants={quote.variants}
               />
             </div>
             <p className="text-muted-foreground">
@@ -354,9 +355,21 @@ export default async function QuoteDetailPage({ params }: PageProps) {
                                 )}
                                 <Separator />
                                 <div className="flex justify-between font-semibold text-lg">
-                                  <span>Celkem</span>
+                                  <span>Celkem{quote.vat_rate > 0 ? ' bez DPH' : ''}</span>
                                   <span>{formatPrice(variant.total_price)}</span>
                                 </div>
+                                {quote.vat_rate > 0 && (
+                                  <>
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-muted-foreground">DPH ({quote.vat_rate}%)</span>
+                                      <span>{formatPrice(Math.round(variant.total_price * (quote.vat_rate / 100)))}</span>
+                                    </div>
+                                    <div className="flex justify-between font-semibold text-lg">
+                                      <span>Celkem vč. DPH</span>
+                                      <span>{formatPrice(Math.round(variant.total_price * (1 + quote.vat_rate / 100)))}</span>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </>
@@ -438,9 +451,21 @@ export default async function QuoteDetailPage({ params }: PageProps) {
                           )}
                           <Separator />
                           <div className="flex justify-between font-semibold text-lg">
-                            <span>Celkem</span>
+                            <span>Celkem{quote.vat_rate > 0 ? ' bez DPH' : ''}</span>
                             <span>{formatPrice(quote.total_price)}</span>
                           </div>
+                          {quote.vat_rate > 0 && (
+                            <>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">DPH ({quote.vat_rate}%)</span>
+                                <span>{formatPrice(Math.round(quote.total_price * (quote.vat_rate / 100)))}</span>
+                              </div>
+                              <div className="flex justify-between font-semibold text-lg">
+                                <span>Celkem vč. DPH</span>
+                                <span>{formatPrice(Math.round(quote.total_price * (1 + quote.vat_rate / 100)))}</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </>

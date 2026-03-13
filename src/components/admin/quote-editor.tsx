@@ -130,6 +130,7 @@ interface QuoteEditorProps {
     delivery_deadline: string | null
     capacity_month: string | null
     available_installations: number | null
+    vat_rate?: number
     items: (QuoteItem & { variant_ids?: string[] })[]
     variants?: {
       id: string
@@ -548,7 +549,7 @@ export function QuoteEditor({
   const [notes, setNotes] = useState(existingQuote?.notes || '')
   const [validUntil, setValidUntil] = useState(
     existingQuote?.valid_until ||
-      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   )
   const [deliveryTerm, setDeliveryTerm] = useState(existingQuote?.delivery_term || '4-8 týdnů')
 
@@ -574,6 +575,7 @@ export function QuoteEditor({
   const [manualDeliveryDeadline, setManualDeliveryDeadline] = useState(
     !!existingQuote?.delivery_deadline
   )
+  const [vatRate, setVatRate] = useState<number>(existingQuote?.vat_rate ?? 0)
 
   // Variants
   const [variants, setVariants] = useState<QuoteVariantState[]>(() => {
@@ -1510,6 +1512,7 @@ export function QuoteEditor({
         delivery_deadline: deliveryDeadline || null,
         capacity_month: capacityMonth || null,
         available_installations: availableInstallations || null,
+        vat_rate: vatRate,
         variants: variantsWithItems.map((v, idx) => ({
           variant_key: v.key,
           variant_name: v.name,
@@ -1887,6 +1890,36 @@ export function QuoteEditor({
           </Card>
         )}
 
+        {/* DPH */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">DPH</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Sazba DPH</Label>
+              <Select
+                value={String(vatRate)}
+                onValueChange={(val) => setVatRate(Number(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Bez DPH (0%)</SelectItem>
+                  <SelectItem value="12">12%</SelectItem>
+                  <SelectItem value="21">21%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {vatRate === 12 && (
+              <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+                Text k sazbě 12% DPH bude doplněn.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Quote variants with tabs */}
         <Card>
           <CardHeader className="pb-0">
@@ -2132,9 +2165,21 @@ export function QuoteEditor({
                         )}
                         <Separator />
                         <div className="flex justify-between items-center text-lg font-semibold">
-                          <span>Celkem {variant.name}</span>
+                          <span>Celkem {variant.name}{vatRate > 0 ? ' bez DPH' : ''}</span>
                           <span>{formatPrice(calculateVariantTotal(variant.key))}</span>
                         </div>
+                        {vatRate > 0 && (
+                          <>
+                            <div className="flex justify-between text-sm text-muted-foreground">
+                              <span>DPH ({vatRate}%)</span>
+                              <span>{formatPrice(Math.round(calculateVariantTotal(variant.key) * (vatRate / 100)))}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-lg font-semibold">
+                              <span>Celkem vč. DPH</span>
+                              <span>{formatPrice(Math.round(calculateVariantTotal(variant.key) * (1 + vatRate / 100)))}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </>
                   )}

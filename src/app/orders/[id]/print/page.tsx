@@ -593,7 +593,7 @@ function ContractClausesPage({ order }: { order: Order }) {
           Prodávající poskytuje na dodané zboží následující záruky:
         </p>
         <ul className="list-disc list-inside space-y-0.5 ml-2 mb-1">
-          <li><strong>Bazénová konstrukce (skelet)</strong>: záruka 10 let od data předání</li>
+          <li><strong>Bazénová konstrukce (skelet)</strong>: záruka 24 měsíců od data předání</li>
           <li><strong>Technologie a příslušenství</strong>: záruka 24 měsíců od data předání</li>
         </ul>
         <p className="mb-1">

@@ -1,0 +1,1 @@
+ALTER TABLE quotes ADD COLUMN vat_rate integer NOT NULL DEFAULT 0;

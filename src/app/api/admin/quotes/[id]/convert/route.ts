@@ -15,6 +15,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     const { id } = await params
     const supabase = await createAdminClient()
 
+    // Parse optional variantId from body
+    const body = await request.json().catch(() => ({}))
+    const { variantId } = body as { variantId?: string }
+
     // Get quote with items
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
@@ -36,11 +40,49 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     // Get quote items
-    const { data: quoteItems } = await supabase
+    const { data: allQuoteItems } = await supabase
       .from('quote_items')
       .select('*')
       .eq('quote_id', id)
       .order('sort_order', { ascending: true })
+
+    // If variant specified, filter items and use variant pricing
+    let quoteItems = allQuoteItems || []
+    let orderSubtotal = quote.subtotal
+    let orderDiscountPercent = quote.discount_percent
+    let orderDiscountAmount = quote.discount_amount
+    let orderTotalPrice = quote.total_price
+
+    if (variantId) {
+      // Fetch variant data for pricing
+      const { data: variant, error: variantError } = await supabase
+        .from('quote_variants')
+        .select('*')
+        .eq('id', variantId)
+        .eq('quote_id', id)
+        .single()
+
+      if (variantError || !variant) {
+        return new NextResponse('Varianta nenalezena', { status: 404 })
+      }
+
+      // Use variant pricing
+      orderSubtotal = variant.subtotal
+      orderDiscountPercent = variant.discount_percent
+      orderDiscountAmount = variant.discount_amount
+      orderTotalPrice = variant.total_price
+
+      // Filter items by variant via junction table
+      const { data: variantItemAssocs } = await supabase
+        .from('quote_item_variants')
+        .select('quote_item_id')
+        .eq('quote_variant_id', variantId)
+
+      if (variantItemAssocs && variantItemAssocs.length > 0) {
+        const variantItemIds = new Set(variantItemAssocs.map((a) => a.quote_item_id))
+        quoteItems = quoteItems.filter((item) => variantItemIds.has(item.id))
+      }
+    }
 
     // Use database function to generate order number (atomic, no race condition)
     const { data: orderNumberResult, error: seqError } = await supabase
@@ -73,12 +115,12 @@ export async function POST(request: Request, { params }: RouteParams) {
         delivery_method: 'rentmil_dap',
         delivery_cost_free: true,
         delivery_cost: 0,
-        vat_rate: 12,
+        vat_rate: quote.vat_rate ?? 0,
         pool_config: quote.pool_config,
-        subtotal: quote.subtotal,
-        discount_percent: quote.discount_percent,
-        discount_amount: quote.discount_amount,
-        total_price: quote.total_price,
+        subtotal: orderSubtotal,
+        discount_percent: orderDiscountPercent,
+        discount_amount: orderDiscountAmount,
+        total_price: orderTotalPrice,
         notes: quote.notes,
         created_by: quote.created_by,
       })
@@ -91,7 +133,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     // Step 2: Copy items to order
-    if (quoteItems && quoteItems.length > 0) {
+    if (quoteItems.length > 0) {
       const orderItems: OrderItemInsert[] = quoteItems.map((item) => ({
         order_id: order.id,
         product_id: item.product_id,

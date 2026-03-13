@@ -323,13 +323,15 @@ function ItemsSection({
   subtotal,
   discountPercent,
   discountAmount,
-  totalPrice
+  totalPrice,
+  vatRate = 0,
 }: {
   items: QuoteItemWithVariantIds[]
   subtotal: number
   discountPercent: number
   discountAmount: number
   totalPrice: number
+  vatRate?: number
 }) {
   // Group items by category
   const itemsByCategory = items.reduce(
@@ -442,10 +444,24 @@ function ItemsSection({
           {/* Grand total */}
           <div className="mt-3 rounded-xl bg-gradient-to-r from-[#FF8621] to-[#ED6663] p-4 text-white shadow-lg">
             <div className="flex justify-between items-center">
-              <span className="text-base font-semibold">Celkem k úhradě</span>
+              <span className="text-base font-semibold">Celkem k úhradě{vatRate > 0 ? ' bez DPH' : ''}</span>
               <span className="text-2xl font-bold">{formatPrice(totalPrice)}</span>
             </div>
-            <p className="text-white/80 text-xs mt-1">včetně DPH</p>
+            {vatRate > 0 && (
+              <>
+                <div className="flex justify-between items-center text-white/80 text-xs mt-1">
+                  <span>DPH ({vatRate}%)</span>
+                  <span>{formatPrice(Math.round(totalPrice * (vatRate / 100)))}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1 pt-1 border-t border-white/20">
+                  <span className="text-base font-semibold">Celkem vč. DPH</span>
+                  <span className="text-2xl font-bold">{formatPrice(Math.round(totalPrice * (1 + vatRate / 100)))}</span>
+                </div>
+              </>
+            )}
+            {vatRate === 0 && (
+              <p className="text-white/80 text-xs mt-1">bez DPH</p>
+            )}
           </div>
         </div>
       </PrintBlock>
@@ -480,6 +496,7 @@ function VariantContentPages({ quote, variant }: { quote: QuoteWithCreator; vari
           discountPercent={variant.discount_percent}
           discountAmount={variant.discount_amount}
           totalPrice={variant.total_price}
+          vatRate={quote.vat_rate}
         />
       </div>
 
@@ -532,7 +549,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
     { title: 'Showroom v Plzni s reálnými bazény', desc: 'Přijďte si prohlédnout — Lidická 1233/26, Plzeň' },
     { title: 'Kompletní servis po celý rok', desc: 'Zprovoznění, údržba, zazimování — záruční i pozáruční' },
     { title: 'Autorizovaný partner Alukov zastřešení', desc: 'Oficiální dodavatel a partner evropského lídra s bazénovým zastřešením' },
-    { title: 'Realizace na klíč od návrhu po instalaci', desc: 'Výroba, doprava, montáž — vše zařídíme za vás' },
+    { title: 'Realizace v klidu od návrhu po instalaci', desc: 'Výroba, doprava, montáž — vše zařídíme za vás' },
     { title: 'Zákazníci nás doporučují dál', desc: 'Oceňují osobní přístup, odborné poradenství a spolehlivost v každém kroku' },
   ]
 
@@ -570,11 +587,11 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
             <div className="px-4 pb-3 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Ceny</span>
-                <span className="font-semibold text-[#01384B]">bez DPH</span>
+                <span className="font-semibold text-[#01384B]">{quote.vat_rate > 0 ? `vč. DPH ${quote.vat_rate}%` : 'bez DPH'}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Záruka konstrukce</span>
-                <span className="font-semibold text-[#48A9A6]">10 let</span>
+                <span className="font-semibold text-[#48A9A6]">2 roky</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Záruka technologie</span>
@@ -586,7 +603,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Dodání</span>
-                <span className="font-semibold text-[#01384B]">4–8 týdnů</span>
+                <span className="font-semibold text-[#01384B]">{quote.delivery_term || '4–8 týdnů'}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-500">Záloha</span>
@@ -625,16 +642,16 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
           <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Let zkušeností</p>
         </div>
         <div className="text-center">
-          <p className="text-4xl font-bold text-[#48A9A6]">10</p>
-          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Let záruka</p>
+          <p className="text-4xl font-bold text-[#48A9A6]">2</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Roky záruka</p>
         </div>
         <div className="text-center">
           <p className="text-4xl font-bold text-[#48A9A6]">2000+</p>
           <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Realizací po celé ČR</p>
         </div>
         <div className="text-center">
-          <p className="text-4xl font-bold text-[#48A9A6]">4–8</p>
-          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Týdnů dodání</p>
+          <p className="text-4xl font-bold text-[#48A9A6]">{quote.delivery_term || '4–8 týdnů'}</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider mt-1">Dodání</p>
         </div>
       </div>
 
@@ -735,7 +752,7 @@ function NextStepsPage({ quote, images }: { quote: QuoteWithCreator; images: Ima
             </span>
           </div>
           <span className="text-xs text-gray-500">50+ recenzí</span>
-          <a href="https://www.google.com/maps/place/Rentmil+s.r.o.+-+v%C3%BDroba+baz%C3%A9n%C5%AF/@49.7666927,13.3745379,17z" className="text-xs text-[#48A9A6] font-medium ml-2">
+          <a href="https://www.google.cz/maps/place/Rentmil+s.r.o.+-+v%C3%BDroba+baz%C3%A9n%C5%AF/@49.7666927,13.3745379,17z" className="text-xs text-[#48A9A6] font-medium ml-2">
             Zobrazit všechny recenze &rarr;
           </a>
         </div>
@@ -754,9 +771,9 @@ function NextStepsPage({ quote, images }: { quote: QuoteWithCreator; images: Ima
           {[
             { num: '1', title: 'Objednání', desc: 'Podpis smlouvy\na záloha 50 %', time: 'Den 0', color: '#8CC5C3' },
             { num: '2', title: 'Výroba', desc: 'Bazén na míru\nv naší dílně', time: '4–8 týdnů', color: '#6BB5B2' },
-            { num: '3', title: 'Dodání', desc: 'Transport\nna vaši adresu', time: '1 den', color: '#48A9A6' },
-            { num: '4', title: 'Instalace', desc: 'Osazení a napojení\ntechnologie', time: '2–3 dny', color: '#3A8B88' },
-            { num: '✓', title: 'Předání', desc: 'Zaškolení\na užívání', time: 'Hotovo!', color: '#2D6E6B', isLast: true },
+            { num: '3', title: 'Dodání + instalace', desc: 'Transport, osazení,\nnapojení a předání', time: '1 den', color: '#48A9A6' },
+            { num: '4', title: 'Montáž zastřešení', desc: 'Instalace zastřešení\nna hotový bazén', time: 'Dle domluvy', color: '#3A8B88' },
+            { num: '✓', title: 'Hotovo', desc: 'Zaškolení\na užívání', time: 'Bazénujete!', color: '#2D6E6B', isLast: true },
           ].map((step, i) => (
             <div key={i} className="flex flex-col items-center text-center relative z-10 w-1/5">
               <div
@@ -843,6 +860,18 @@ function ComparisonPage({ quote }: { quote: QuoteWithCreator }) {
   // Sort variants by total_price for consistent display
   const sortedVariants = [...variants].sort((a, b) => a.total_price - b.total_price)
 
+  // Deduplicate items by name - merge variant_ids for items with the same name
+  const deduplicatedItems = items.reduce<Array<{ name: string; variant_ids: string[] }>>((acc, item) => {
+    const existing = acc.find((i) => i.name === item.name)
+    if (existing) {
+      const newIds = (item.variant_ids || []).filter((id: string) => !existing.variant_ids.includes(id))
+      existing.variant_ids = [...existing.variant_ids, ...newIds]
+    } else {
+      acc.push({ name: item.name, variant_ids: [...(item.variant_ids || [])] })
+    }
+    return acc
+  }, [])
+
   return (
     <div className="w-[210mm] mx-auto bg-white px-10 pt-6">
       {/* Title */}
@@ -872,9 +901,9 @@ function ComparisonPage({ quote }: { quote: QuoteWithCreator }) {
 
         {/* Items */}
         <div className="divide-y divide-gray-100">
-          {items.map((item, index) => (
+          {deduplicatedItems.map((item, index) => (
             <div
-              key={item.id}
+              key={item.name}
               className={`grid ${index % 2 === 1 ? 'bg-gray-50' : 'bg-white'}`}
               style={{ gridTemplateColumns: `2fr ${sortedVariants.map(() => '1fr').join(' ')}` }}
             >
@@ -931,6 +960,7 @@ function ContentPages({ quote }: { quote: QuoteWithCreator }) {
           discountPercent={quote.discount_percent}
           discountAmount={quote.discount_amount}
           totalPrice={quote.total_price}
+          vatRate={quote.vat_rate}
         />
       </div>
 

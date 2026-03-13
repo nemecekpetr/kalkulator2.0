@@ -414,6 +414,8 @@ export interface Quote {
   delivery_deadline: string | null
   capacity_month: string | null
   available_installations: number | null
+  // DPH
+  vat_rate: number
 }
 
 export interface QuoteInsert {
@@ -446,6 +448,7 @@ export interface QuoteInsert {
   delivery_deadline?: string | null
   capacity_month?: string | null
   available_installations?: number | null
+  vat_rate?: number
 }
 
 export interface QuoteUpdate {
@@ -477,6 +480,7 @@ export interface QuoteUpdate {
   delivery_deadline?: string | null
   capacity_month?: string | null
   available_installations?: number | null
+  vat_rate?: number
 }
 
 // Quote item types

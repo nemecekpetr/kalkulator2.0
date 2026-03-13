@@ -815,9 +815,25 @@ function VariantPage({
             </View>
           )}
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>CELKEM</Text>
+            <Text style={styles.grandTotalLabel}>{quote.vat_rate > 0 ? 'CELKEM BEZ DPH' : 'CELKEM'}</Text>
             <Text style={styles.grandTotalValue}>{formatPrice(variant.total_price)}</Text>
           </View>
+          {quote.vat_rate > 0 && (
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>DPH ({quote.vat_rate}%)</Text>
+                <Text style={styles.totalValue}>
+                  {formatPrice(Math.round(variant.total_price * (quote.vat_rate / 100)))}
+                </Text>
+              </View>
+              <View style={styles.grandTotalRow}>
+                <Text style={styles.grandTotalLabel}>CELKEM VC. DPH</Text>
+                <Text style={styles.grandTotalValue}>
+                  {formatPrice(Math.round(variant.total_price * (1 + quote.vat_rate / 100)))}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
       </View>
 
@@ -838,8 +854,17 @@ function ComparisonPage({
   items: QuoteItemWithVariantIds[]
   logoUrl?: string
 }) {
-  // Get all unique items
-  const uniqueItems = items
+  // Deduplicate items by name - merge variant_ids for items with the same name
+  const deduplicatedItems = items.reduce<Array<{ name: string; variant_ids: string[] }>>((acc, item) => {
+    const existing = acc.find((i) => i.name === item.name)
+    if (existing) {
+      const newIds = (item.variant_ids || []).filter((id) => !existing.variant_ids.includes(id))
+      existing.variant_ids = [...existing.variant_ids, ...newIds]
+    } else {
+      acc.push({ name: item.name, variant_ids: [...(item.variant_ids || [])] })
+    }
+    return acc
+  }, [])
 
   return (
     <Page size="A4" style={styles.page}>
@@ -861,9 +886,9 @@ function ComparisonPage({
         </View>
 
         {/* Item rows */}
-        {uniqueItems.map((item, index) => (
+        {deduplicatedItems.map((item, index) => (
           <View
-            key={item.id}
+            key={item.name}
             style={[styles.comparisonRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
           >
             <Text style={[styles.comparisonCell, styles.comparisonCellName]}>{item.name}</Text>
@@ -903,11 +928,11 @@ function ComparisonPage({
       <View style={styles.terms}>
         <Text style={styles.termsTitle}>Obchodni podminky</Text>
         <Text>
-          - Ceny jsou uvedeny vcetne DPH{'\n'}
+          - Ceny jsou uvedeny {quote.vat_rate > 0 ? `vcetne DPH (${quote.vat_rate}%)` : 'bez DPH'}{'\n'}
           - Cena nezahrnuje zemni prace a pripravu podlozi{'\n'}
           - Dodaci lhuta: {quote.delivery_term || '4-8 tydnu'} od objednani{'\n'}
           - Platebni podminky: zaloha 50% pri objednani, doplatek pri predani{'\n'}
-          - Zaruka na bazenovou konstrukci: 10 let{'\n'}
+          - Zaruka na bazenovou konstrukci: 2 roky{'\n'}
           - Zaruka na technologii: 2 roky
         </Text>
       </View>
@@ -957,9 +982,25 @@ export function QuotePDF({ quote, poolConfig, logoUrl, specialist }: QuotePDFPro
                 </View>
               )}
               <View style={styles.grandTotalRow}>
-                <Text style={styles.grandTotalLabel}>CELKEM</Text>
+                <Text style={styles.grandTotalLabel}>{quote.vat_rate > 0 ? 'CELKEM BEZ DPH' : 'CELKEM'}</Text>
                 <Text style={styles.grandTotalValue}>{formatPrice(quote.total_price)}</Text>
               </View>
+              {quote.vat_rate > 0 && (
+                <>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>DPH ({quote.vat_rate}%)</Text>
+                    <Text style={styles.totalValue}>
+                      {formatPrice(Math.round(quote.total_price * (quote.vat_rate / 100)))}
+                    </Text>
+                  </View>
+                  <View style={styles.grandTotalRow}>
+                    <Text style={styles.grandTotalLabel}>CELKEM VC. DPH</Text>
+                    <Text style={styles.grandTotalValue}>
+                      {formatPrice(Math.round(quote.total_price * (1 + quote.vat_rate / 100)))}
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
           </View>
 
@@ -1005,11 +1046,11 @@ export function QuotePDF({ quote, poolConfig, logoUrl, specialist }: QuotePDFPro
           <View style={styles.terms}>
             <Text style={styles.termsTitle}>Obchodni podminky</Text>
             <Text>
-              - Ceny jsou uvedeny vcetne DPH{'\n'}
+              - Ceny jsou uvedeny {quote.vat_rate > 0 ? `vcetne DPH (${quote.vat_rate}%)` : 'bez DPH'}{'\n'}
               - Cena nezahrnuje zemni prace a pripravu podlozi{'\n'}
               - Dodaci lhuta: {quote.delivery_term || '4-8 tydnu'} od objednani{'\n'}
               - Platebni podminky: zaloha 50% pri objednani, doplatek pri predani{'\n'}
-              - Zaruka na bazenovou konstrukci: 10 let{'\n'}
+              - Zaruka na bazenovou konstrukci: 2 roky{'\n'}
               - Zaruka na technologii: 2 roky
             </Text>
           </View>

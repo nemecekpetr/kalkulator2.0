@@ -66,6 +66,7 @@ const QuoteSchema = z.object({
   delivery_deadline: z.string().nullable().optional(),
   capacity_month: z.string().nullable().optional(),
   available_installations: z.number().nullable().optional(),
+  vat_rate: z.number().min(0).max(100).optional(),
   items: z.array(QuoteItemSchema),
   variants: z.array(QuoteVariantSchema).optional(),
 })
@@ -160,6 +161,7 @@ export async function POST(request: Request) {
         delivery_deadline: validatedData.delivery_deadline || null,
         capacity_month: validatedData.capacity_month || null,
         available_installations: validatedData.available_installations ?? null,
+        vat_rate: validatedData.vat_rate ?? 0,
         subtotal,
         total_price: subtotal,
         created_by: user?.id || null,
@@ -322,6 +324,7 @@ export async function PUT(request: Request) {
         delivery_deadline: validatedData.delivery_deadline || null,
         capacity_month: validatedData.capacity_month || null,
         available_installations: validatedData.available_installations ?? null,
+        vat_rate: validatedData.vat_rate ?? 0,
         subtotal,
         total_price: subtotal,
       })
