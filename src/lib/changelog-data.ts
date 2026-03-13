@@ -4,9 +4,34 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.5.4'
+export const CURRENT_VERSION = '0.5.5'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.5.5',
+      date: '2026-03-13',
+      time: '20:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'admin',
+          description: 'Mazání nabídek, objednávek a výrobních zadání ze seznamu',
+          userDescription: 'V seznamech nabídek, objednávek a výrobních zadání je nyní možné mazat jednotlivé záznamy přes menu „..." v řádku. U objednávek lze mazat pouze ty ve stavu „Vytvořena", u nabídek nelze smazat akceptované nabídky. Akce je dostupná pouze pro administrátory.'
+        },
+        {
+          type: 'feature',
+          scope: 'admin',
+          description: 'Hromadné operace ve všech admin seznamech',
+          userDescription: 'Ve všech hlavních seznamech (konfigurace, nabídky, objednávky, výroba) lze nyní zaškrtnutím vybrat více záznamů najednou a provádět hromadné akce — smazání nebo změnu stavu. Po zaškrtnutí se zobrazí lišta s dostupnými akcemi. Funkce je dostupná pouze pro administrátory.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Oprava nefunkčního mazání nabídek (chybějící API endpoint)',
+          userDescription: 'Tlačítko „Smazat" u nabídek nyní funguje správně — dříve mazání tiše selhávalo kvůli chybějícímu API endpointu.'
+        }
+      ]
+    },
     {
       version: '0.5.4',
       date: '2026-03-13',
