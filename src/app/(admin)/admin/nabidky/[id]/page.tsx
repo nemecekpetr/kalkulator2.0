@@ -41,7 +41,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { QuoteVersions } from '@/components/admin/quote-versions'
 import { QuoteStatusBadge } from '@/components/admin/quote-status-badge'
-import { StatusChip, getStatusStep, QUOTE_STATUSES } from '@/components/admin/status-steps'
+import { StatusChip } from '@/components/admin/status-steps'
+import { getStatusStep, QUOTE_STATUSES } from '@/components/admin/status-config'
 import type { Quote, QuoteItem, PoolDimensions, QuoteVariant, QuoteStatus } from '@/lib/supabase/types'
 import {
   getShapeLabel,

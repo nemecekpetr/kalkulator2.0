@@ -3,14 +3,11 @@
 import { cn } from '@/lib/utils'
 import { AlertTriangle, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import type { StatusColor, StatusStep } from './status-config'
 
-export type StatusColor = 'gray' | 'blue' | 'yellow' | 'green' | 'red'
-
-export interface StatusStep {
-  value: string
-  label: string
-  color: StatusColor
-}
+// Re-export server-safe types, constants, and utilities
+export type { StatusColor, StatusStep }
+export { getStatusStep, CONFIGURATION_STATUSES, QUOTE_STATUSES, ORDER_STATUSES, PRODUCTION_STATUSES } from './status-config'
 
 // Color mappings for chip backgrounds and borders
 const chipColors: Record<StatusColor, string> = {
@@ -51,12 +48,6 @@ export function StatusChip({ status, showExpiredWarning }: StatusChipProps) {
       )}
     </div>
   )
-}
-
-// --- getStatusStep ---
-
-export function getStatusStep(statuses: StatusStep[], value: string): StatusStep | undefined {
-  return statuses.find(s => s.value === value)
 }
 
 // --- StatusSteps (timeline + action buttons) ---
@@ -209,29 +200,3 @@ export function StatusSteps({
   )
 }
 
-// --- Predefined status configurations ---
-
-export const CONFIGURATION_STATUSES: StatusStep[] = [
-  { value: 'new', label: 'Nová', color: 'blue' },
-  { value: 'processed', label: 'Zpracovaná', color: 'green' },
-]
-
-export const QUOTE_STATUSES: StatusStep[] = [
-  { value: 'draft', label: 'Koncept', color: 'gray' },
-  { value: 'sent', label: 'Odesláno', color: 'blue' },
-  { value: 'accepted', label: 'Akceptováno', color: 'green' },
-  { value: 'rejected', label: 'Odmítnuto', color: 'red' },
-]
-
-export const ORDER_STATUSES: StatusStep[] = [
-  { value: 'created', label: 'Nová', color: 'gray' },
-  { value: 'sent', label: 'Odeslaná', color: 'blue' },
-  { value: 'in_production', label: 'Předána do výroby', color: 'yellow' },
-]
-
-export const PRODUCTION_STATUSES: StatusStep[] = [
-  { value: 'pending', label: 'Čeká', color: 'gray' },
-  { value: 'in_progress', label: 'Ve výrobě', color: 'yellow' },
-  { value: 'completed', label: 'Hotovo', color: 'green' },
-  { value: 'cancelled', label: 'Zrušeno', color: 'red' },
-]

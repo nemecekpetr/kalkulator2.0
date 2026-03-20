@@ -40,7 +40,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { OrderStatusBadge } from '@/components/admin/order-status-badge'
-import { StatusChip, getStatusStep, ORDER_STATUSES } from '@/components/admin/status-steps'
+import { StatusChip } from '@/components/admin/status-steps'
+import { getStatusStep, ORDER_STATUSES } from '@/components/admin/status-config'
 import { CreateProductionButton } from '@/components/admin/create-production-button'
 import type { Order, OrderItem, PoolDimensions } from '@/lib/supabase/types'
 import {

@@ -28,7 +28,8 @@ import {
 import { PoolSchematic } from '@/components/pool-schematic'
 import { DeleteProductionButton } from '@/components/admin/delete-production-button'
 import { ProductionStatusBadge } from '@/components/admin/production-status-badge'
-import { StatusChip, getStatusStep, PRODUCTION_STATUSES } from '@/components/admin/status-steps'
+import { StatusChip } from '@/components/admin/status-steps'
+import { getStatusStep, PRODUCTION_STATUSES } from '@/components/admin/status-config'
 import type { ProductionOrder, ProductionOrderItem } from '@/lib/supabase/types'
 
 interface PoolConfig {
