@@ -407,6 +407,7 @@ export async function updateConfiguration(
     lighting?: string
     counterflow?: string
     water_treatment?: string
+    water_treatment_other?: string | null
     heating?: string
     roofing?: string
     message?: string
@@ -448,6 +449,7 @@ export async function createConfiguration(data: {
   lighting: string
   counterflow: string
   water_treatment: string
+  water_treatment_other?: string | null
   heating: string
   roofing: string
   message?: string
