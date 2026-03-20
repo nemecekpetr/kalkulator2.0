@@ -33,6 +33,7 @@ interface ConfigurationEmailData {
   lighting: string
   counterflow: string
   waterTreatment: string
+  waterTreatmentOther?: string | null
   heating: string
   roofing: string
 }
@@ -55,6 +56,7 @@ export function configToEmailData(config: Configuration): ConfigurationEmailData
     lighting: config.lighting,
     counterflow: config.counterflow,
     waterTreatment: config.water_treatment,
+    waterTreatmentOther: config.water_treatment_other,
     heating: config.heating,
     roofing: config.roofing,
   }

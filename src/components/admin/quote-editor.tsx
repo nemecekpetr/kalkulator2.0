@@ -160,6 +160,30 @@ const THICKNESS_8MM_CODE = 'PRIPLATEK-8MM'
 const SHARP_CORNERS_PERCENTAGE = 10 // 10% of skeleton price
 const THICKNESS_8MM_PRICE_PER_M2 = 650 // 650 Kč/m²
 
+// Helper: find insertion index after all skelety/sety items and their child addons.
+// Skelety/sety products (the base pool product) and their addons always stay at the top of the list.
+function getInsertIndexAfterBaseProducts(currentItems: QuoteItem[]): number {
+  const baseProductIds = new Set<string>()
+  for (const item of currentItems) {
+    if (item.category === 'skelety' || item.category === 'sety') {
+      baseProductIds.add(item.id)
+    }
+  }
+  if (baseProductIds.size === 0) return 0
+
+  let lastIdx = -1
+  for (let i = 0; i < currentItems.length; i++) {
+    const item = currentItems[i]
+    if (
+      baseProductIds.has(item.id) ||
+      (item.parent_item_id && baseProductIds.has(item.parent_item_id))
+    ) {
+      lastIdx = i
+    }
+  }
+  return lastIdx + 1
+}
+
 // Sortable item component for drag and drop
 interface SortableItemProps {
   item: QuoteItem
@@ -720,7 +744,26 @@ export function QuoteEditor({
         total_price: product.unit_price,
         variant_keys: [activeVariant],
       }))
-      setItems((prev) => [...newItems, ...prev])
+      setItems((prev) => {
+        // Split into base products (skelety/sety) and the rest
+        const baseItems = newItems.filter((i) => i.category === 'skelety' || i.category === 'sety')
+        const otherItems = newItems.filter((i) => i.category !== 'skelety' && i.category !== 'sety')
+
+        let result = [...prev]
+
+        // Base products go to the top
+        if (baseItems.length > 0) {
+          result = [...baseItems, ...result]
+        }
+
+        // Other items insert after the base product block
+        if (otherItems.length > 0) {
+          const insertIdx = getInsertIndexAfterBaseProducts(result)
+          result.splice(insertIdx, 0, ...otherItems)
+        }
+
+        return result
+      })
     },
     [activeVariant]
   )
@@ -755,7 +798,12 @@ export function QuoteEditor({
         variant_keys: [activeVariant],
       }))
       if (prerequisiteItems.length > 0) {
-        setItems((prev) => [...prerequisiteItems, ...prev])
+        setItems((prev) => {
+          const insertIdx = getInsertIndexAfterBaseProducts(prev)
+          const result = [...prev]
+          result.splice(insertIdx, 0, ...prerequisiteItems)
+          return result
+        })
       }
       setPendingItemId(null)
       toast.success(`Produkt aktualizován, přidáno ${result.missingPrerequisites.length} prerekvizit`)
@@ -901,7 +949,7 @@ export function QuoteEditor({
     [activeVariant, pendingItemId, updateItem, items]
   )
 
-  // Add custom item to active variant (at the beginning)
+  // Add custom item to active variant (after base products)
   const addCustomItem = useCallback(() => {
     const newItem: QuoteItem = {
       id: crypto.randomUUID(),
@@ -915,7 +963,12 @@ export function QuoteEditor({
       total_price: 0,
       variant_keys: [activeVariant],
     }
-    setItems((prev) => [newItem, ...prev])
+    setItems((prev) => {
+      const insertIdx = getInsertIndexAfterBaseProducts(prev)
+      const result = [...prev]
+      result.splice(insertIdx, 0, newItem)
+      return result
+    })
   }, [activeVariant])
 
   // Fetch product groups
@@ -993,7 +1046,23 @@ export function QuoteEditor({
         variant_keys: [activeVariant],
       }))
 
-      setItems((prev) => [...newItems, ...prev])
+      setItems((prev) => {
+        const baseItems = newItems.filter((i) => i.category === 'skelety' || i.category === 'sety')
+        const otherItems = newItems.filter((i) => i.category !== 'skelety' && i.category !== 'sety')
+
+        let result = [...prev]
+
+        if (baseItems.length > 0) {
+          result = [...baseItems, ...result]
+        }
+
+        if (otherItems.length > 0) {
+          const insertIdx = getInsertIndexAfterBaseProducts(result)
+          result.splice(insertIdx, 0, ...otherItems)
+        }
+
+        return result
+      })
       setGroupsDialogOpen(false)
       toast.success(`Přidáno ${newItems.length} položek ze skupiny "${group.name}"`)
     },
@@ -1282,16 +1351,22 @@ export function QuoteEditor({
         const generatedItems: GeneratedQuoteItem[] = data.items
 
         setItems((prev) => {
-          // Create a map of existing items by product_id for quick lookup
+          // Create maps for dedup - exclude set addon children from product_id map
+          // (they share product_id with parent set, which breaks dedup)
           const existingByProductId = new Map<string, QuoteItem>()
           const existingByName = new Map<string, QuoteItem>()
+          const existingByAddonId = new Map<string, QuoteItem>()
 
           for (const item of prev) {
-            if (item.product_id) {
-              existingByProductId.set(item.product_id, item)
+            if (item.set_addon_id) {
+              // Set addon children: match by addon ID
+              existingByAddonId.set(item.set_addon_id, item)
+            } else {
+              if (item.product_id) {
+                existingByProductId.set(item.product_id, item)
+              }
+              existingByName.set(item.name.toLowerCase().trim(), item)
             }
-            // Also map by name for items without product_id
-            existingByName.set(item.name.toLowerCase().trim(), item)
           }
 
           // Track which existing items were matched (to add variant)
@@ -1299,13 +1374,30 @@ export function QuoteEditor({
           const newItems: QuoteItem[] = []
 
           for (const genItem of generatedItems) {
-            // Try to find existing item by product_id first, then by name
+            // Parse set addon info from description prefix [SA:addonId]
+            const saMatch = genItem.description?.match(/^\[SA:([^\]]+)\]/)
+            const setAddonId = saMatch?.[1] || undefined
+            const isSetAddon = genItem.source === 'set_addon' || !!setAddonId
+
             let existingItem: QuoteItem | undefined
-            if (genItem.product_id) {
-              existingItem = existingByProductId.get(genItem.product_id)
-            }
-            if (!existingItem) {
-              existingItem = existingByName.get(genItem.name.toLowerCase().trim())
+
+            if (isSetAddon && setAddonId) {
+              // Match set addons by addon ID (not product_id, which is shared with parent)
+              existingItem = existingByAddonId.get(setAddonId)
+              if (!existingItem) {
+                // Fallback: match by name among child items
+                existingItem = prev.find(
+                  (i) => i.parent_item_id && i.name.toLowerCase().trim() === genItem.name.toLowerCase().trim()
+                )
+              }
+            } else {
+              // Normal dedup by product_id or name
+              if (genItem.product_id) {
+                existingItem = existingByProductId.get(genItem.product_id)
+              }
+              if (!existingItem) {
+                existingItem = existingByName.get(genItem.name.toLowerCase().trim())
+              }
             }
 
             if (existingItem) {
@@ -1324,7 +1416,21 @@ export function QuoteEditor({
                 unit_price: genItem.unit_price,
                 total_price: genItem.total_price,
                 variant_keys: [activeVariant],
+                set_addon_id: setAddonId,
               })
+            }
+          }
+
+          // Link set addon items to their parent set item
+          for (const item of newItems) {
+            if (item.set_addon_id) {
+              // Find parent: new set item first, then existing set item (by shared product_id, no addon)
+              const parent =
+                newItems.find((i) => i.product_id === item.product_id && !i.set_addon_id) ||
+                prev.find((i) => i.product_id === item.product_id && !i.set_addon_id)
+              if (parent) {
+                item.parent_item_id = parent.id
+              }
             }
           }
 
@@ -1342,7 +1448,22 @@ export function QuoteEditor({
             return item
           })
 
-          return [...updatedItems, ...newItems]
+          // Insert new items respecting skelety/sety-first ordering
+          const baseNewItems = newItems.filter((i) => i.category === 'skelety' || i.category === 'sety')
+          const otherNewItems = newItems.filter((i) => i.category !== 'skelety' && i.category !== 'sety')
+
+          let result = [...updatedItems]
+
+          if (baseNewItems.length > 0) {
+            result = [...baseNewItems, ...result]
+          }
+
+          if (otherNewItems.length > 0) {
+            const insertIdx = getInsertIndexAfterBaseProducts(result)
+            result.splice(insertIdx, 0, ...otherNewItems)
+          }
+
+          return result
         })
         setHasGenerated(true)
       } else {
@@ -1501,6 +1622,7 @@ export function QuoteEditor({
               lighting: configuration.lighting,
               counterflow: configuration.counterflow,
               waterTreatment: configuration.water_treatment,
+              waterTreatmentOther: configuration.water_treatment_other,
               heating: configuration.heating,
               roofing: configuration.roofing,
             }
@@ -1541,7 +1663,13 @@ export function QuoteEditor({
     } else {
       const error = await response.json()
       console.error('Save error:', error)
-      toast.error(error.error || 'Chyba při ukládání')
+      const detail = error.detail
+        ? (typeof error.detail === 'object' ? error.detail.message || JSON.stringify(error.detail) : error.detail)
+        : error.details?.map((d: { message: string }) => d.message).join(', ')
+      toast.error(error.error || 'Chyba při ukládání', {
+        description: detail,
+        duration: 10000,
+      })
       return null
     }
   }

@@ -296,7 +296,7 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
                       )}
                       {config.water_treatment && (
                         <Badge variant="secondary">
-                          {getWaterTreatmentLabel(config.water_treatment)}
+                          {getWaterTreatmentLabel(config.water_treatment, config.water_treatment_other)}
                         </Badge>
                       )}
                       {(!config.lighting || config.lighting === 'none') &&

@@ -72,6 +72,7 @@ interface PoolConfig {
   lighting?: string
   counterflow?: string
   waterTreatment?: string
+  waterTreatmentOther?: string | null
   heating?: string
   roofing?: string
 }
@@ -629,7 +630,7 @@ export default async function QuoteDetailPage({ params }: PageProps) {
                       {config.waterTreatment && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Úprava vody</span>
-                          <span className="font-medium">{getWaterTreatmentLabel(config.waterTreatment)}</span>
+                          <span className="font-medium">{getWaterTreatmentLabel(config.waterTreatment, config.waterTreatmentOther)}</span>
                         </div>
                       )}
                       {config.heating && config.heating !== 'none' && (
