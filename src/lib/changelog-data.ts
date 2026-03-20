@@ -4,9 +4,40 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.5.5'
+export const CURRENT_VERSION = '0.6.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.6.0',
+      date: '2026-03-20',
+      time: '16:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'konfigurace',
+          description: 'Nový dvousloupcový layout editace konfigurace se sticky shrnutím',
+          userDescription: 'Formulář pro editaci a tvorbu konfigurace má nový přehledný layout — vlevo formulář rozdělený do 5 logických karet (Kontakt, Základní parametry, Vzhled, Technologie, Komfort), vpravo plovoucí panel „Shrnutí konfigurace" s progress barem a přehledem vyplněných hodnot v reálném čase.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurace',
+          description: 'Nová volba „Jiné" u úpravy vody s volitelným popisem',
+          userDescription: 'V editaci konfigurace je u pole „Úprava vody" nová možnost „Jiné". Po jejím výběru se zobrazí volitelné textové pole pro upřesnění (např. UV lampa, bezchlorová úprava). Vlastní popis se zobrazí na detailu konfigurace, v nabídce i v emailu.'
+        },
+        {
+          type: 'feature',
+          scope: 'admin',
+          description: 'Redesign stavového flow — chip + mini timeline',
+          userDescription: 'Stavové indikátory na detailech nabídek, objednávek a výroby mají nový vzhled — v záhlaví stránky je barevný „chip" s aktuálním stavem, pod ním kompaktní timeline s tečkami ukazující průběh. Kliknutím na tečky lze měnit stav vpřed i zpět. Akční tlačítka (Akceptovat, Odmítnout apod.) jsou přehledně oddělená pod timeline.'
+        },
+        {
+          type: 'improvement',
+          scope: 'admin',
+          description: 'Selecty ve formulářích na plnou šířku',
+          userDescription: 'Všechny rozbalovací seznamy (selecty) ve formulářích nyní zabírají plnou šířku sloupce místo minimální šířky obsahu. Formuláře vypadají konzistentněji.'
+        }
+      ]
+    },
     {
       version: '0.5.5',
       date: '2026-03-13',
