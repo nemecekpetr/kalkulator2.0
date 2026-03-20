@@ -199,6 +199,11 @@ export const WATER_TREATMENT_OPTIONS = [
     label: 'Chlorová úprava',
     description: 'Klasická dezinfekce chlorem',
     tag: 'Tradiční'
+  },
+  {
+    id: 'other',
+    label: 'Jiné',
+    description: 'Vlastní typ úpravy vody',
   }
 ] as const
 
@@ -318,7 +323,10 @@ export function getCounterflowLabel(counterflowId: string) {
   return COUNTERFLOW_OPTIONS.find(c => c.id === counterflowId)?.label ?? counterflowId
 }
 
-export function getWaterTreatmentLabel(treatmentId: string) {
+export function getWaterTreatmentLabel(treatmentId: string, otherText?: string | null) {
+  if (treatmentId === 'other' && otherText) {
+    return `Jiné (${otherText})`
+  }
   return WATER_TREATMENT_OPTIONS.find(w => w.id === treatmentId)?.label ?? treatmentId
 }
 

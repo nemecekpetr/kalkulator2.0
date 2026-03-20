@@ -269,6 +269,7 @@ export const ConfigurationInsertSchema = z.object({
   lighting: LightingOptionEnum,
   counterflow: CounterflowOptionEnum,
   water_treatment: WaterTreatmentEnum,
+  water_treatment_other: z.string().nullable().optional(),
   heating: HeatingOptionEnum,
   roofing: RoofingOptionEnum,
   source: z.enum(['web', 'manual', 'phone']).default('web'),
