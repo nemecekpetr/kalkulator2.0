@@ -87,6 +87,7 @@ export interface Database {
           lighting: string
           counterflow: string
           water_treatment: string
+          water_treatment_other: string | null
           heating: string
           roofing: string
           // Integration
@@ -125,6 +126,7 @@ export interface Database {
           lighting?: string
           counterflow?: string
           water_treatment?: string
+          water_treatment_other?: string | null
           heating: string
           roofing: string
           pipedrive_status?: string
@@ -158,6 +160,7 @@ export interface Database {
           lighting?: string
           counterflow?: string
           water_treatment?: string
+          water_treatment_other?: string | null
           heating?: string
           roofing?: string
           pipedrive_status?: string
