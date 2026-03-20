@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { UseFormReturn } from 'react-hook-form'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ interface Section {
 }
 
 export function ConfigurationSummary({ form, isSubmitting, mode }: ConfigurationSummaryProps) {
+  const router = useRouter()
   const values = form.watch()
 
   const sections: Section[] = [
@@ -96,7 +98,7 @@ export function ConfigurationSummary({ form, isSubmitting, mode }: Configuration
     section.fields.every(f => f.getValue() !== '')
 
   return (
-    <div className="sticky top-5 hidden lg:block">
+    <div className="sticky top-20 hidden lg:block self-start">
       <Card className="overflow-hidden">
         {/* Header with progress */}
         <div className="bg-[#01384B] text-white p-5">
@@ -136,8 +138,8 @@ export function ConfigurationSummary({ form, isSubmitting, mode }: Configuration
           })}
         </CardContent>
 
-        {/* CTA button — this is inside the <form> element in the DOM */}
-        <div className="px-5 pb-5">
+        {/* Action buttons */}
+        <div className="px-5 pb-5 space-y-2">
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-[#FF8621] to-[#ED6663] hover:from-[#FF8621]/90 hover:to-[#ED6663]/90 text-base font-semibold"
@@ -145,6 +147,15 @@ export function ConfigurationSummary({ form, isSubmitting, mode }: Configuration
           >
             {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {mode === 'edit' ? 'Uložit změny' : 'Vytvořit konfiguraci'}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-muted-foreground"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
+            Zrušit
           </Button>
         </div>
       </Card>

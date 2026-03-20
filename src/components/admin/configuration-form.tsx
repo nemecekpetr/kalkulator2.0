@@ -187,7 +187,7 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px] items-start">
           {/* Left column — form cards */}
           <div className="space-y-6">
             {/* Card 1: Kontaktní údaje */}
@@ -698,8 +698,8 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
           <ConfigurationSummary form={form} isSubmitting={isSubmitting} mode={mode} />
         </div>
 
-        {/* Submit buttons */}
-        <div className="flex justify-end gap-4">
+        {/* Mobile-only submit buttons (sidebar hidden on mobile) */}
+        <div className="flex justify-end gap-4 lg:hidden">
           <Button
             type="button"
             variant="outline"
