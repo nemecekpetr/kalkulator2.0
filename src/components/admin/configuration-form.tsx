@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -41,6 +41,7 @@ import {
 } from '@/lib/constants/configurator'
 import { createConfiguration, updateConfiguration } from '@/app/actions/admin-actions'
 import { toast } from 'sonner'
+import { ConfigurationSummary } from './configuration-summary'
 
 const formSchema = z.object({
   contact_name: z.string().min(2, 'Jméno musí mít alespoň 2 znaky'),
@@ -58,6 +59,7 @@ const formSchema = z.object({
   lighting: z.string().min(1, 'Vyberte osvětlení'),
   counterflow: z.string().min(1, 'Vyberte protiproud'),
   water_treatment: z.string().min(1, 'Vyberte úpravu vody'),
+  water_treatment_other: z.string().optional(),
   heating: z.string().min(1, 'Vyberte ohřev'),
   roofing: z.string().min(1, 'Vyberte zastřešení'),
   message: z.string().optional(),
@@ -93,6 +95,7 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
       lighting: configuration?.lighting || 'none',
       counterflow: configuration?.counterflow || 'none',
       water_treatment: configuration?.water_treatment || 'chlorine',
+      water_treatment_other: configuration?.water_treatment_other || '',
       heating: configuration?.heating || '',
       roofing: configuration?.roofing || '',
       message: configuration?.message || '',
@@ -101,6 +104,24 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
   })
 
   const poolShape = form.watch('pool_shape')
+  const waterTreatment = form.watch('water_treatment')
+
+  // Clear water_treatment_other when switching away from 'other'
+  useEffect(() => {
+    if (waterTreatment !== 'other' && form.getValues('water_treatment_other')) {
+      form.setValue('water_treatment_other', '')
+    }
+  }, [waterTreatment, form])
+
+  // Section completeness helpers
+  const isBasicComplete = Boolean(
+    poolShape && form.watch('pool_type') &&
+    (poolShape === 'circle' ? form.watch('diameter') : (form.watch('length') && form.watch('width'))) &&
+    form.watch('depth')
+  )
+  const isAppearanceComplete = Boolean(form.watch('color') && form.watch('stairs'))
+  const isTechComplete = Boolean(form.watch('technology') && form.watch('lighting') && form.watch('counterflow') && waterTreatment)
+  const isComfortComplete = Boolean(form.watch('heating') && form.watch('roofing'))
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
@@ -130,6 +151,7 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
         lighting: values.lighting,
         counterflow: values.counterflow,
         water_treatment: values.water_treatment,
+        water_treatment_other: values.water_treatment === 'other' ? (values.water_treatment_other || null) : null,
         heating: values.heating,
         roofing: values.roofing,
         message: values.message || undefined,
@@ -165,189 +187,37 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Contact info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Kontaktní údaje</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="contact_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Jméno *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Jan Novak" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="contact_email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email *</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="jan@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="contact_phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefon</FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="+420 123 456 789" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="message"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Zpráva</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Dodatečné poznámky..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {mode === 'create' && (
-              <FormField
-                control={form.control}
-                name="sendEmail"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="flex items-center gap-2 cursor-pointer">
-                        <Mail className="h-4 w-4" />
-                        Odeslat potvrzovací email zákazníkovi
-                      </FormLabel>
-                      <p className="text-sm text-muted-foreground">
-                        Zákazník obdrží email s potvrzením konfigurace
-                      </p>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Pool configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Konfigurace bazénu</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="pool_shape"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tvar *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte tvar" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {POOL_SHAPES.map((shape) => (
-                          <SelectItem key={shape.id} value={shape.id}>
-                            {shape.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="pool_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Typ konstrukce *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte typ" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {POOL_TYPES.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Dimensions */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              {poolShape === 'circle' ? (
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          {/* Left column — form cards */}
+          <div className="space-y-6">
+            {/* Card 1: Kontaktní údaje */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Kontaktní údaje</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="diameter"
+                  name="contact_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Průměr (m) *</FormLabel>
+                      <FormLabel>Jméno *</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          {...field}
-                          value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                        />
+                        <Input placeholder="Jan Novak" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              ) : (
-                <>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FormField
                     control={form.control}
-                    name="length"
+                    name="contact_email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Délka (m) *</FormLabel>
+                        <FormLabel>Email *</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                          />
+                          <Input type="email" placeholder="jan@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -355,253 +225,480 @@ export function ConfigurationForm({ configuration, mode }: ConfigurationFormProp
                   />
                   <FormField
                     control={form.control}
-                    name="width"
+                    name="contact_phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Šířka (m) *</FormLabel>
+                        <FormLabel>Telefon</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
-                          />
+                          <Input type="tel" placeholder="+420 123 456 789" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </>
-              )}
-              <FormField
-                control={form.control}
-                name="depth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Hloubka (m) *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                </div>
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zpráva</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Dodatečné poznámky..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {mode === 'create' && (
+                  <FormField
+                    control={form.control}
+                    name="sendEmail"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="flex items-center gap-2 cursor-pointer">
+                            <Mail className="h-4 w-4" />
+                            Odeslat potvrzovací email zákazníkovi
+                          </FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Zákazník obdrží email s potvrzením konfigurace
+                          </p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Card 2: Základní parametry */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className={isBasicComplete ? 'text-[#48A9A6]' : 'text-muted-foreground'}>
+                    {isBasicComplete ? '●' : '○'}
+                  </span>
+                  Základní parametry
+                  {!isBasicComplete && <span className="text-sm text-muted-foreground font-normal">— nevyplněno</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="pool_shape"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tvar *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte tvar" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {POOL_SHAPES.map((shape) => (
+                              <SelectItem key={shape.id} value={shape.id}>
+                                {shape.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="pool_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Typ konstrukce *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte typ" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {POOL_TYPES.map((type) => (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Dimensions */}
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {poolShape === 'circle' ? (
+                    <FormField
+                      control={form.control}
+                      name="diameter"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Průměr (m) *</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              {...field}
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="length"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Délka (m) *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      <FormField
+                        control={form.control}
+                        name="width"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Šířka (m) *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="depth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hloubka (m) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Barva *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte barvu" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {POOL_COLORS.map((color) => (
-                          <SelectItem key={color.id} value={color.id}>
-                            {color.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="stairs"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Schodiště *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte schodiště" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {STAIRS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* Card 3: Vzhled */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className={isAppearanceComplete ? 'text-[#48A9A6]' : 'text-muted-foreground'}>
+                    {isAppearanceComplete ? '●' : '○'}
+                  </span>
+                  Vzhled
+                  {!isAppearanceComplete && <span className="text-sm text-muted-foreground font-normal">— nevyplněno</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Barva *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte barvu" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {POOL_COLORS.map((color) => (
+                              <SelectItem key={color.id} value={color.id}>
+                                {color.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="stairs"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Schodiště *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte schodiště" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {STAIRS_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Technology */}
-            <FormField
-              control={form.control}
-              name="technology"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Technologie *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Vyberte technologii" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TECHNOLOGY_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Card 4: Technologie & Příslušenství */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className={isTechComplete ? 'text-[#48A9A6]' : 'text-muted-foreground'}>
+                    {isTechComplete ? '●' : '○'}
+                  </span>
+                  Technologie & Příslušenství
+                  {!isTechComplete && <span className="text-sm text-muted-foreground font-normal">— nevyplněno</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Technology — full width */}
+                <FormField
+                  control={form.control}
+                  name="technology"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Technologie *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Vyberte technologii" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {TECHNOLOGY_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Accessories */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="lighting"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Osvětlení *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte osvětlení" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {LIGHTING_OPTIONS.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="counterflow"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Protiproud *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte protiproud" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {COUNTERFLOW_OPTIONS.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="water_treatment"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Úprava vody *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte úpravu vody" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {WATER_TREATMENT_OPTIONS.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                {/* Lighting + Counterflow */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="lighting"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Osvětlení *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte osvětlení" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {LIGHTING_OPTIONS.map((option) => (
+                              <SelectItem key={option.id} value={option.id}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="counterflow"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Protiproud *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte protiproud" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {COUNTERFLOW_OPTIONS.map((option) => (
+                              <SelectItem key={option.id} value={option.id}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="heating"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ohřev *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte ohřev" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {HEATING_OPTIONS.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="roofing"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Zastřešení *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Vyberte zastřešení" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {ROOFING_OPTIONS.map((option) => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </CardContent>
-        </Card>
+                {/* Water treatment — full width */}
+                <FormField
+                  control={form.control}
+                  name="water_treatment"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Úprava vody *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className={waterTreatment === 'other' ? 'border-[#48A9A6] bg-[#f0fdfa]' : ''}>
+                            <SelectValue placeholder="Vyberte úpravu vody" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {WATER_TREATMENT_OPTIONS.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-        {/* Submit */}
+                {/* Conditional other field */}
+                {waterTreatment === 'other' && (
+                  <FormField
+                    control={form.control}
+                    name="water_treatment_other"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-muted-foreground">Upřesnění (volitelné)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Např. UV lampa, bezchlorová..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Card 5: Komfort */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className={isComfortComplete ? 'text-[#48A9A6]' : 'text-muted-foreground'}>
+                    {isComfortComplete ? '●' : '○'}
+                  </span>
+                  Komfort
+                  {!isComfortComplete && <span className="text-sm text-muted-foreground font-normal">— nevyplněno</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="heating"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ohřev *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte ohřev" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {HEATING_OPTIONS.map((option) => (
+                              <SelectItem key={option.id} value={option.id}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="roofing"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zastřešení *</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Vyberte zastřešení" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {ROOFING_OPTIONS.map((option) => (
+                              <SelectItem key={option.id} value={option.id}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right column — sticky summary sidebar */}
+          <ConfigurationSummary form={form} isSubmitting={isSubmitting} mode={mode} />
+        </div>
+
+        {/* Submit buttons */}
         <div className="flex justify-end gap-4">
           <Button
             type="button"

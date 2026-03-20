@@ -72,6 +72,7 @@ async function getConfiguration(id: string) {
     lighting: string
     counterflow: string
     water_treatment: string
+    water_treatment_other: string | null
     heating: string
     roofing: string
     message: string | null
