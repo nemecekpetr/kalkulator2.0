@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { QuoteVersions } from '@/components/admin/quote-versions'
 import { QuoteStatusBadge } from '@/components/admin/quote-status-badge'
+import { StatusChip, getStatusStep, QUOTE_STATUSES } from '@/components/admin/status-steps'
 import type { Quote, QuoteItem, PoolDimensions, QuoteVariant, QuoteStatus } from '@/lib/supabase/types'
 import {
   getShapeLabel,
@@ -183,22 +184,18 @@ export default async function QuoteDetailPage({ params }: PageProps) {
             </Link>
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
-              <QuoteStatusBadge
-                quoteId={quote.id}
-                status={(quote.status as QuoteStatus) || 'draft'}
-                validUntil={quote.valid_until}
-                existingOrder={quote.existingOrder}
-                variants={quote.variants}
-              />
-            </div>
+            <h1 className="text-2xl font-bold">{quote.quote_number}</h1>
             <p className="text-muted-foreground">
               Vytvořeno {format(new Date(quote.created_at), 'd. MMMM yyyy', { locale: cs })}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {(() => {
+            const step = getStatusStep(QUOTE_STATUSES, (quote.status as string) || 'draft')
+            const isExpired = !!(quote.valid_until && new Date(quote.valid_until) < new Date() && quote.status === 'sent')
+            return step ? <StatusChip status={step} showExpiredWarning={isExpired} /> : null
+          })()}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -229,6 +226,17 @@ export default async function QuoteDetailPage({ params }: PageProps) {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Status timeline + actions */}
+      <div className="mt-4">
+        <QuoteStatusBadge
+          quoteId={quote.id}
+          status={(quote.status as QuoteStatus) || 'draft'}
+          validUntil={quote.valid_until}
+          existingOrder={quote.existingOrder}
+          variants={quote.variants}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

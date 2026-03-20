@@ -146,16 +146,14 @@ export default async function ConfigurationDetailPage({ params }: PageProps) {
             </Link>
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">Detail konfigurace</h1>
-              <ConfigurationStatusBadge status={config.status || 'new'} />
-            </div>
+            <h1 className="text-2xl font-bold">Detail konfigurace</h1>
             <p className="text-muted-foreground">
               {format(new Date(config.created_at), 'd. MMMM yyyy, HH:mm', { locale: cs })}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <ConfigurationStatusBadge status={config.status || 'new'} />
           {config.pipedrive_status !== 'success' && (
             <ConfigurationActions configId={config.id} action="retry" />
           )}

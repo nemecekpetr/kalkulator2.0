@@ -28,6 +28,7 @@ import {
 import { PoolSchematic } from '@/components/pool-schematic'
 import { DeleteProductionButton } from '@/components/admin/delete-production-button'
 import { ProductionStatusBadge } from '@/components/admin/production-status-badge'
+import { StatusChip, getStatusStep, PRODUCTION_STATUSES } from '@/components/admin/status-steps'
 import type { ProductionOrder, ProductionOrderItem } from '@/lib/supabase/types'
 
 interface PoolConfig {
@@ -138,13 +139,7 @@ export default async function ProductionDetailPage({ params }: PageProps) {
             </Link>
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{productionOrder.production_number}</h1>
-              <ProductionStatusBadge
-                productionOrderId={productionOrder.id}
-                currentStatus={productionOrder.status}
-              />
-            </div>
+            <h1 className="text-2xl font-bold">{productionOrder.production_number}</h1>
             <p className="text-muted-foreground text-sm">
               Vytvořeno {format(new Date(productionOrder.created_at), 'd. MMMM yyyy', { locale: cs })}
               {productionOrder.orders && (
@@ -163,6 +158,10 @@ export default async function ProductionDetailPage({ params }: PageProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {(() => {
+            const step = getStatusStep(PRODUCTION_STATUSES, productionOrder.status)
+            return step ? <StatusChip status={step} /> : null
+          })()}
           <DeleteProductionButton
             productionId={productionOrder.id}
             productionNumber={productionOrder.production_number}
@@ -197,6 +196,14 @@ export default async function ProductionDetailPage({ params }: PageProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      {/* Status timeline + actions */}
+      <div className="mt-4">
+        <ProductionStatusBadge
+          productionOrderId={productionOrder.id}
+          currentStatus={productionOrder.status}
+        />
       </div>
 
       {/* Content preview - mirrors what's in the PDF */}

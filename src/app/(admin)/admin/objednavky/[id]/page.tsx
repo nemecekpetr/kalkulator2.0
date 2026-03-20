@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { OrderStatusBadge } from '@/components/admin/order-status-badge'
+import { StatusChip, getStatusStep, ORDER_STATUSES } from '@/components/admin/status-steps'
 import { CreateProductionButton } from '@/components/admin/create-production-button'
 import type { Order, OrderItem, PoolDimensions } from '@/lib/supabase/types'
 import {
@@ -149,13 +150,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
             </Link>
           </Button>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{order.order_number}</h1>
-              <OrderStatusBadge
-                orderId={order.id}
-                status={order.status}
-              />
-            </div>
+            <h1 className="text-2xl font-bold">{order.order_number}</h1>
             <p className="text-muted-foreground">
               Vytvořeno {format(new Date(order.created_at), 'd. MMMM yyyy', { locale: cs })}
               {order.quotes && (
@@ -172,7 +167,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {(() => {
+            const step = getStatusStep(ORDER_STATUSES, order.status)
+            return step ? <StatusChip status={step} /> : null
+          })()}
           <CreateProductionButton
             orderId={order.id}
             existingProductionId={order.production?.id}
@@ -208,6 +207,14 @@ export default async function OrderDetailPage({ params }: PageProps) {
             </Link>
           </Button>
         </div>
+      </div>
+
+      {/* Status timeline + actions */}
+      <div className="mt-4">
+        <OrderStatusBadge
+          orderId={order.id}
+          status={order.status}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
