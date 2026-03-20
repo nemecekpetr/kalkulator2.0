@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ProductionStatus } from '@/lib/supabase/types'
 import { PRODUCTION_STATUS_LABELS } from '@/lib/supabase/types'
@@ -43,14 +42,12 @@ export function ProductionStatusBadge({ productionOrderId, currentStatus }: Prod
   }
 
   return (
-    <div className="flex items-center gap-3">
-      {isUpdating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-      <StatusSteps
-        statuses={PRODUCTION_STATUSES}
-        currentStatus={currentStatus}
-        onStatusChange={handleStatusChange}
-        disabled={isUpdating}
-      />
-    </div>
+    <StatusSteps
+      statuses={PRODUCTION_STATUSES}
+      branchValues={['cancelled']}
+      currentStatus={currentStatus}
+      onStatusChange={handleStatusChange}
+      disabled={isUpdating}
+    />
   )
 }

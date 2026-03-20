@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { OrderStatus } from '@/lib/supabase/types'
 import { ORDER_STATUS_LABELS } from '@/lib/supabase/types'
@@ -42,14 +41,11 @@ export function OrderStatusBadge({ orderId, status }: OrderStatusBadgeProps) {
   }
 
   return (
-    <div className="flex items-center gap-3">
-      {isUpdating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-      <StatusSteps
-        statuses={ORDER_STATUSES}
-        currentStatus={status}
-        onStatusChange={updateStatus}
-        disabled={isUpdating}
-      />
-    </div>
+    <StatusSteps
+      statuses={ORDER_STATUSES}
+      currentStatus={status}
+      onStatusChange={updateStatus}
+      disabled={isUpdating}
+    />
   )
 }

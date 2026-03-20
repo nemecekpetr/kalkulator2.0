@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Loader2, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import type { QuoteStatus, QuoteVariant } from '@/lib/supabase/types'
 import { QUOTE_STATUS_LABELS } from '@/lib/supabase/types'
+import { Button } from '@/components/ui/button'
 import { StatusSteps, QUOTE_STATUSES } from './status-steps'
 
 function formatPrice(price: number): string {
@@ -106,36 +107,37 @@ export function QuoteStatusBadge({
 
   return (
     <>
-      <div className="flex items-center gap-3">
-        {isUpdating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-        <StatusSteps
-          statuses={QUOTE_STATUSES}
-          currentStatus={status}
-          onStatusChange={updateStatus}
-          disabled={isUpdating}
-          showExpiredWarning={isExpired}
-        />
-        {/* Show existing order link or create button when status is accepted */}
-        {status === 'accepted' && showCreateOrderButton && (
-          existingOrder ? (
+      <StatusSteps
+        statuses={QUOTE_STATUSES}
+        branchValues={['rejected']}
+        currentStatus={status}
+        onStatusChange={updateStatus}
+        disabled={isUpdating}
+        showExpiredWarning={isExpired}
+      />
+      {status === 'accepted' && showCreateOrderButton && (
+        <div className="mt-3">
+          {existingOrder ? (
             <Link
               href={`/admin/objednavky/${existingOrder.id}`}
-              className="px-3 py-1.5 text-sm font-medium rounded-full border-2 border-green-300 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100 transition-all duration-200 inline-flex items-center gap-1.5"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-green-300 bg-green-50 text-green-700 hover:border-green-400 hover:bg-green-100 transition-all"
             >
               {existingOrder.order_number}
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
           ) : (
-            <button
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => setShowConvertDialog(true)}
               disabled={isUpdating}
-              className="px-3 py-1.5 text-sm font-medium rounded-full border-2 border-purple-300 bg-white text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200"
+              className="border-purple-300 text-purple-600 hover:border-purple-400 hover:bg-purple-50"
             >
               Vytvořit objednávku
-            </button>
-          )
-        )}
-      </div>
+            </Button>
+          )}
+        </div>
+      )}
 
       <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
         <AlertDialogContent>
