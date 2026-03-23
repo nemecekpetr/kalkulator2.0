@@ -47,22 +47,29 @@ async function getConfiguration(id: string): Promise<Configuration | null> {
 async function generateQuoteNumber(): Promise<string> {
   const supabase = await createAdminClient()
 
-  const currentYear = new Date().getFullYear()
+  const now = new Date()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yy = String(now.getFullYear()).slice(-2)
+  const suffix = `${mm}${yy}` // e.g. "0326" for March 2026
 
+  // Find highest sequence number for this month
   const { data } = await supabase
     .from('quotes')
     .select('quote_number')
-    .like('quote_number', `NAB-${currentYear}-%`)
+    .like('quote_number', `NAB-%${suffix}`)
     .order('quote_number', { ascending: false })
     .limit(1)
 
   let nextNumber = 1
   if (data && data.length > 0) {
-    const lastNumber = parseInt(data[0].quote_number.split('-')[2], 10)
-    nextNumber = lastNumber + 1
+    // Extract XY from NAB-XXYYMM (first 2 chars after "NAB-")
+    const match = data[0].quote_number.match(/^NAB-(\d{2})/)
+    if (match) {
+      nextNumber = parseInt(match[1], 10) + 1
+    }
   }
 
-  return `NAB-${currentYear}-${String(nextNumber).padStart(4, '0')}`
+  return `NAB-${String(nextNumber).padStart(2, '0')}${suffix}`
 }
 
 export default async function NewQuotePage({ searchParams }: PageProps) {
