@@ -460,6 +460,16 @@ function formatPrice(price: number): string {
   }).format(price)
 }
 
+function getVatNote(vatRate: number): string | null {
+  if (vatRate === 12) {
+    return 'Uplatnění snížené sazby DPH je možné pouze při splnění zákonných předpokladů podle ust. §48 zákona č. 235/2004 Sb., zákona o dani z přidané hodnoty, v platném znění (viz. Čestné prohlášení Kupujícího).'
+  }
+  if (vatRate === 0) {
+    return 'Jedná se o přenesenou daňovou povinnost. Daň odvede zákazník – §92a ZDPH.'
+  }
+  return null
+}
+
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('cs-CZ', {
     day: 'numeric',
@@ -834,6 +844,11 @@ function VariantPage({
               </View>
             </>
           )}
+          {getVatNote(quote.vat_rate) && (
+            <Text style={{ fontSize: 7, color: '#64748b', marginTop: 4 }}>
+              {getVatNote(quote.vat_rate)}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -1000,6 +1015,11 @@ export function QuotePDF({ quote, poolConfig, logoUrl, specialist }: QuotePDFPro
                     </Text>
                   </View>
                 </>
+              )}
+              {getVatNote(quote.vat_rate) && (
+                <Text style={{ fontSize: 7, color: '#64748b', marginTop: 4 }}>
+                  {getVatNote(quote.vat_rate)}
+                </Text>
               )}
             </View>
           </View>

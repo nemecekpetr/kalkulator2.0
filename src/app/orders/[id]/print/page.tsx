@@ -318,6 +318,16 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
                     <span className="text-2xl font-bold text-[#01384B]">{formatPrice(priceWithVat)}</span>
                   </div>
                   <p className="text-gray-500 text-xs mt-1">včetně DPH</p>
+                  {vatRate === 12 && (
+                    <p className="text-gray-500 text-[10px] mt-2 leading-relaxed">
+                      Uplatnění snížené sazby DPH je možné pouze při splnění zákonných předpokladů podle ust. §48 zákona č. 235/2004 Sb., zákona o dani z přidané hodnoty, v platném znění (viz. Čestné prohlášení Kupujícího).
+                    </p>
+                  )}
+                  {vatRate === 0 && (
+                    <p className="text-gray-500 text-[10px] mt-2 leading-relaxed">
+                      Jedná se o přenesenou daňovou povinnost. Daň odvede zákazník – §92a ZDPH.
+                    </p>
+                  )}
                 </div>
               )
             })()}
@@ -375,6 +385,16 @@ function ContractClausesPage({ order }: { order: Order }) {
           Celková cena za dodání zboží činí <strong className="text-sm">{formatPrice(priceWithVat)}</strong> včetně {vatRate}% DPH
           (z toho cena bez DPH: {formatPrice(order.total_price)}, DPH: {formatPrice(vatAmount)}).
         </p>
+        {vatRate === 12 && (
+          <p className="mb-2 text-gray-600 italic">
+            Uplatnění snížené sazby DPH je možné pouze při splnění zákonných předpokladů podle ust. §48 zákona č. 235/2004 Sb., zákona o dani z přidané hodnoty, v platném znění (viz. Čestné prohlášení Kupujícího).
+          </p>
+        )}
+        {vatRate === 0 && (
+          <p className="mb-2 text-gray-600 italic">
+            Jedná se o přenesenou daňovou povinnost. Daň odvede zákazník – §92a ZDPH.
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="bg-[#48A9A6]/10 border border-[#48A9A6]/30 rounded-lg p-3" style={{ breakInside: 'avoid' }}>

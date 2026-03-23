@@ -463,6 +463,16 @@ function ItemsSection({
               <p className="text-white/80 text-xs mt-1">bez DPH</p>
             )}
           </div>
+          {vatRate === 12 && (
+            <p className="text-gray-500 text-[10px] mt-2 leading-relaxed">
+              Uplatnění snížené sazby DPH je možné pouze při splnění zákonných předpokladů podle ust. §48 zákona č. 235/2004 Sb., zákona o dani z přidané hodnoty, v platném znění (viz. Čestné prohlášení Kupujícího).
+            </p>
+          )}
+          {vatRate === 0 && (
+            <p className="text-gray-500 text-[10px] mt-2 leading-relaxed">
+              Jedná se o přenesenou daňovou povinnost. Daň odvede zákazník – §92a ZDPH.
+            </p>
+          )}
         </div>
       </PrintBlock>
     </div>
