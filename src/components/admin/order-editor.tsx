@@ -68,10 +68,10 @@ export function OrderEditor({ order }: OrderEditorProps) {
 
   // Computed values
   const vatRate = parseFloat(String(formData.vat_rate)) || 12
-  const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
-  const vatAmount = order.total_price - priceWithoutVat
+  const vatAmount = Math.round(order.total_price * vatRate / 100)
+  const priceWithVat = order.total_price + vatAmount
   const depositAmount = parseFloat(String(formData.deposit_amount)) || 0
-  const halfPrice = Math.round(order.total_price / 2)
+  const halfPrice = Math.round(priceWithVat / 2)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -393,7 +393,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
             <div className="bg-muted/30 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Cena bez DPH</span>
-                <span className="font-medium">{formatCZK(priceWithoutVat)}</span>
+                <span className="font-medium">{formatCZK(order.total_price)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">DPH ({vatRate}%)</span>
@@ -402,7 +402,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
               <Separator />
               <div className="flex justify-between font-semibold">
                 <span>Celkem vč. DPH</span>
-                <span>{formatCZK(order.total_price)}</span>
+                <span>{formatCZK(priceWithVat)}</span>
               </div>
             </div>
 
@@ -431,7 +431,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">2. splátka (doplatek)</span>
-                <span className="font-medium">{formatCZK(order.total_price - depositAmount)}</span>
+                <span className="font-medium">{formatCZK(priceWithVat - depositAmount)}</span>
               </div>
             </div>
           </CardContent>

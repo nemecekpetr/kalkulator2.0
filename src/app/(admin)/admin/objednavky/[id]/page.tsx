@@ -316,13 +316,13 @@ export default async function OrderDetailPage({ params }: PageProps) {
               {/* VAT breakdown */}
               {(() => {
                 const vatRate = order.vat_rate ?? 12
-                const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
-                const vatAmount = order.total_price - priceWithoutVat
+                const vatAmount = Math.round(order.total_price * vatRate / 100)
+                const priceWithVat = order.total_price + vatAmount
                 return (
                   <div className="mb-4 p-3 rounded-lg bg-muted/20 space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Cena bez DPH</span>
-                      <span>{formatPrice(priceWithoutVat)}</span>
+                      <span>{formatPrice(order.total_price)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">DPH ({vatRate}%)</span>
@@ -331,7 +331,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                     <Separator className="my-1" />
                     <div className="flex justify-between font-semibold">
                       <span>Celkem vč. DPH</span>
-                      <span>{formatPrice(order.total_price)}</span>
+                      <span>{formatPrice(priceWithVat)}</span>
                     </div>
                   </div>
                 )

@@ -292,13 +292,13 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
             )}
             {(() => {
               const vatRate = order.vat_rate ?? 12
-              const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
-              const vatAmount = order.total_price - priceWithoutVat
+              const vatAmount = Math.round(order.total_price * vatRate / 100)
+              const priceWithVat = order.total_price + vatAmount
               return (
                 <>
                   <div className="flex justify-between py-1 text-sm border-t border-gray-200 mt-1 pt-1">
                     <span className="text-gray-600">Cena bez DPH</span>
-                    <span>{formatPrice(priceWithoutVat)}</span>
+                    <span>{formatPrice(order.total_price)}</span>
                   </div>
                   <div className="flex justify-between py-1 text-sm">
                     <span className="text-gray-600">DPH ({vatRate}%)</span>
@@ -307,13 +307,20 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
                 </>
               )
             })()}
-            <div className="rounded-lg border-2 border-[#01384B] p-3 bg-[#01384B]/5 mt-2">
-              <div className="flex justify-between items-center">
-                <span className="text-base font-semibold text-[#01384B]">Celkem k úhradě</span>
-                <span className="text-2xl font-bold text-[#01384B]">{formatPrice(order.total_price)}</span>
-              </div>
-              <p className="text-gray-500 text-xs mt-1">včetně DPH</p>
-            </div>
+            {(() => {
+              const vatRate = order.vat_rate ?? 12
+              const vatAmount = Math.round(order.total_price * vatRate / 100)
+              const priceWithVat = order.total_price + vatAmount
+              return (
+                <div className="rounded-lg border-2 border-[#01384B] p-3 bg-[#01384B]/5 mt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-semibold text-[#01384B]">Celkem k úhradě</span>
+                    <span className="text-2xl font-bold text-[#01384B]">{formatPrice(priceWithVat)}</span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">včetně DPH</p>
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>
@@ -336,10 +343,10 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
 // Contract clauses page - 13 legal articles
 function ContractClausesPage({ order }: { order: Order }) {
   const vatRate = order.vat_rate ?? 12
-  const priceWithoutVat = Math.round(order.total_price / (1 + vatRate / 100))
-  const vatAmount = order.total_price - priceWithoutVat
-  const depositAmount = order.deposit_amount > 0 ? order.deposit_amount : Math.round(order.total_price / 2)
-  const remainingAmount = order.total_price - depositAmount
+  const vatAmount = Math.round(order.total_price * vatRate / 100)
+  const priceWithVat = order.total_price + vatAmount
+  const depositAmount = order.deposit_amount > 0 ? order.deposit_amount : Math.round(priceWithVat / 2)
+  const remainingAmount = priceWithVat - depositAmount
 
   // Extract variable symbol from order number (digits only)
   const variableSymbol = order.order_number.replace(/\D/g, '')
@@ -365,8 +372,8 @@ function ContractClausesPage({ order }: { order: Order }) {
           2. Smluvní cena a platební podmínky
         </h3>
         <p className="mb-2">
-          Celková cena za dodání zboží činí <strong className="text-sm">{formatPrice(order.total_price)}</strong> včetně {vatRate}% DPH
-          (z toho cena bez DPH: {formatPrice(priceWithoutVat)}, DPH: {formatPrice(vatAmount)}).
+          Celková cena za dodání zboží činí <strong className="text-sm">{formatPrice(priceWithVat)}</strong> včetně {vatRate}% DPH
+          (z toho cena bez DPH: {formatPrice(order.total_price)}, DPH: {formatPrice(vatAmount)}).
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
