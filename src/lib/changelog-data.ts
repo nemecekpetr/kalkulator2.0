@@ -4,9 +4,40 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.6.0'
+export const CURRENT_VERSION = '0.6.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.6.1',
+      date: '2026-03-23',
+      time: '12:00',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Oprava výpočtu DPH v objednávkách',
+          userDescription: 'DPH se nyní správně přičítá navrch k ceně bez DPH. Dříve se chybně počítalo dovnitř, jako by cena již DPH obsahovala. Opraveno v editoru objednávky, na detailu i v PDF/smlouvě.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Oprava výchozí sazby DPH z 12% na 0%',
+          userDescription: 'Výchozí sazba DPH v objednávkách změněna z 12% na 0% (shodně s nabídkami). Opravena chyba, kdy sazba 0% byla při uložení tiše přepsána na 12%.'
+        },
+        {
+          type: 'feature',
+          scope: 'pdf',
+          description: 'Právní poznámky k sazbám DPH v PDF dokumentech',
+          userDescription: 'V PDF nabídek i objednávek se nyní zobrazuje právní poznámka k sazbě DPH: u 12% odkaz na §48 zákona o DPH (snížená sazba, čestné prohlášení), u 0% odkaz na §92a ZDPH (přenesená daňová povinnost). U 21% se nezobrazuje nic.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Nový formát čísel nabídek NAB-XXYYMM',
+          userDescription: 'Čísla nabídek mají nový formát NAB-XXYYMM, kde XY je pořadové číslo v měsíci, YY rok a MM měsíc. Například NAB-010326 = 1. nabídka v březnu 2026. Pořadové číslo se resetuje s novým měsícem. Stávající nabídky byly přečíslovány.'
+        }
+      ]
+    },
     {
       version: '0.6.0',
       date: '2026-03-20',
