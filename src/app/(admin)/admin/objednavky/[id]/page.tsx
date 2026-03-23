@@ -315,7 +315,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
             <CardContent>
               {/* VAT breakdown */}
               {(() => {
-                const vatRate = order.vat_rate ?? 12
+                const vatRate = order.vat_rate ?? 0
                 const vatAmount = Math.round(order.total_price * vatRate / 100)
                 const priceWithVat = order.total_price + vatAmount
                 return (

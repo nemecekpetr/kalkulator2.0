@@ -53,7 +53,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
     delivery_cost: order.delivery_cost || 0,
     delivery_cost_free: order.delivery_cost_free ?? true,
     total_weight: order.total_weight ?? '',
-    vat_rate: order.vat_rate ?? 12,
+    vat_rate: order.vat_rate ?? 0,
   })
 
   const handleChange = (
@@ -67,7 +67,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
   }
 
   // Computed values
-  const vatRate = parseFloat(String(formData.vat_rate)) || 12
+  const vatRate = parseFloat(String(formData.vat_rate)) || 0
   const vatAmount = Math.round(order.total_price * vatRate / 100)
   const priceWithVat = order.total_price + vatAmount
   const depositAmount = parseFloat(String(formData.deposit_amount)) || 0

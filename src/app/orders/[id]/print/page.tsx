@@ -291,7 +291,7 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
               </div>
             )}
             {(() => {
-              const vatRate = order.vat_rate ?? 12
+              const vatRate = order.vat_rate ?? 0
               const vatAmount = Math.round(order.total_price * vatRate / 100)
               const priceWithVat = order.total_price + vatAmount
               return (
@@ -308,7 +308,7 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
               )
             })()}
             {(() => {
-              const vatRate = order.vat_rate ?? 12
+              const vatRate = order.vat_rate ?? 0
               const vatAmount = Math.round(order.total_price * vatRate / 100)
               const priceWithVat = order.total_price + vatAmount
               return (
@@ -342,7 +342,7 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
 
 // Contract clauses page - 13 legal articles
 function ContractClausesPage({ order }: { order: Order }) {
-  const vatRate = order.vat_rate ?? 12
+  const vatRate = order.vat_rate ?? 0
   const vatAmount = Math.round(order.total_price * vatRate / 100)
   const priceWithVat = order.total_price + vatAmount
   const depositAmount = order.deposit_amount > 0 ? order.deposit_amount : Math.round(priceWithVat / 2)
