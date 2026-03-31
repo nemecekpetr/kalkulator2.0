@@ -12,10 +12,10 @@ if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) 
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   })
 
-  // Allow 5 requests per hour per IP for form submissions
+  // Allow 10 requests per hour per IP for form submissions
   formRatelimit = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(5, '1 h'),
+    limiter: Ratelimit.slidingWindow(10, '1 h'),
     analytics: true,
     prefix: 'rentmil-form',
   })
