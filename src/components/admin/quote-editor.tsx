@@ -112,7 +112,7 @@ interface QuoteVariantState {
 }
 
 interface QuoteEditorProps {
-  quoteNumber: string
+  quoteNumber?: string
   products: Product[]
   configuration?: Configuration | null
   existingQuote?: {
@@ -1604,7 +1604,7 @@ export function QuoteEditor({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: existingQuote?.id,
-        quote_number: quoteNumber,
+        ...(quoteNumber ? { quote_number: quoteNumber } : {}),
         configuration_id: configuration?.id || null,
         customer_name: customerName,
         customer_email: customerEmail,
@@ -1744,7 +1744,7 @@ export function QuoteEditor({
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b -mx-6 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Nabídka {quoteNumber}</span>
+            <span className="font-semibold">{quoteNumber ? `Nabídka ${quoteNumber}` : 'Nová nabídka'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button

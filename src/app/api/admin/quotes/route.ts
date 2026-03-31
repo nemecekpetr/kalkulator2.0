@@ -4,6 +4,7 @@ import { z } from 'zod'
 import type { QuoteVariantKey, QuoteItemCategory } from '@/lib/supabase/types'
 import { QUOTE_CATEGORIES } from '@/lib/constants/categories'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Map old category names to new ones for backwards compatibility
 const LEGACY_CATEGORY_MAP: Record<string, QuoteItemCategory> = {
@@ -48,9 +49,34 @@ const QuoteVariantSchema = z.object({
   discount_amount: z.number().min(0).optional(),
 })
 
+async function generateQuoteNumber(supabase: SupabaseClient): Promise<string> {
+  const now = new Date()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const yy = String(now.getFullYear()).slice(-2)
+  const suffix = `${mm}${yy}` // e.g. "0326" for March 2026
+
+  // Find highest sequence number for this month
+  const { data } = await supabase
+    .from('quotes')
+    .select('quote_number')
+    .like('quote_number', `NAB-%${suffix}`)
+    .order('quote_number', { ascending: false })
+    .limit(1)
+
+  let nextNumber = 1
+  if (data && data.length > 0) {
+    const match = data[0].quote_number.match(/^NAB-(\d{2})/)
+    if (match) {
+      nextNumber = parseInt(match[1], 10) + 1
+    }
+  }
+
+  return `NAB-${String(nextNumber).padStart(2, '0')}${suffix}`
+}
+
 const QuoteSchema = z.object({
   id: z.string().optional(),
-  quote_number: z.string(),
+  quote_number: z.string().optional(),
   configuration_id: z.string().nullable(),
   customer_name: z.string().min(1),
   customer_email: z.string().email().optional().or(z.literal('')),
@@ -139,6 +165,9 @@ export async function POST(request: Request) {
 
     const supabase = await createAdminClient()
 
+    // Generate quote number server-side if not provided (new quotes)
+    const quoteNumber = validatedData.quote_number || await generateQuoteNumber(supabase)
+
     // Calculate total subtotal (all unique items)
     const subtotal = validatedData.items.reduce((sum, item) => sum + item.total_price, 0)
 
@@ -146,7 +175,7 @@ export async function POST(request: Request) {
     const { data: quote, error: quoteError } = await supabase
       .from('quotes')
       .insert({
-        quote_number: validatedData.quote_number,
+        quote_number: quoteNumber,
         configuration_id: validatedData.configuration_id,
         customer_name: validatedData.customer_name,
         customer_email: validatedData.customer_email || null,
@@ -268,7 +297,7 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ id: quote.id, success: true })
+    return NextResponse.json({ id: quote.id, quote_number: quoteNumber, success: true })
   } catch (error) {
     console.error('Error creating quote:', error)
 
@@ -279,8 +308,11 @@ export async function POST(request: Request) {
       )
     }
 
+    const detail = error && typeof error === 'object'
+      ? { message: (error as Record<string, unknown>).message, code: (error as Record<string, unknown>).code, details: (error as Record<string, unknown>).details, hint: (error as Record<string, unknown>).hint }
+      : String(error)
     return NextResponse.json(
-      { error: 'Chyba při vytváření nabídky' },
+      { error: 'Chyba při vytváření nabídky', detail },
       { status: 500 }
     )
   }

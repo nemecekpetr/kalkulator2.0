@@ -4,9 +4,22 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.6.1'
+export const CURRENT_VERSION = '0.6.2'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.6.2',
+      date: '2026-03-31',
+      time: '14:00',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Číslo nabídky se generuje při uložení, ne při načtení stránky',
+          userDescription: 'Opravena chyba, kdy vytvoření nové nabídky selhalo s hláškou „Chyba při vytváření nabídky". Příčinou bylo, že číslo nabídky se přidělovalo při otevření stránky — pokud mezitím vznikla jiná nabídka se stejným číslem, uložení selhalo. Nyní se číslo přiděluje až při uložení, takže ke kolizi nemůže dojít.'
+        }
+      ]
+    },
     {
       version: '0.6.1',
       date: '2026-03-23',
