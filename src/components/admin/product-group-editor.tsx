@@ -8,13 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Card,
   CardContent,
   CardDescription,
@@ -49,8 +42,8 @@ import {
   Package,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Product, ProductGroup, ProductGroupItem } from '@/lib/supabase/types'
-import { PRODUCT_CATEGORY_LABELS } from '@/lib/constants/categories'
+import type { Product, ProductCategory, ProductGroup, ProductGroupItem } from '@/lib/supabase/types'
+import { PRODUCT_CATEGORY_LABELS, QUOTE_CATEGORY_ORDER } from '@/lib/constants/categories'
 
 interface ProductGroupEditorProps {
   group?: ProductGroup & { items?: ProductGroupItem[] }
@@ -64,24 +57,16 @@ interface GroupItem {
   product?: Product
 }
 
-const GROUP_CATEGORIES = [
-  { value: 'zaklad', label: 'Základní balíčky' },
-  { value: 'technologie', label: 'Technologie' },
-  { value: 'prislusenstvi', label: 'Příslušenství' },
-  { value: 'servis', label: 'Servis' },
-  { value: 'jine', label: 'Jiné' },
-]
-
 export function ProductGroupEditor({ group, products, mode }: ProductGroupEditorProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [productDialogOpen, setProductDialogOpen] = useState(false)
   const [productSearch, setProductSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState<ProductCategory | null>(null)
 
   // Form state
   const [name, setName] = useState(group?.name || '')
   const [description, setDescription] = useState(group?.description || '')
-  const [category, setCategory] = useState(group?.category || '')
   const [active, setActive] = useState(group?.active ?? true)
   const [items, setItems] = useState<GroupItem[]>(() => {
     if (group?.items) {
@@ -110,16 +95,40 @@ export function ProductGroupEditor({ group, products, mode }: ProductGroupEditor
     return sum + price * item.quantity
   }, 0)
 
+  // Normalize search text for matching (× → x, collapse whitespace)
+  const normalizeSearch = (text: string) =>
+    text.toLowerCase().replace(/×/g, 'x').replace(/\s+/g, '')
+
+  // Count products per category (for chips)
+  const categoryCounts: Partial<Record<ProductCategory, number>> = {}
+  for (const p of products) {
+    if (!p.active) continue
+    const cat = p.category as ProductCategory
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1
+  }
+
+  // Categories that have products
+  const availableCategories = QUOTE_CATEGORY_ORDER.filter(
+    (cat) => (categoryCounts[cat as ProductCategory] || 0) > 0
+  ) as ProductCategory[]
+
   // Filtered products for dialog
   const filteredProducts = products.filter((p) => {
-    if (!productSearch) return p.active
-    const search = productSearch.toLowerCase()
-    return (
-      p.active &&
-      (p.name.toLowerCase().includes(search) ||
-        p.code?.toLowerCase().includes(search))
-    )
+    if (!p.active) return false
+    if (activeCategory && p.category !== activeCategory) return false
+    if (!productSearch) return true
+    const search = normalizeSearch(productSearch)
+    const name = normalizeSearch(p.name)
+    const code = p.code ? normalizeSearch(p.code) : ''
+    return name.includes(search) || code.includes(search)
   })
+
+  // Group filtered products by category
+  const productsByCategory: Record<string, Product[]> = {}
+  for (const p of filteredProducts) {
+    if (!productsByCategory[p.category]) productsByCategory[p.category] = []
+    productsByCategory[p.category].push(p)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,7 +144,7 @@ export function ProductGroupEditor({ group, products, mode }: ProductGroupEditor
       const payload = {
         name: name.trim(),
         description: description.trim() || null,
-        category: category || null,
+        category: 'balicky',
         active,
         items: items.map((item) => ({
           product_id: item.product_id,
@@ -180,6 +189,7 @@ export function ProductGroupEditor({ group, products, mode }: ProductGroupEditor
     setItems([...items, { product_id: product.id, quantity: 1, product }])
     setProductDialogOpen(false)
     setProductSearch('')
+    setActiveCategory(null)
   }
 
   const removeProduct = (productId: string) => {
@@ -265,21 +275,6 @@ export function ProductGroupEditor({ group, products, mode }: ProductGroupEditor
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Kategorie</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Vyberte kategorii" />
-                </SelectTrigger>
-                <SelectContent>
-                  {GROUP_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </CardContent>
         </Card>
 
@@ -325,73 +320,103 @@ export function ProductGroupEditor({ group, products, mode }: ProductGroupEditor
                     Přidat produkt
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh]">
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
                   <DialogHeader>
                     <DialogTitle>Přidat produkt do skupiny</DialogTitle>
                     <DialogDescription>
-                      Vyberte produkt, který chcete přidat do skupiny
+                      Vyberte kategorii nebo vyhledejte produkt podle názvu či kódu
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
-                        placeholder="Hledat produkty..."
+                        placeholder="Hledat podle názvu nebo kódu..."
                         value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value)
+                          if (e.target.value) setActiveCategory(null)
+                        }}
                         className="pl-9"
                       />
                     </div>
-                    <div className="max-h-[50vh] overflow-y-auto space-y-2">
-                      {filteredProducts.length === 0 ? (
+
+                    {/* Category chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableCategories.map((category) => (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => {
+                            setActiveCategory((prev) => prev === category ? null : category)
+                            setProductSearch('')
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium transition-colors ${
+                            activeCategory === category
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                          }`}
+                        >
+                          {PRODUCT_CATEGORY_LABELS[category]}
+                          <span className="opacity-60">{categoryCounts[category]}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="max-h-[50vh] overflow-y-auto space-y-1">
+                      {!productSearch && !activeCategory ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Vyberte kategorii nebo začněte psát pro vyhledání produktu
+                        </div>
+                      ) : filteredProducts.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                           Žádné produkty nenalezeny
                         </div>
                       ) : (
-                        filteredProducts.slice(0, 50).map((product) => {
-                          const isInGroup = items.some(
-                            (item) => item.product_id === product.id
-                          )
+                        QUOTE_CATEGORY_ORDER.map((category) => {
+                          const categoryProducts = productsByCategory[category]
+                          if (!categoryProducts || categoryProducts.length === 0) return null
                           return (
-                            <div
-                              key={product.id}
-                              className={`flex items-center justify-between p-3 rounded-lg border ${
-                                isInGroup
-                                  ? 'bg-muted opacity-50'
-                                  : 'hover:bg-muted cursor-pointer'
-                              }`}
-                              onClick={() => !isInGroup && addProduct(product)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                                  <Package className="w-4 h-4 text-muted-foreground" />
-                                </div>
-                                <div>
-                                  <div className="font-medium">{product.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {product.code || 'Bez kódu'} ·{' '}
-                                    {PRODUCT_CATEGORY_LABELS[product.category]}
-                                  </div>
-                                </div>
+                            <div key={category}>
+                              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 py-2 sticky top-0 bg-background border-b">
+                                {PRODUCT_CATEGORY_LABELS[category as ProductCategory]} ({categoryProducts.length})
                               </div>
-                              <div className="text-right">
-                                <div className="font-medium">
-                                  {formatPrice(product.unit_price)}
-                                </div>
-                                {isInGroup && (
-                                  <div className="text-xs text-muted-foreground">
-                                    Již přidáno
+                              {categoryProducts.map((product) => {
+                                const isInGroup = items.some(
+                                  (item) => item.product_id === product.id
+                                )
+                                return (
+                                  <div
+                                    key={product.id}
+                                    className={`flex items-center justify-between px-3 py-2 rounded-md overflow-hidden ${
+                                      isInGroup
+                                        ? 'bg-muted/50 opacity-50'
+                                        : 'hover:bg-muted cursor-pointer'
+                                    }`}
+                                    onClick={() => !isInGroup && addProduct(product)}
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <div className="font-medium text-sm truncate">{product.name}</div>
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {product.code || 'Bez kódu'}
+                                      </div>
+                                    </div>
+                                    <div className="text-right shrink-0 ml-3">
+                                      <div className="text-sm font-medium">
+                                        {formatPrice(product.unit_price)}
+                                      </div>
+                                      {isInGroup && (
+                                        <div className="text-xs text-muted-foreground">
+                                          Již přidáno
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                )}
-                              </div>
+                                )
+                              })}
                             </div>
                           )
                         })
-                      )}
-                      {filteredProducts.length > 50 && (
-                        <div className="text-center py-2 text-sm text-muted-foreground">
-                          Zobrazeno prvních 50 výsledků. Upřesněte vyhledávání.
-                        </div>
                       )}
                     </div>
                   </div>

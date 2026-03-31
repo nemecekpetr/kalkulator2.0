@@ -79,6 +79,15 @@ export const QUOTE_CATEGORY_ORDER: QuoteItemCategory[] = [
 ]
 
 /**
+ * Czech labels for product group categories
+ * Uses all product categories + 'balicky' for mixed groups
+ */
+export const GROUP_CATEGORY_LABELS: Record<string, string> = {
+  ...PRODUCT_CATEGORY_LABELS,
+  balicky: 'Balíčky',
+}
+
+/**
  * All valid quote item categories as array (for Zod schema, selects, etc.)
  */
 export const QUOTE_CATEGORIES: QuoteItemCategory[] = [

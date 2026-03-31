@@ -64,14 +64,6 @@ function calculateGroupTotal(group: ProductGroupWithItems): number {
   }, 0)
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  zaklad: 'Základní balíčky',
-  technologie: 'Technologie',
-  prislusenstvi: 'Příslušenství',
-  servis: 'Servis',
-  jine: 'Jiné',
-}
-
 export default async function ProductGroupsPage() {
   const groups = await getProductGroups()
 
@@ -136,7 +128,6 @@ export default async function ProductGroupsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Název</TableHead>
-                  <TableHead>Kategorie</TableHead>
                   <TableHead className="text-center">Produktů</TableHead>
                   <TableHead className="text-right">Celková cena</TableHead>
                   <TableHead>Stav</TableHead>
@@ -160,15 +151,6 @@ export default async function ProductGroupsPage() {
                           </div>
                         )}
                       </Link>
-                    </TableCell>
-                    <TableCell>
-                      {group.category ? (
-                        <Badge variant="secondary">
-                          {CATEGORY_LABELS[group.category] || group.category}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       {group.items?.length || 0}
