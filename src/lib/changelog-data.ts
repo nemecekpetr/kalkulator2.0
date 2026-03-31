@@ -17,6 +17,12 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'nabidky',
           description: 'Číslo nabídky se generuje při uložení, ne při načtení stránky',
           userDescription: 'Opravena chyba, kdy vytvoření nové nabídky selhalo s hláškou „Chyba při vytváření nabídky". Příčinou bylo, že číslo nabídky se přidělovalo při otevření stránky — pokud mezitím vznikla jiná nabídka se stejným číslem, uložení selhalo. Nyní se číslo přiděluje až při uložení, takže ke kolizi nemůže dojít.'
+        },
+        {
+          type: 'improvement',
+          scope: 'produkty',
+          description: 'Vylepšený dialog pro přidávání produktů do skupin',
+          userDescription: 'Dialog pro přidávání produktů do produktových skupin nově zobrazuje produkty rozdělené podle kategorií s filtrováním přes štítky. Vyhledávání lépe rozpoznává rozměry (např. 5×3 i 5x3).'
         }
       ]
     },
