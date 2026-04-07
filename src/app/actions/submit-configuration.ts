@@ -121,9 +121,15 @@ export async function processPipedrive(
       const pipeline = await pipedriveClient.findPipelineByName('nové zakázky')
       if (pipeline) {
         pipelineId = pipeline.id
-        const firstStage = await pipedriveClient.getFirstStage(pipeline.id)
-        if (firstStage) {
-          stageId = firstStage.id
+        const poptavkaStage = await pipedriveClient.findStageByName(pipeline.id, 'poptávka')
+        if (poptavkaStage) {
+          stageId = poptavkaStage.id
+        } else {
+          // Fallback to first stage if "Poptávka" not found
+          const firstStage = await pipedriveClient.getFirstStage(pipeline.id)
+          if (firstStage) {
+            stageId = firstStage.id
+          }
         }
       }
     } catch {

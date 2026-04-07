@@ -324,6 +324,15 @@ class PipedriveDealsClient {
     return sortedStages[0] || null
   }
 
+  /**
+   * Find stage by name (case-insensitive partial match)
+   */
+  async findStageByName(pipelineId: number, name: string): Promise<PipedriveStage | null> {
+    const stages = await this.getStages(pipelineId)
+    const normalizedName = name.toLowerCase()
+    return stages.find(s => s.name.toLowerCase().includes(normalizedName)) || null
+  }
+
   // ============================================
   // Deals API
   // ============================================
