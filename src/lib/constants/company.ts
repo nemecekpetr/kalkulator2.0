@@ -7,8 +7,8 @@ export const COMPANY = {
   name: 'Rentmil s.r.o.',
 
   // Právní údaje
-  ico: '07904631',
-  dic: 'CZ07904631',
+  ico: '26342910',
+  dic: 'CZ26342910',
 
   // Adresa
   address: {

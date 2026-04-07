@@ -9,6 +9,7 @@ import {
 } from '@react-pdf/renderer'
 import type { QuoteWithItems, QuoteItemCategory, QuoteVariant, QuoteItem } from '@/lib/supabase/types'
 import { QUOTE_CATEGORY_LABELS } from '@/lib/constants/categories'
+import { COMPANY } from '@/lib/constants/company'
 
 // Register Roboto font with Czech diacritics support
 Font.register({
@@ -509,10 +510,10 @@ function PDFFooter() {
   return (
     <View style={styles.footer}>
       <Text style={styles.footerText}>
-        Rentmil s.r.o. | ICO: 12345678 | www.rentmil.cz
+        {COMPANY.name} | IČO: {COMPANY.ico} | {COMPANY.web}
       </Text>
       <Text style={styles.footerText}>
-        Tel: +420 123 456 789 | info@rentmil.cz
+        Tel: {COMPANY.phone} | {COMPANY.email}
       </Text>
     </View>
   )

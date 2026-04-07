@@ -4,9 +4,28 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.6.2'
+export const CURRENT_VERSION = '0.6.3'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.6.3',
+      date: '2026-04-07',
+      time: '12:00',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'firma',
+          description: 'Oprava IČO a DIČ v PDF nabídkách',
+          userDescription: 'Opraveny firemní údaje v PDF nabídkách — IČO a DIČ nyní odpovídají aktuálním údajům Rentmil s.r.o. (IČO: 26342910, DIČ: CZ26342910). Odstraněny také zástupné údaje v patičce PDF.'
+        },
+        {
+          type: 'fix',
+          scope: 'konfigurator',
+          description: 'Oprava mapování románského schodiště v set addonech',
+          userDescription: 'Románské schodiště v konfigurátoru se nyní správně mapuje jako „Vnitřní románské schodiště" (dříve chybně „Vnější románské schody").'
+        }
+      ]
+    },
     {
       version: '0.6.2',
       date: '2026-03-31',
