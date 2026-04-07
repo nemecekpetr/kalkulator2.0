@@ -23,6 +23,12 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'konfigurator',
           description: 'Oprava mapování románského schodiště v set addonech',
           userDescription: 'Románské schodiště v konfigurátoru se nyní správně mapuje jako „Vnitřní románské schodiště" (dříve chybně „Vnější románské schody").'
+        },
+        {
+          type: 'improvement',
+          scope: 'konfigurator',
+          description: 'Konfigurace z konfigurátoru jde v Pipedrive do fáze „Poptávka (zájem)"',
+          userDescription: 'Nové konfigurace z konfigurátoru se nyní v Pipedrive automaticky zařadí do fáze „Poptávka (zájem)" místo „K oslovení".'
         }
       ]
     },
