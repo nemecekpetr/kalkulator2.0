@@ -425,18 +425,24 @@ function SortableQuoteItem({
       {/* Variant checkboxes */}
       <div className="flex items-center gap-4 pt-1 border-t">
         <span className="text-sm text-muted-foreground">Ve variantách:</span>
-        {variants.map((v) => (
-          <label
-            key={v.key}
-            className="flex items-center gap-2 text-sm cursor-pointer"
-          >
-            <Checkbox
-              checked={item.variant_keys.includes(v.key)}
-              onCheckedChange={() => toggleItemVariant(item.id, v.key)}
-            />
-            {v.name}
-          </label>
-        ))}
+        {variants.map((v) => {
+          const isChecked = item.variant_keys.includes(v.key)
+          const isLastChecked = isChecked && item.variant_keys.length === 1
+          return (
+            <label
+              key={v.key}
+              className={`flex items-center gap-2 text-sm ${isLastChecked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+              title={isLastChecked ? 'Položka musí být alespoň v jedné variantě. Pro odstranění položky použijte ikonu koše.' : undefined}
+            >
+              <Checkbox
+                checked={isChecked}
+                disabled={isLastChecked}
+                onCheckedChange={() => toggleItemVariant(item.id, v.key)}
+              />
+              {v.name}
+            </label>
+          )
+        })}
       </div>
       {/* Skeleton addons section */}
       {skeletonInfo && (skeletonInfo.sharpCornersAddon || skeletonInfo.thickness8mmAddon) && (
@@ -1137,6 +1143,7 @@ export function QuoteEditor({
       prev.map((item) => {
         if (item.id !== itemId) return item
         const hasVariant = item.variant_keys.includes(variantKey)
+        if (hasVariant && item.variant_keys.length === 1) return item
         return {
           ...item,
           variant_keys: hasVariant
