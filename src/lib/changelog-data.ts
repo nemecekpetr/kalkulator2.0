@@ -4,9 +4,22 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.6.3'
+export const CURRENT_VERSION = '0.6.4'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.6.4',
+      date: '2026-04-22',
+      time: '21:30',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Zabránit odkliknutí poslední varianty u položky v nabídce',
+          userDescription: 'Opravena chyba, kdy bylo možné v editoru nabídky odkliknout všechny varianty u jedné položky — položka pak zmizela z obrazovky, ale při uložení hlásila chybu „X položek není přiřazeno k žádné variantě" a nabídka nešla uložit. Nyní se poslední zaškrtnutá varianta nedá odkliknout; pro odstranění položky z nabídky slouží ikona koše.'
+        }
+      ]
+    },
     {
       version: '0.6.3',
       date: '2026-04-07',
