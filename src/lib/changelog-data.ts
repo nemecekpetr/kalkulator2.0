@@ -4,9 +4,22 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.6.4'
+export const CURRENT_VERSION = '0.6.5'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '0.6.5',
+      date: '2026-04-27',
+      time: '13:30',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'konfigurator',
+          description: 'Přidány přelivové bazénové sety (4×3 až 7×3,5 m) jako alternativa ke skimmerovým setům',
+          userDescription: 'Konfigurátor nyní nabízí 6 nových přelivových bazénových setů (rozměry 4×3, 5×3, 6×3, 6×3,5, 7×3 a 7×3,5 m, hloubka 1,2 m). Když zákazník vybere obdélníkový bazén s typem „Přelivový", použije se odpovídající set s přelivovým žlábkem, akumulační nádrží 3 m³ a kompletní výbavou. Sety mají stejné varianty (hloubka, ostré rohy, alternativní schody, materiál 8 mm) jako skimmerové sety.'
+        }
+      ]
+    },
     {
       version: '0.6.4',
       date: '2026-04-22',
