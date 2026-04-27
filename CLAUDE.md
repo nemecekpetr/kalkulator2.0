@@ -6,11 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm run dev              # Start development server
-npm run build            # Production build
+npm run build            # Production build (also verifies TypeScript types)
 npm run lint             # Run ESLint
 npm run start            # Start production server
 npx supabase db push     # Apply database migrations
 ```
+
+No standalone typecheck script — types are only verified at `npm run build`.
 
 ### Releases & Changelog
 
@@ -28,7 +30,7 @@ Git hooks enforce lint (pre-commit) and commit message format (commitlint).
 
 ## Architecture
 
-This is a pool configurator application for Rentmil (Czech pool manufacturer) built with Next.js 16 App Router, Supabase, and TypeScript.
+This is a pool configurator application for Rentmil (Czech pool manufacturer) built with Next.js 16 App Router, React 19, Tailwind CSS v4, Zod v4, Supabase, and TypeScript.
 
 **Language**: Czech application - UI texts, URL slugs (`/admin/uzivatele`, `/admin/objednavky`), and database values are in Czech.
 
@@ -132,6 +134,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Auto-generation of quote items from configuration via `src/lib/quote-generator.ts`
 - Quote variants: Support for multiple pricing tiers (`ekonomicka`, `optimalni`, `premiova`)
 - Quote statuses: `draft`, `sent`, `accepted`, `rejected`
+- Quote number format: `NAB-XXYYMM` where `XX` = sequential number in month (resets monthly), `YY` = 2-digit year, `MM` = month (e.g., `NAB-010326` = 1st quote in March 2026)
 - **Important**: The quote editor (`src/components/admin/quote-editor.tsx`, ~2200 lines) defines a LOCAL `QuoteItem` interface with `variant_keys: QuoteVariantKey[]` that differs from the DB `QuoteItem` which uses `variant_ids: string[]`. Be careful not to confuse them.
 
 **Orders System** (`/admin/objednavky`)
@@ -156,6 +159,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Maps configurator choices to products for automatic quote generation
 - `ProductMappingRule`: Maps config fields (stairs, technology, heating, etc.) to products
 - Pool products are matched by code format: `BAZ-{SHAPE}-{TYPE}-{DIMENSIONS}` (e.g., `BAZ-OBD-SK-3-6-1.2`)
+- Set products use code naming: skimmer = `set{N}` (e.g. `set4`, `set65`); overflow = `set{N}-pr` (e.g. `set4-pr`). `SET_DIMENSION_MAP` in `quote-generator.ts` resolves both per `pool_type`.
 - Rules support constraints by pool shape and type
 - Generated items track their source: `pool_base_price`, `mapping_rule`, `required_surcharge`, or `product_group`
 
@@ -168,11 +172,18 @@ Konfigurace → Nabídka → Objednávka → Výroba
   - Dialog: `src/components/admin/set-addon-dialog.tsx`
   - Structure: `[{"id": "uuid", "name": "string", "price": number, "sort_order": number}]`
 
+**Status UI Components** (`src/components/admin/status-steps.tsx`)
+- `StatusChip`: Compact colored chip showing current status with optional expired-quote warning
+- `StatusSteps`: Interactive timeline component with main flow dots and branch flow for terminal states (rejected/cancelled)
+- Server-safe config lives in `src/components/admin/status-config.ts` — exports `CONFIGURATION_STATUSES`, `QUOTE_STATUSES`, `ORDER_STATUSES`, `PRODUCTION_STATUSES` and the `StatusStep`/`StatusColor` types
+- Import status constants from `status-config.ts`; import the components from `status-steps.tsx`
+
 **Changelog/Novinky System**
 - In-app changelog displayed to users in admin panel (`/admin/novinky`)
 - Source data in `src/lib/changelog-data.ts` (manually maintained)
 - Technical descriptions auto-translated to user-friendly Czech via Claude API
 - Run `npm run changelog:translate` after adding new entries
+- **Workflow**: after a `feat`/`fix` commit that changes user-visible behavior, add an entry to `src/lib/changelog-data.ts` and run `npm run changelog:translate` — this is a recurring step, not a one-off
 
 ### Authentication & Authorization
 
@@ -181,6 +192,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Role utilities in `src/lib/auth/roles.ts`
 - Middleware protects `/admin/*` routes, redirects to `/login` if unauthenticated
 - Inactive users are signed out automatically
+- `useAdminRole` hook (`src/hooks/use-admin-role.ts`): client-side role lookup with module-level cache and request deduplication — returns synchronously from cache on subsequent renders, re-fetches after 60s TTL
 
 ### Server Actions
 
@@ -205,11 +217,21 @@ Located in `src/app/api/admin/`:
 Other routes:
 - `/api/health`: Health check endpoint for Railway deployment
 
+### API Utilities
+
+`src/lib/api-utils.ts` — use these in all API routes:
+- `apiError(message, status, code?)`: standardized `NextResponse` error
+- `handleDbError(error, context?)`: maps Postgres error codes (23505→409, 23503→400, etc.) to typed responses
+- `withErrorHandler(handler)`: wraps async route handlers with automatic catch→`handleDbError`
+- `HttpStatus`: typed constants for HTTP status codes
+
 ### Security
 
 - **Iframe embedding**: Only `/embed` route allows iframe embedding (CSP `frame-ancestors`). All other routes use `X-Frame-Options: SAMEORIGIN`.
 - **Subdomain restriction**: Do NOT use wildcard subdomains (`*.rentmil.cz`) in CSP — explicit domains only to prevent subdomain takeover attacks. See `next.config.ts`.
 - **API routes**: Product API routes use explicit field-by-field mapping (not spread operators) for POST/PUT to prevent mass assignment.
+- **CSRF protection**: `src/lib/csrf.ts` — call `validateCsrf()` in server actions and API routes that mutate data. Validates `Origin`/`Referer` headers against `NEXT_PUBLIC_APP_URL` and localhost.
+- **Input sanitization**: `src/lib/sanitize.ts` — use `escapeHtml()` / `stripHtml()` when outputting user-supplied data in HTML contexts.
 
 ### Deployment
 
@@ -228,7 +250,7 @@ Deployed on Railway using Nixpacks:
 - **Pipedrive CRM**: Direct API integration for deals and products
   - `src/lib/pipedrive/client.ts`: Product sync
   - `src/lib/pipedrive/deals.ts`: Persons, Deals, Deal Products API
-  - On configuration submit: Creates Person + Deal with products attached
+  - On configuration submit: Creates Person + Deal with products attached, placed into the "Poptávka (zájem)" pipeline stage (falls back to first stage if not found)
 - **Resend**: Email delivery for customer notifications
   - `src/lib/email/client.ts`: Resend client
   - `src/lib/email/templates/`: Email templates
@@ -323,6 +345,13 @@ Zod schemas in `src/lib/validations/configuration.ts` define all pool configurat
 - Admin components in `src/components/admin/`
 - Configurator step components in `src/components/configurator/steps/`
 
+### Czech Formatting Utilities
+
+`src/lib/utils/` contains helpers for Czech-language output — use these before rolling custom formatting:
+- `format.ts`: Number/currency formatting (Czech locale, CZK)
+- `czech-month.ts`: Month names in Czech (for dates in PDFs/UI)
+- `czech-salutation.ts`: Salutation declension for formal correspondence
+
 ### Database Migrations
 
 Located in `supabase/migrations/`:
@@ -334,6 +363,10 @@ Located in `supabase/migrations/`:
 - Husky pre-commit hooks with commitlint
 - Commit format: `type(scope): description` (e.g., `feat(quotes): add PDF export`)
 - Standard-version for automatic versioning and CHANGELOG.md generation
+
+### In-flight Plans
+
+Before starting non-trivial work, check `docs/superpowers/plans/` for an existing plan on the same topic. Follow or update the existing plan instead of starting from scratch.
 
 ## Environment Variables
 
@@ -348,6 +381,7 @@ Required for integrations:
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`
 - `ANTHROPIC_API_KEY` (changelog translation only)
+- `NEXT_PUBLIC_APP_URL` (used by CSRF validation; optional in dev, set to production URL in prod)
 
 Note: `.env.local.example` exists but may be incomplete — refer to this list as the source of truth.
 

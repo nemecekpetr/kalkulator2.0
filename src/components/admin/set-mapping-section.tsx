@@ -19,10 +19,11 @@ interface SetMappingSectionProps {
   setProducts: Product[]
 }
 
-// Reverse lookup: code → dimension key
-function getDimensionsForCode(code: string): string | null {
-  for (const [dimKey, setCode] of Object.entries(SET_DIMENSION_MAP)) {
-    if (setCode === code) return dimKey
+// Reverse lookup: code → dimension key + pool type
+function getDimensionsForCode(code: string): { dimKey: string; type: 'skimmer' | 'overflow' } | null {
+  for (const [dimKey, codes] of Object.entries(SET_DIMENSION_MAP)) {
+    if (codes.skimmer === code) return { dimKey, type: 'skimmer' }
+    if (codes.overflow === code) return { dimKey, type: 'overflow' }
   }
   return null
 }
@@ -73,19 +74,25 @@ export function SetMappingSection({ setProducts }: SetMappingSectionProps) {
   const enrichedSets = useMemo(() => {
     return setProducts
       .map(product => {
-        const dimKey = getDimensionsForCode(product.code || '')
+        const lookup = getDimensionsForCode(product.code || '')
         return {
           ...product,
-          dimKey,
-          formattedDimensions: dimKey ? formatDimensions(dimKey) : null,
+          dimKey: lookup?.dimKey ?? null,
+          poolType: lookup?.type ?? null,
+          formattedDimensions: lookup ? formatDimensions(lookup.dimKey) : null,
           addonCount: product.set_addons?.length || 0,
         }
       })
       .sort((a, b) => {
-        // Mapped sets first, then by dimension key
+        // Mapped sets first, then by dimension key, then by pool type (skimmer first)
         if (a.dimKey && !b.dimKey) return -1
         if (!a.dimKey && b.dimKey) return 1
-        if (a.dimKey && b.dimKey) return a.dimKey.localeCompare(b.dimKey, undefined, { numeric: true })
+        if (a.dimKey && b.dimKey) {
+          const dimCmp = a.dimKey.localeCompare(b.dimKey, undefined, { numeric: true })
+          if (dimCmp !== 0) return dimCmp
+          if (a.poolType === 'skimmer' && b.poolType === 'overflow') return -1
+          if (a.poolType === 'overflow' && b.poolType === 'skimmer') return 1
+        }
         return a.name.localeCompare(b.name)
       })
   }, [setProducts])
@@ -138,6 +145,7 @@ export function SetMappingSection({ setProducts }: SetMappingSectionProps) {
               <TableHead className="w-10"></TableHead>
               <TableHead>Kód</TableHead>
               <TableHead>Rozměry</TableHead>
+              <TableHead>Typ</TableHead>
               <TableHead>Název</TableHead>
               <TableHead className="text-right">Cena</TableHead>
               <TableHead className="text-center">Addony</TableHead>
@@ -146,7 +154,7 @@ export function SetMappingSection({ setProducts }: SetMappingSectionProps) {
           <TableBody>
             {enrichedSets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   Žádné sety v katalogu
                 </TableCell>
@@ -183,7 +191,12 @@ function SetRow({
   isExpanded,
   onToggle,
 }: {
-  product: Product & { dimKey: string | null; formattedDimensions: string | null; addonCount: number }
+  product: Product & {
+    dimKey: string | null
+    poolType: 'skimmer' | 'overflow' | null
+    formattedDimensions: string | null
+    addonCount: number
+  }
   isExpanded: boolean
   onToggle: () => void
 }) {
@@ -216,6 +229,15 @@ function SetRow({
             </span>
           )}
         </TableCell>
+        <TableCell>
+          {product.poolType === 'overflow' ? (
+            <Badge className="bg-cyan-100 text-cyan-800 hover:bg-cyan-100">Přeliv</Badge>
+          ) : product.poolType === 'skimmer' ? (
+            <Badge variant="outline">Skimmer</Badge>
+          ) : (
+            <span className="text-muted-foreground text-sm">—</span>
+          )}
+        </TableCell>
         <TableCell className="font-medium">{product.name}</TableCell>
         <TableCell className="text-right font-medium">{formatPrice(product.unit_price)}</TableCell>
         <TableCell className="text-center">
@@ -230,7 +252,7 @@ function SetRow({
       {/* Expanded addon detail */}
       {isExpanded && hasAddons && (
         <TableRow className="hover:bg-transparent">
-          <TableCell colSpan={6} className="p-0">
+          <TableCell colSpan={7} className="p-0">
             <div className="bg-amber-50/50 border-t border-amber-200 px-8 py-4">
               <Table>
                 <TableHeader>

@@ -277,13 +277,18 @@ function collectRequiredSurcharges(
 // When adding a new set, extend this map with the new dimension key and code.
 // =============================================================================
 
-export const SET_DIMENSION_MAP: Record<string, string> = {
-  '4-3': 'set4',
-  '5-3': 'set5',
-  '6-3': 'set6',
-  '6-3.5': 'set65',
-  '7-3': 'set7',
-  '7-3.5': 'set75',
+/**
+ * Maps pool dimensions (length-width) to set product codes per pool type.
+ * - skimmer: existující bazénové sety (`set4`, `set5`, …)
+ * - overflow: přelivové sety se suffixem `-pr` (`set4-pr`, `set5-pr`, …)
+ */
+export const SET_DIMENSION_MAP: Record<string, { skimmer: string; overflow: string }> = {
+  '4-3':   { skimmer: 'set4',  overflow: 'set4-pr' },
+  '5-3':   { skimmer: 'set5',  overflow: 'set5-pr' },
+  '6-3':   { skimmer: 'set6',  overflow: 'set6-pr' },
+  '6-3.5': { skimmer: 'set65', overflow: 'set65-pr' },
+  '7-3':   { skimmer: 'set7',  overflow: 'set7-pr' },
+  '7-3.5': { skimmer: 'set75', overflow: 'set75-pr' },
 }
 
 /**
@@ -302,7 +307,10 @@ async function findSetProduct(
   if (!length || !width) return null
 
   const key = `${length}-${width}`
-  const setCode = SET_DIMENSION_MAP[key]
+  const codes = SET_DIMENSION_MAP[key]
+  if (!codes) return null
+
+  const setCode = codes[config.pool_type as 'skimmer' | 'overflow']
   if (!setCode) return null
 
   const { data, error } = await supabase
