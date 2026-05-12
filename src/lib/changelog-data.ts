@@ -47,6 +47,18 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'nabidky',
           description: 'Povoleny záporné ceny u položek nabídky',
           userDescription: 'Položky v nabídce nyní mohou mít zápornou cenu — slouží pro slevy, kredity za vrácené díly nebo jiné odpočty. Záporná cena se v mezisoučtu odečte. Kontrola záporného množství zůstává.'
+        },
+        {
+          type: 'fix',
+          scope: 'konfigurace',
+          description: 'Filtr stavu konfigurace v seznamu (Nové / Zpracované)',
+          userDescription: 'Na stránce „Konfigurace" se v řádku filtrů nově dá vybrat stav konfigurace (Nové / Zpracované / Všechny stavy). Doposud tam byl jen filtr na Pipedrive status, který neukazuje, jestli admin konfiguraci skutečně odbavil. Filtr je kombinovatelný s vyhledáváním i s Pipedrive filterem a propisuje se do URL.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Email tvůrce nabídky v PDF místo firemního fallbacku',
+          userDescription: 'Na poslední straně PDF nabídky („Stačí 3 kroky k vašemu bazénu") se v kontaktním boxu vedle jména a telefonu obchodníka zobrazuje nyní jeho osobní email z profilu místo obecného bazeny@rentmil.cz. Pokud obchodník nemá email v profilu, použije se firemní email jako fallback — doplňte prosím každému aktivnímu obchodníkovi email v /admin/uzivatele.'
         }
       ]
     },
