@@ -1,9 +1,39 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Order, OrderItem } from '@/lib/supabase/types'
+import type { Order, OrderItem, QuoteItemCategory } from '@/lib/supabase/types'
 import { COMPANY } from '@/lib/constants/company'
 import { verifyPrintToken } from '@/lib/pdf/print-token'
 import { formatPrice, formatDate } from '@/lib/utils/format'
+import { QUOTE_CATEGORY_LABELS, QUOTE_CATEGORY_ORDER } from '@/lib/constants/categories'
+import {
+  getShapeLabel,
+  getTypeLabel,
+  getColorLabel,
+  getStairsLabel,
+  getTechnologyLabel,
+  getLightingLabel,
+  getCounterflowLabel,
+  getWaterTreatmentLabel,
+  getHeatingLabel,
+  getRoofingLabel,
+} from '@/lib/constants/configurator'
+
+type OrderItemWithProduct = OrderItem & { product_description?: string | null }
+
+interface PoolConfig {
+  shape?: string
+  type?: string
+  dimensions?: { length?: number; width?: number; depth?: number; diameter?: number }
+  color?: string
+  stairs?: string
+  technology?: string | string[]
+  lighting?: string
+  counterflow?: string
+  waterTreatment?: string
+  waterTreatmentOther?: string | null
+  heating?: string
+  roofing?: string
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -45,14 +75,23 @@ async function getOrder(id: string) {
 
   const { data: items } = await supabase
     .from('order_items')
-    .select('*')
+    .select('*, product:products(description)')
     .eq('order_id', id)
     .order('sort_order', { ascending: true })
 
+  const itemsWithProduct: OrderItemWithProduct[] = (items || []).map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const product = (item as any).product as { description: string | null } | null
+    return {
+      ...item,
+      product_description: product?.description || null,
+    }
+  })
+
   return {
     ...order,
-    items: items || [],
-  } as Order & { items: OrderItem[] }
+    items: itemsWithProduct,
+  } as Order & { items: OrderItemWithProduct[] }
 }
 
 // Title page component
@@ -166,8 +205,171 @@ function getDeliveryMethodLabel(method: string | null): string {
   return DELIVERY_METHOD_LABELS[method] || method
 }
 
+function formatDimensions(shape: string | undefined, dims: PoolConfig['dimensions']): string {
+  if (!dims) return ''
+  if (shape === 'circle' && dims.diameter != null) {
+    return `Ø${dims.diameter} × ${dims.depth ?? '?'} m`
+  }
+  return `${dims.length ?? '?'} × ${dims.width ?? '?'} × ${dims.depth ?? '?'} m`
+}
+
+function formatTechnology(tech: PoolConfig['technology']): string {
+  if (!tech) return ''
+  if (Array.isArray(tech)) {
+    return tech.filter((t) => t && t !== 'none').map((t) => getTechnologyLabel(t)).join(', ')
+  }
+  return tech === 'none' ? '' : getTechnologyLabel(tech)
+}
+
+// Pool configuration card — full specification from order.pool_config
+function PoolConfigCard({ pool_config }: { pool_config: PoolConfig | null }) {
+  if (!pool_config) return null
+
+  const rows: Array<{ label: string; value: string }> = []
+  if (pool_config.shape) rows.push({ label: 'Tvar', value: getShapeLabel(pool_config.shape) })
+  if (pool_config.type) rows.push({ label: 'Typ', value: getTypeLabel(pool_config.type) })
+  const dims = formatDimensions(pool_config.shape, pool_config.dimensions)
+  if (dims) rows.push({ label: 'Rozměry', value: dims })
+  if (pool_config.color) rows.push({ label: 'Barva', value: getColorLabel(pool_config.color) })
+  if (pool_config.stairs && pool_config.stairs !== 'none') {
+    rows.push({ label: 'Schodiště', value: getStairsLabel(pool_config.stairs) })
+  }
+  const tech = formatTechnology(pool_config.technology)
+  if (tech) rows.push({ label: 'Technologie', value: tech })
+  if (pool_config.lighting && pool_config.lighting !== 'none') {
+    rows.push({ label: 'Osvětlení', value: getLightingLabel(pool_config.lighting) })
+  }
+  if (pool_config.counterflow && pool_config.counterflow !== 'none') {
+    rows.push({ label: 'Protiproud', value: getCounterflowLabel(pool_config.counterflow) })
+  }
+  if (pool_config.waterTreatment && pool_config.waterTreatment !== 'none') {
+    rows.push({
+      label: 'Úprava vody',
+      value: getWaterTreatmentLabel(pool_config.waterTreatment, pool_config.waterTreatmentOther),
+    })
+  }
+  if (pool_config.heating && pool_config.heating !== 'none') {
+    rows.push({ label: 'Ohřev', value: getHeatingLabel(pool_config.heating) })
+  }
+  if (pool_config.roofing && pool_config.roofing !== 'none') {
+    rows.push({ label: 'Zastřešení', value: getRoofingLabel(pool_config.roofing) })
+  }
+
+  if (rows.length === 0) return null
+
+  return (
+    <div className="mb-8" style={{ pageBreakInside: 'avoid' }}>
+      <h2 className="text-xl font-bold mb-4 pb-2 border-b-2 border-[#48A9A6]">
+        Konfigurace bazénu
+      </h2>
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
+          {rows.map((row) => (
+            <div key={row.label} className="flex justify-between border-b border-gray-200 py-1">
+              <span className="text-gray-600">{row.label}</span>
+              <span className="font-medium text-[#01384B]">{row.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Items grouped by category — replicates ItemsSection from quote print
+function OrderItemsList({
+  order,
+}: {
+  order: Order & { items: OrderItemWithProduct[] }
+}) {
+  // Group items by category
+  const itemsByCategory = order.items.reduce(
+    (acc, item) => {
+      if (!acc[item.category]) acc[item.category] = []
+      acc[item.category].push(item)
+      return acc
+    },
+    {} as Record<string, OrderItemWithProduct[]>
+  )
+
+  // Order categories by QUOTE_CATEGORY_ORDER
+  const orderedCategories = QUOTE_CATEGORY_ORDER.filter((cat) => itemsByCategory[cat]?.length > 0)
+
+  return (
+    <div className="space-y-4" data-pdf-content="items">
+      {orderedCategories.map((category) => {
+        const categoryItems = itemsByCategory[category]
+        return (
+          <div key={category} className="rounded-xl border border-gray-200 overflow-hidden shadow-sm" style={{ pageBreakInside: 'avoid' }}>
+            {/* Category header */}
+            <div className="bg-[#01384B] text-white px-4 py-2">
+              <span className="font-semibold text-sm">{QUOTE_CATEGORY_LABELS[category as QuoteItemCategory]}</span>
+            </div>
+            {/* Items */}
+            <div className="divide-y divide-gray-100">
+              {categoryItems.map((item) => {
+                const isColorItem = item.description?.startsWith('[COLOR:')
+                const isSetAddon = item.description?.startsWith('[SA:')
+                const setDescription = item.category === 'sety' && !isSetAddon && !isColorItem
+                  ? (item.product_description || item.description)
+                  : null
+                const cleanDescription = item.description
+                  ?.replace(/^\[SA:[^\]]+\]\s*/, '')
+                  .replace(/^\[COLOR:[^\]]+\]\s*/, '')
+                const showInlineDescription =
+                  item.description &&
+                  !item.description.match(/^\[(SA|COLOR):[^\]]+\]$/) &&
+                  !setDescription &&
+                  !isSetAddon &&
+                  !isColorItem
+
+                const displayName =
+                  item.category === 'doprava' && order.delivery_method
+                    ? `${item.name} — ${getDeliveryMethodLabel(order.delivery_method)}`
+                    : item.name
+
+                return (
+                  <div key={item.id}>
+                    <div className="px-4 py-1.5 flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-[#01384B] text-sm">{displayName}</p>
+                        {showInlineDescription && (
+                          <p className="text-xs text-gray-500 leading-snug mt-0.5 whitespace-pre-line">{cleanDescription}</p>
+                        )}
+                      </div>
+                      <div className="text-right ml-4 flex-shrink-0">
+                        {isColorItem ? (
+                          <p className="text-xs text-gray-600 italic">{cleanDescription}</p>
+                        ) : item.category === 'doprava' && item.total_price === 0 ? (
+                          <p className="font-semibold text-green-600 text-sm">Zdarma</p>
+                        ) : (
+                          <>
+                            <p className="text-xs text-gray-500">
+                              {item.quantity} {item.unit} × {formatPrice(item.unit_price)}
+                            </p>
+                            <p className="font-semibold text-[#01384B] text-sm">{formatPrice(item.total_price)}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {setDescription && (
+                      <div className="mx-4 mb-2 px-3 py-2 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{setDescription}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // Contract content page
-function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
+function ContractPage({ order }: { order: Order & { items: OrderItemWithProduct[] } }) {
   return (
     <div className="min-h-screen bg-white p-8 text-[#01384B]">
       {/* Header - will be added by Puppeteer */}
@@ -214,65 +416,19 @@ function ContractPage({ order }: { order: Order & { items: OrderItem[] } }) {
         </div>
       </div>
 
-      {/* Items table */}
+      {/* Pool configuration */}
+      <PoolConfigCard pool_config={order.pool_config as PoolConfig | null} />
+
+      {/* Items grouped by category */}
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4 pb-2 border-b-2 border-[#48A9A6]">
           Položky objednávky
         </h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[#01384B] text-white">
-              <th className="py-2 px-3 text-left rounded-tl-lg">Položka</th>
-              <th className="py-2 px-3 text-center">Množství</th>
-              <th className="py-2 px-3 text-right">Cena/ks</th>
-              <th className="py-2 px-3 text-right rounded-tr-lg">Celkem</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((item, index) => (
-              <tr
-                key={item.id}
-                className={index % 2 === 1 ? 'bg-gray-50' : ''}
-              >
-                <td className="py-2 px-3">
-                  <span className="font-medium">{item.name}</span>
-                  {item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && (
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {item.description.replace(/^\[SA:[^\]]+\]\s*/, '')}
-                    </p>
-                  )}
-                </td>
-                <td className="py-2 px-3 text-center">
-                  {item.quantity} {item.unit}
-                </td>
-                <td className="py-2 px-3 text-right">{formatPrice(item.unit_price)}</td>
-                <td className="py-2 px-3 text-right font-semibold">
-                  {formatPrice(item.total_price)}
-                </td>
-              </tr>
-            ))}
-            {/* Delivery row */}
-            <tr className={order.items.length % 2 === 1 ? 'bg-gray-50' : ''}>
-              <td className="py-2 px-3 font-medium">
-                Doprava{order.delivery_method ? ` — ${getDeliveryMethodLabel(order.delivery_method)}` : ''}
-              </td>
-              <td className="py-2 px-3 text-center">1 ks</td>
-              <td className="py-2 px-3 text-right">
-                {order.delivery_cost_free || order.delivery_cost === 0 ? '' : formatPrice(order.delivery_cost)}
-              </td>
-              <td className="py-2 px-3 text-right font-semibold">
-                {order.delivery_cost_free || order.delivery_cost === 0 ? (
-                  <span className="text-green-600">Zdarma</span>
-                ) : (
-                  formatPrice(order.delivery_cost)
-                )}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+        <OrderItemsList order={order} />
 
         {/* Totals */}
-        <div className="mt-4 flex justify-end" style={{ pageBreakInside: 'avoid' }}>
+        <div className="mt-6 flex justify-end" style={{ pageBreakInside: 'avoid' }}>
           <div className="w-72">
             <div className="flex justify-between py-1 text-sm">
               <span className="text-gray-600">Mezisoučet</span>

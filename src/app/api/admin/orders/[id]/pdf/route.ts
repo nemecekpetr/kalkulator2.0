@@ -89,7 +89,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const contentPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=content&quality=${quality}`, printToken)
 
     const contentPdfBuffer = await generatePdfFromPage(page, contentPageUrl, contentOptions)
-    await waitForContent(page, 'table', { critical: true, context: 'Content page' })
+    await waitForContent(page, '[data-pdf-content="items"]', { critical: true, context: 'Content page' })
     metrics.step('content-page')
 
     const contentPdf = await PDFDocument.load(contentPdfBuffer)
