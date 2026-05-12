@@ -360,13 +360,16 @@ function ItemsSection({
               {/* Items */}
               <div className="divide-y divide-gray-100">
                 {categoryItems.map((item) => {
+                  const isColorItem = item.description?.startsWith('[COLOR:')
+                  const isSetAddon = item.description?.startsWith('[SA:')
                   // For main set items, prefer product_description (always fresh from product)
-                  const setDescription = item.category === 'sety' && !item.description?.startsWith('[SA:')
+                  const setDescription = item.category === 'sety' && !isSetAddon && !isColorItem
                     ? (item.product_description || item.description)
                     : null
-                  const cleanDescription = item.description?.replace(/^\[SA:[^\]]+\]\s*/, '')
-                  const isSetAddon = item.description?.startsWith('[SA:')
-                  const showInlineDescription = item.description && !item.description.match(/^\[SA:[^\]]+\]$/) && !setDescription && !isSetAddon
+                  const cleanDescription = item.description
+                    ?.replace(/^\[SA:[^\]]+\]\s*/, '')
+                    .replace(/^\[COLOR:[^\]]+\]\s*/, '')
+                  const showInlineDescription = item.description && !item.description.match(/^\[(SA|COLOR):[^\]]+\]$/) && !setDescription && !isSetAddon && !isColorItem
 
                   return (
                     <div key={item.id}>
@@ -378,7 +381,9 @@ function ItemsSection({
                           )}
                         </div>
                         <div className="text-right ml-4 flex-shrink-0">
-                          {item.category === 'doprava' && item.total_price === 0 ? (
+                          {isColorItem ? (
+                            <p className="text-xs text-gray-600 italic">{cleanDescription}</p>
+                          ) : item.category === 'doprava' && item.total_price === 0 ? (
                             <p className="font-semibold text-green-600 text-sm">Zdarma</p>
                           ) : (
                             <>

@@ -646,7 +646,7 @@ export interface GeneratedQuoteItem {
   total_price: number
   sort_order: number
   // Metadata for UI
-  source?: 'pool_base_price' | 'mapping_rule' | 'required_surcharge' | 'product_group' | 'set_addon'
+  source?: 'pool_base_price' | 'mapping_rule' | 'required_surcharge' | 'product_group' | 'set_addon' | 'auto_color'
   rule_id?: string
 }
 

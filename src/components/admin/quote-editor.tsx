@@ -83,6 +83,7 @@ import {
   getStairsLabel,
   getTechnologyLabel,
   formatDimensions,
+  POOL_COLORS,
 } from '@/lib/constants/configurator'
 import { QUOTE_CATEGORY_LABELS, QUOTE_CATEGORY_ORDER } from '@/lib/constants/categories'
 import { czechMonth, CZECH_MONTHS } from '@/lib/utils/czech-month'
@@ -100,8 +101,9 @@ interface QuoteItem {
   total_price: number
   variant_keys: QuoteVariantKey[]
   // Set addon fields
-  parent_item_id?: string   // For addon items: ID of parent set item
+  parent_item_id?: string   // For addon items: ID of parent set/skeleton item
   set_addon_id?: string     // For addon items: addon ID from set_addons JSONB
+  pool_color?: string       // For color child items: color ID from POOL_COLORS
 }
 
 interface QuoteVariantState {
@@ -147,7 +149,7 @@ interface QuoteEditorProps {
 const CATEGORY_LABELS = QUOTE_CATEGORY_LABELS
 
 const DEFAULT_VARIANTS: QuoteVariantState[] = [
-  { key: 'ekonomicka', name: 'Ekonomická', discount_percent: 0, discount_amount: 0 },
+  { key: 'ekonomicka', name: 'Základní', discount_percent: 0, discount_amount: 0 },
   { key: 'optimalni', name: 'Optimální', discount_percent: 0, discount_amount: 0 },
   { key: 'premiova', name: 'Prémiová', discount_percent: 0, discount_amount: 0 },
 ]
@@ -199,6 +201,8 @@ interface SortableItemProps {
   onToggleSkeletonAddon: (skeletonItemId: string, addonType: 'sharp_corners' | '8mm', checked: boolean) => void
   // Set addon props
   onToggleSetAddon: (setItemId: string, addon: SetAddon, checked: boolean) => void
+  // Pool color props
+  onToggleColor: (parentItemId: string, colorId: string, checked: boolean) => void
   // Product combobox
   onProductSelect: (itemId: string, product: Product) => void
 }
@@ -215,6 +219,7 @@ function SortableQuoteItem({
   products,
   onToggleSkeletonAddon,
   onToggleSetAddon,
+  onToggleColor,
   onProductSelect,
 }: SortableItemProps) {
   const {
@@ -337,6 +342,20 @@ function SortableQuoteItem({
     }
   }, [item, items, products])
 
+  // Detect if this is a skeleton/set parent item (eligible for color selection)
+  const colorInfo = useMemo(() => {
+    // Show color picker only on parent skeletons/sets, not on child items
+    if (item.parent_item_id) return null
+    if (item.category !== 'skelety' && item.category !== 'sety') return null
+
+    // Find active color from existing child color item
+    const activeChild = items.find((i) => i.parent_item_id === item.id && i.pool_color)
+    return {
+      activeColorId: activeChild?.pool_color,
+      isSet: item.category === 'sety',
+    }
+  }, [item, items])
+
   // Check if this is a set addon child item
   const isSetAddonChild = !!item.parent_item_id
 
@@ -415,7 +434,6 @@ function SortableQuoteItem({
           onChange={(e) =>
             updateItem(item.id, { unit_price: parseFloat(e.target.value) || 0 })
           }
-          min={0}
           placeholder="Cena/ks"
         />
         <div className="flex items-center justify-end font-semibold sm:col-span-2 text-right">
@@ -504,6 +522,29 @@ function SortableQuoteItem({
               </span>
             </label>
           ))}
+        </div>
+      )}
+      {/* Pool color inline toggles (single-select) */}
+      {colorInfo && (
+        <div className="flex flex-wrap items-center gap-4 pt-2 border-t">
+          <span className="text-sm text-muted-foreground">Barva skeletu:</span>
+          {POOL_COLORS.map((color) => {
+            const isChecked = colorInfo.activeColorId === color.id
+            return (
+              <label key={color.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={isChecked}
+                  onCheckedChange={(checked) =>
+                    onToggleColor(item.id, color.id, !!checked)
+                  }
+                />
+                <span>
+                  {color.label}{' '}
+                  <span className="text-muted-foreground">(+0 Kč)</span>
+                </span>
+              </label>
+            )
+          })}
         </div>
       )}
     </div>
@@ -605,7 +646,7 @@ export function QuoteEditor({
   const [manualDeliveryDeadline, setManualDeliveryDeadline] = useState(
     !!existingQuote?.delivery_deadline
   )
-  const [vatRate, setVatRate] = useState<number>(existingQuote?.vat_rate ?? 0)
+  const [vatRate, setVatRate] = useState<number>(existingQuote?.vat_rate ?? 12)
 
   // Variants
   const [variants, setVariants] = useState<QuoteVariantState[]>(() => {
@@ -646,21 +687,28 @@ export function QuoteEditor({
         const saMatch = item.description?.match(/^\[SA:([^\]]+)\]/)
         const set_addon_id = saMatch?.[1] || undefined
 
+        // Parse pool color info from description prefix [COLOR:colorId]
+        const colorMatch = item.description?.match(/^\[COLOR:([^\]]+)\]/)
+        const pool_color = colorMatch?.[1] || undefined
+
         return {
           ...item,
           variant_keys,
           set_addon_id,
+          pool_color,
         }
       })
 
-      // Reconstruct parent_item_id: for items with set_addon_id,
-      // find the nearest preceding set item (category 'sety', no set_addon_id)
-      let lastSetItemId: string | undefined
+      // Reconstruct parent_item_id: for child items (set_addon_id or pool_color),
+      // find the nearest preceding parent (skelety/sety without child markers)
+      let lastParentItemId: string | undefined
       for (const item of loadedItems) {
-        if (item.category === 'sety' && !item.set_addon_id) {
-          lastSetItemId = item.id
-        } else if (item.set_addon_id && lastSetItemId) {
-          item.parent_item_id = lastSetItemId
+        const isChild = !!item.set_addon_id || !!item.pool_color
+        const isParentCandidate = (item.category === 'sety' || item.category === 'skelety') && !isChild
+        if (isParentCandidate) {
+          lastParentItemId = item.id
+        } else if (isChild && lastParentItemId) {
+          item.parent_item_id = lastParentItemId
         }
       }
 
@@ -1341,6 +1389,68 @@ export function QuoteEditor({
     [items, activeVariant]
   )
 
+  // Toggle pool color for a parent skeleton/set item (single-select, mandatory)
+  const onToggleColor = useCallback(
+    (parentItemId: string, colorId: string, checked: boolean) => {
+      if (!checked) {
+        // Single-select with mandatory choice: ignore unchecking the only selected color
+        return
+      }
+
+      setItems((prev) => {
+        const parent = prev.find((i) => i.id === parentItemId)
+        if (!parent) return prev
+
+        const isSet = parent.category === 'sety'
+        const colorLabel = getColorLabel(colorId)
+        const inCeneText = isSet ? 'v ceně bazénového setu' : 'v ceně skeletu'
+        const name = `Barva skeletu: ${colorLabel}`
+        const description = `[COLOR:${colorId}] ${inCeneText}`
+
+        // Find existing color child for this parent
+        const existingColorChild = prev.find(
+          (i) => i.parent_item_id === parentItemId && i.pool_color
+        )
+
+        if (existingColorChild) {
+          // Update existing color child
+          return prev.map((i) =>
+            i.id === existingColorChild.id
+              ? { ...i, name, description, pool_color: colorId }
+              : i
+          )
+        }
+
+        // Create new color child item right after the parent and its existing children
+        const newColorItem: QuoteItem = {
+          id: crypto.randomUUID(),
+          product_id: parent.product_id,
+          name,
+          description,
+          category: parent.category,
+          quantity: 1,
+          unit: 'ks',
+          unit_price: 0,
+          total_price: 0,
+          variant_keys: parent.variant_keys,
+          parent_item_id: parentItemId,
+          pool_color: colorId,
+        }
+
+        const parentIdx = prev.findIndex((i) => i.id === parentItemId)
+        let insertIdx = parentIdx + 1
+        while (insertIdx < prev.length && prev[insertIdx].parent_item_id === parentItemId) {
+          insertIdx++
+        }
+
+        const next = [...prev]
+        next.splice(insertIdx, 0, newColorItem)
+        return next
+      })
+    },
+    []
+  )
+
   // Generate items from configuration for active variant
   const generateItems = useCallback(async () => {
     if (!configuration?.id) return
@@ -1548,15 +1658,7 @@ export function QuoteEditor({
       errors.push(`${emptyNameItems.length} položek má prázdný název (kategorie: ${categories})`)
     }
 
-    // Check for items with zero or negative prices
-    const invalidPriceItems = items.filter((item) => item.unit_price < 0 || item.total_price < 0)
-    if (invalidPriceItems.length > 0) {
-      const itemNames = invalidPriceItems
-        .map((item) => item.name || '(bez názvu)')
-        .slice(0, 3)
-        .join(', ')
-      errors.push(`${invalidPriceItems.length} položek má zápornou cenu: ${itemNames}`)
-    }
+    // Záporné ceny jsou povolené (slevy, kredity za vrácené díly atp.)
 
     // Check for items with zero quantity
     const zeroQuantityItems = items.filter((item) => item.quantity <= 0)
@@ -1891,6 +1993,32 @@ export function QuoteEditor({
                 Automaticky vygenerováno z jména, můžete upravit
               </p>
             </div>
+            <div className="space-y-2 sm:col-span-2 border-t pt-4">
+              <Label htmlFor="vat_rate">Sazba DPH</Label>
+              <Select
+                value={String(vatRate)}
+                onValueChange={(val) => setVatRate(Number(val))}
+              >
+                <SelectTrigger id="vat_rate">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="12">12 % — stavby k bydlení (§48)</SelectItem>
+                  <SelectItem value="21">21 % — základní sazba</SelectItem>
+                  <SelectItem value="0">Bez DPH (přenesená daňová povinnost)</SelectItem>
+                </SelectContent>
+              </Select>
+              {vatRate === 12 && (
+                <p className="text-xs text-muted-foreground">
+                  Snížená sazba 12 % se uplatní jen u staveb pro bydlení podle §48 zákona č. 235/2004 Sb.
+                </p>
+              )}
+              {vatRate === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Přenesená daňová povinnost — daň odvede zákazník (§92a ZDPH).
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -2024,36 +2152,6 @@ export function QuoteEditor({
             </CardContent>
           </Card>
         )}
-
-        {/* DPH */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">DPH</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Sazba DPH</Label>
-              <Select
-                value={String(vatRate)}
-                onValueChange={(val) => setVatRate(Number(val))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Bez DPH (0%)</SelectItem>
-                  <SelectItem value="12">12%</SelectItem>
-                  <SelectItem value="21">21%</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {vatRate === 12 && (
-              <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
-                Text k sazbě 12% DPH bude doplněn.
-              </p>
-            )}
-          </CardContent>
-        </Card>
 
         {/* Quote variants with tabs */}
         <Card>
@@ -2267,6 +2365,7 @@ export function QuoteEditor({
                               products={products}
                               onToggleSkeletonAddon={onToggleSkeletonAddon}
                               onToggleSetAddon={onToggleSetAddon}
+                              onToggleColor={onToggleColor}
                               onProductSelect={selectProductForItem}
                             />
                           ))}

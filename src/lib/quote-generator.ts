@@ -36,9 +36,37 @@ import {
   roundPrice,
   type PriceContext,
 } from '@/lib/pricing/calculate-price'
+import { getColorLabel } from '@/lib/constants/configurator'
 
 // Values that should be skipped (no product needed)
 const SKIP_VALUES = ['none']
+
+// Push an auto-generated "color" child item right after a parent skeleton/set.
+// Parent vazba se rekonstruuje v quote-editoru přes [COLOR:...] prefix v description.
+function pushColorChildItem(
+  items: GeneratedQuoteItem[],
+  colorId: string,
+  parentCategory: QuoteItemCategory,
+  sortOrder: number
+): number {
+  if (!colorId || SKIP_VALUES.includes(colorId)) return sortOrder
+  const colorLabel = getColorLabel(colorId)
+  const isSet = parentCategory === 'sety'
+  const inCeneText = isSet ? 'v ceně bazénového setu' : 'v ceně skeletu'
+  items.push({
+    product_id: null,
+    name: `Barva skeletu: ${colorLabel}`,
+    description: `[COLOR:${colorId}] ${inCeneText}`,
+    category: parentCategory,
+    quantity: 1,
+    unit: 'ks',
+    unit_price: 0,
+    total_price: 0,
+    sort_order: sortOrder,
+    source: 'auto_color',
+  })
+  return sortOrder + 1
+}
 
 /**
  * Get the configuration value for a given field
@@ -426,6 +454,9 @@ export async function generateQuoteItemsFromConfiguration(
     addedProducts.push(setProduct)
     priceContext.productPrices.set(setProduct.id, unitPrice)
 
+    // Auto-add pool color as a child item right after the set parent
+    sortOrder = pushColorChildItem(items, config.color, 'sety', sortOrder)
+
     // Auto-add matching set addons (depth, sharp corners, stairs)
     if (setProduct.set_addons?.length) {
       const autoAddons = getAutoSetAddons(setProduct.set_addons, config)
@@ -466,6 +497,14 @@ export async function generateQuoteItemsFromConfiguration(
       addedProductIds.add(poolProduct.id)
       addedProducts.push(poolProduct)
       priceContext.productPrices.set(poolProduct.id, unitPrice)
+
+      // Auto-add pool color as a child item right after the skeleton parent
+      sortOrder = pushColorChildItem(
+        items,
+        config.color,
+        normalizeCategory(poolProduct.category),
+        sortOrder
+      )
     }
   }
 

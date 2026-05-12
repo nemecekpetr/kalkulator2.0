@@ -35,8 +35,8 @@ const QuoteItemSchema = z.object({
   category: z.enum(ALL_VALID_CATEGORIES as [string, ...string[]]),
   quantity: z.number().min(0),
   unit: z.string(),
-  unit_price: z.number().min(0),
-  total_price: z.number().min(0),
+  unit_price: z.number(),
+  total_price: z.number(),
   sort_order: z.number(),
   variant_keys: z.array(z.enum(['ekonomicka', 'optimalni', 'premiova'])).optional(),
 })
