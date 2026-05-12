@@ -19,6 +19,20 @@ import { StepRoofing } from './steps/step-roofing'
 import { StepContact } from './steps/step-contact'
 import { StepSummary } from './steps/step-summary'
 import { ConfiguratorErrorBoundary } from './configurator-error-boundary'
+import { trackConfigurator } from '@/lib/analytics/track-configurator'
+
+const STEP_LABELS: Record<number, string> = {
+  1: 'Tvar',
+  2: 'Typ',
+  3: 'Rozměry',
+  4: 'Barva',
+  5: 'Schodiště',
+  6: 'Technologie',
+  7: 'Příslušenství',
+  8: 'Ohřev',
+  9: 'Zastřešení',
+  10: 'Kontakt'
+}
 
 interface ConfiguratorWrapperProps {
   embedded?: boolean
@@ -98,6 +112,16 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   useEffect(() => {
     setMounted(true) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
+
+  // Analytics: trackuj mount kroků 1–10. Krok 11 (klik na CTA) a 12 (klik na Upravit)
+  // se trackují přímo z handlerů ve step-summary.tsx.
+  useEffect(() => {
+    if (!mounted) return
+    const label = STEP_LABELS[currentStep]
+    if (label) {
+      trackConfigurator(currentStep, label)
+    }
+  }, [mounted, currentStep])
 
   // Send height on mount and step change
   useEffect(() => {

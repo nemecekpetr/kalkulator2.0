@@ -28,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Turnstile } from '@/components/turnstile'
 import { submitConfiguration } from '@/app/actions/submit-configuration'
+import { trackConfigurator } from '@/lib/analytics/track-configurator'
 
 // Constants
 const ADVICE_BLOG_URL = 'https://www.rentmil.cz/radime-vam?e-filter-1036ab9-post_tag=jak-vybrat'
@@ -100,6 +101,7 @@ export function StepSummary() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    trackConfigurator(11, 'Získať kalkuláciu')
     setSubmitting(true)
     setSubmitError(null)
 
@@ -342,6 +344,7 @@ export function StepSummary() {
                 <Button
                   variant="outline"
                   onClick={() => {
+                    trackConfigurator(12, 'Upraviť konfiguráciu')
                     setSubmitted(false)
                     setDuplicate(false)
                     setSubmitError(null)
