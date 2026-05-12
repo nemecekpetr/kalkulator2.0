@@ -4,9 +4,52 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '0.6.5'
+export const CURRENT_VERSION = '1.0.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.0.0',
+      date: '2026-05-12',
+      time: '21:00',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'aplikace',
+          description: 'Verze 1.0 — stabilní release',
+          userDescription: 'Aplikace dosáhla milníku verze 1.0. Označuje to, že je plně v provozu — od veřejného konfigurátoru přes admin panel pro správu konfigurací, nabídek, objednávek a výroby až po PDF dokumenty se smluvními podmínkami. Systém řídí celý životní cyklus zakázky od první poptávky na webu po předání hotového bazénu zákazníkovi. Děkujeme, že nám pomáháte aplikaci dál vylepšovat.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Barva skeletu jako volba v editoru nabídky a v PDF',
+          userDescription: 'V editoru nabídky se pod každým skeletem nebo bazénovým setem zobrazí nový řádek „Barva skeletu" s checkboxy pro všechny dostupné barvy (každá s cenou +0 Kč). Při vytvoření nabídky z konfigurátoru se barva automaticky předvyplní podle volby zákazníka. U ručně vytvořených nabídek si admin barvu vybere kliknutím. Volba je jednorázová — kliknutí na jinou barvu předchozí odznačí. V PDF nabídky i objednávky se barva zobrazí jako samostatný řádek pod skeletem s textem „v ceně skeletu" (resp. „v ceně bazénového setu") namísto ceny.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'PDF objednávky obsahuje kompletní specifikaci bazénu',
+          userDescription: 'PDF objednávky nyní zobrazuje nad položkami nový blok „Konfigurace bazénu" se shrnutím tvaru, rozměrů, barvy, schodiště, technologie, osvětlení, protiproudu, úpravy vody, ohřevu a zastřešení. Položky jsou seskupené po kategoriích (Skelety / Sety / Schodiště / Technologie atd.) stejně jako v nabídce. U setových položek se pod nimi zobrazí podrobný popis (materiál, výbava setu). Odstraněna duplicitní položka „Doprava" pod tabulkou — doprava je nyní v PDF objednávky pouze jednou.'
+        },
+        {
+          type: 'improvement',
+          scope: 'nabidky',
+          description: 'DPH přesunuto do karty Zákazník, výchozí sazba 12 %',
+          userDescription: 'Výběr sazby DPH se přesunul do karty „Zákazník" pod pole oslovení — už nezabírá samostatnou kartu přes celou šířku stránky. Výchozí sazba je nově 12 % (snížená sazba pro stavby k bydlení podle §48 ZDPH), protože je to nejčastější případ. Popisky sazeb v selectu jsou rozšířené o legislativní kontext („12 % — stavby k bydlení (§48)", „21 % — základní sazba", „Bez DPH (přenesená daňová povinnost)").'
+        },
+        {
+          type: 'improvement',
+          scope: 'nabidky',
+          description: 'Výchozí varianta nabídky přejmenovaná na „Základní"',
+          userDescription: 'První varianta nabídky se nově jmenuje „Základní" místo „Ekonomická". Důvod: obchodníci často posílají jen jednu variantu a název „Ekonomická" pak působil zavádějícím dojmem. Existující nabídky si svůj původní název zachovají (změna platí jen pro nově vytvářené nabídky), admin si název může kdykoli upravit přes ikonku tužky vedle názvu varianty.'
+        },
+        {
+          type: 'improvement',
+          scope: 'nabidky',
+          description: 'Povoleny záporné ceny u položek nabídky',
+          userDescription: 'Položky v nabídce nyní mohou mít zápornou cenu — slouží pro slevy, kredity za vrácené díly nebo jiné odpočty. Záporná cena se v mezisoučtu odečte. Kontrola záporného množství zůstává.'
+        }
+      ]
+    },
     {
       version: '0.6.5',
       date: '2026-04-27',

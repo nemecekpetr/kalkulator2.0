@@ -22,11 +22,21 @@ npm run release:patch    # Patch release (0.0.x)
 npm run release:minor    # Minor release (0.x.0)
 npm run release:major    # Major release (x.0.0)
 npm run release:first    # First release (0.1.0, no version bump)
-npm run changelog:translate  # Auto-translate changelog to user-friendly Czech (requires ANTHROPIC_API_KEY)
+npm run changelog:translate  # BROKEN — regex fails. Write userDescription manually in changelog-data.ts.
 ```
 
 Uses standard-version with conventional commits. Commit format: `feat(scope): message`, `fix(scope): message`.
 Git hooks enforce lint (pre-commit) and commit message format (commitlint).
+
+### Data utility scripts
+
+`scripts/` holds one-off TS/JS utilities (run via `tsx` or `node`). One is exposed via npm:
+
+```bash
+npm run seed:overflow-sets   # Seed overflow pool sets into the products table
+```
+
+Other scripts (`extract-products.ts`, `import-products.ts`, `normalize-products.ts`, `generate-mockup-pdf.cjs`) are run ad-hoc with `tsx scripts/<file>` / `node scripts/<file>` for data imports and asset generation.
 
 ## Architecture
 
@@ -110,6 +120,12 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Removes header, decorations, and background styling for seamless integration
 - Implementation: `ConfiguratorWrapper` component with `embedded` prop
 
+**Configurator Tracking** (`src/lib/analytics/track-configurator.ts`)
+- Sends `{ type: 'rentmil_configurator', step, label }` via `window.parent.postMessage` to `https://www.rentmil.cz`
+- Fires on mount of steps 1–10, CTA click on step 11 ("Získat kalkulaci"), and "Upravit" click on step 12 (thank-you)
+- Parent page (rentmil.cz) consumes events for analytics — listener implemented in GTM
+- Silent-fails when no parent window or origin mismatch — tracking must never throw
+
 **Admin Panel** (`/admin/*`)
 - Protected routes via Supabase auth middleware (`src/lib/supabase/middleware.ts`)
 - Dashboard, configurations management, quotes management, products, user management
@@ -181,9 +197,8 @@ Konfigurace → Nabídka → Objednávka → Výroba
 **Changelog/Novinky System**
 - In-app changelog displayed to users in admin panel (`/admin/novinky`)
 - Source data in `src/lib/changelog-data.ts` (manually maintained)
-- Technical descriptions auto-translated to user-friendly Czech via Claude API
-- Run `npm run changelog:translate` after adding new entries
-- **Workflow**: after a `feat`/`fix` commit that changes user-visible behavior, add an entry to `src/lib/changelog-data.ts` and run `npm run changelog:translate` — this is a recurring step, not a one-off
+- **Workflow**: after a `feat`/`fix` commit that changes user-visible behavior, add a new entry to `src/lib/changelog-data.ts` with the user-friendly Czech `userDescription` written manually
+- The `npm run changelog:translate` script (`scripts/generate-user-descriptions.ts`) was supposed to auto-translate via Claude API, but the regex is broken — do not rely on it
 
 ### Authentication & Authorization
 
