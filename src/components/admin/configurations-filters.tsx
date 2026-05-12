@@ -105,6 +105,21 @@ export function ConfigurationsFilters() {
           />
         </div>
 
+        {/* Configuration status filter */}
+        <Select
+          value={status}
+          onValueChange={(value) => updateFilters({ status: value })}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Stav konfigurace" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Všechny stavy</SelectItem>
+            <SelectItem value="new">Nové</SelectItem>
+            <SelectItem value="processed">Zpracované</SelectItem>
+          </SelectContent>
+        </Select>
+
         {/* Pipedrive status filter */}
         <Select
           value={pipedrive}
