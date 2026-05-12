@@ -712,6 +712,7 @@ function ClosingPage({ quote }: { quote: QuoteWithCreator }) {
 function NextStepsPage({ quote, images }: { quote: QuoteWithCreator; images: ImagePaths }) {
   const creatorName = quote.creator?.full_name || 'Rentmil tým'
   const creatorPhone = quote.creator?.phone || COMPANY.phone
+  const creatorEmail = quote.creator?.email || COMPANY.email
 
   return (
     <div className="w-[210mm] mx-auto bg-white px-10 pt-4 pb-2">
@@ -845,7 +846,7 @@ function NextStepsPage({ quote, images }: { quote: QuoteWithCreator; images: Ima
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-white font-bold text-lg">{creatorPhone}</p>
-                  <p className="text-white/90 text-xs">{COMPANY.email}</p>
+                  <p className="text-white/90 text-xs">{creatorEmail}</p>
                 </div>
               </div>
             </div>
