@@ -4,9 +4,39 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.0.0'
+export const CURRENT_VERSION = '1.1.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.1.0',
+      date: '2026-05-21',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'konfigurace',
+          description: 'Sledování rozpracovaných (neodeslaných) konfigurací',
+          userDescription: 'Konfigurátor nově zachytí i konfigurace, které zákazník nedokončil. Když vyplní kontaktní údaje, ale poptávku neodešle, uloží se jako „rozpracovaná". Na stránce Konfigurace přibyly záložky Odeslané / Rozpracované — u záložky Rozpracované svítí počet čekajících konfigurací. U každé rozpracované konfigurace lze ručně odeslat připomínkový e-mail (jednotlivě i hromadně), který zákazníkovi v odkazu předvyplní konfigurátor, nebo konfiguraci smazat. Nad seznamem jsou statistiky: počet odeslaných, rozpracovaných, oživených (rozpracovaná konfigurace odeslaná po připomínce) a konverzní poměr. Rozpracované konfigurace bez odeslání se po měsíci automaticky anonymizují kvůli ochraně osobních údajů — smažou se kontaktní údaje, statistika zůstává.'
+        },
+        {
+          type: 'improvement',
+          scope: 'konfigurator',
+          description: 'Výraznější odeslání poptávky v posledním kroku konfigurátoru',
+          userDescription: 'Poslední krok konfigurátoru (shrnutí) dostal výraznější výzvu k odeslání poptávky. Velké tlačítko „Získat kalkulaci zdarma" je nově přímo v obsahu shrnutí — nad přehledem konfigurace i pod ním — takže zákazník nemusí hledat tlačítko v horní liště, která při scrollování zmizí. Ověření už nevypadá jako potvrzení odeslání: zelená karta „Ověření dokončeno" byla nahrazena nenápadným řádkem, který výslovně směruje k tlačítku. Nadpis kroku se změnil na „Zkontrolujte a odešlete poptávku" a pod tlačítkem přibyl text „Nezávazně a zdarma · Odpověď do 24 hodin · Bez registrace". Cílem je zvýšit počet dokončených poptávek.'
+        },
+        {
+          type: 'fix',
+          scope: 'konfigurace',
+          description: 'Filtr stavu konfigurace v seznamu (Nové / Zpracované)',
+          userDescription: 'Na stránce „Konfigurace" se v řádku filtrů nově dá vybrat stav konfigurace (Nové / Zpracované / Všechny stavy). Doposud tam byl jen filtr na Pipedrive status, který neukazuje, jestli admin konfiguraci skutečně odbavil. Filtr je kombinovatelný s vyhledáváním i s Pipedrive filterem a propisuje se do URL.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Email tvůrce nabídky v PDF místo firemního fallbacku',
+          userDescription: 'Na poslední straně PDF nabídky („Stačí 3 kroky k vašemu bazénu") se v kontaktním boxu vedle jména a telefonu obchodníka zobrazuje nyní jeho osobní email z profilu místo obecného bazeny@rentmil.cz. Pokud obchodník nemá email v profilu, použije se firemní email jako fallback — doplňte prosím každému aktivnímu obchodníkovi email v /admin/uzivatele.'
+        }
+      ]
+    },
     {
       version: '1.0.0',
       date: '2026-05-12',
@@ -47,30 +77,6 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'nabidky',
           description: 'Povoleny záporné ceny u položek nabídky',
           userDescription: 'Položky v nabídce nyní mohou mít zápornou cenu — slouží pro slevy, kredity za vrácené díly nebo jiné odpočty. Záporná cena se v mezisoučtu odečte. Kontrola záporného množství zůstává.'
-        },
-        {
-          type: 'fix',
-          scope: 'konfigurace',
-          description: 'Filtr stavu konfigurace v seznamu (Nové / Zpracované)',
-          userDescription: 'Na stránce „Konfigurace" se v řádku filtrů nově dá vybrat stav konfigurace (Nové / Zpracované / Všechny stavy). Doposud tam byl jen filtr na Pipedrive status, který neukazuje, jestli admin konfiguraci skutečně odbavil. Filtr je kombinovatelný s vyhledáváním i s Pipedrive filterem a propisuje se do URL.'
-        },
-        {
-          type: 'fix',
-          scope: 'nabidky',
-          description: 'Email tvůrce nabídky v PDF místo firemního fallbacku',
-          userDescription: 'Na poslední straně PDF nabídky („Stačí 3 kroky k vašemu bazénu") se v kontaktním boxu vedle jména a telefonu obchodníka zobrazuje nyní jeho osobní email z profilu místo obecného bazeny@rentmil.cz. Pokud obchodník nemá email v profilu, použije se firemní email jako fallback — doplňte prosím každému aktivnímu obchodníkovi email v /admin/uzivatele.'
-        },
-        {
-          type: 'improvement',
-          scope: 'konfigurator',
-          description: 'Výraznější odeslání poptávky v posledním kroku konfigurátoru',
-          userDescription: 'Poslední krok konfigurátoru (shrnutí) dostal výraznější výzvu k odeslání poptávky. Velké tlačítko „Získat kalkulaci zdarma" je nově přímo v obsahu shrnutí — nad přehledem konfigurace i pod ním — takže zákazník nemusí hledat tlačítko v horní liště, která při scrollování zmizí. Ověření už nevypadá jako potvrzení odeslání: zelená karta „Ověření dokončeno" byla nahrazena nenápadným řádkem, který výslovně směruje k tlačítku. Nadpis kroku se změnil na „Zkontrolujte a odešlete poptávku" a pod tlačítkem přibyl text „Nezávazně a zdarma · Odpověď do 24 hodin · Bez registrace". Cílem je zvýšit počet dokončených poptávek.'
-        },
-        {
-          type: 'feature',
-          scope: 'konfigurace',
-          description: 'Sledování rozpracovaných (neodeslaných) konfigurací',
-          userDescription: 'Konfigurátor nově zachytí i konfigurace, které zákazník nedokončil. Když vyplní kontaktní údaje, ale poptávku neodešle, uloží se jako „rozpracovaná". Na stránce Konfigurace přibyly záložky Odeslané / Rozpracované — u záložky Rozpracované svítí počet čekajících konfigurací. U každé rozpracované konfigurace lze ručně odeslat připomínkový e-mail (jednotlivě i hromadně), který zákazníkovi v odkazu předvyplní konfigurátor, nebo konfiguraci smazat. Nad seznamem jsou statistiky: počet odeslaných, rozpracovaných, oživených (rozpracovaná konfigurace odeslaná po připomínce) a konverzní poměr. Rozpracované konfigurace bez odeslání se po měsíci automaticky anonymizují kvůli ochraně osobních údajů — smažou se kontaktní údaje, statistika zůstává.'
         }
       ]
     },
