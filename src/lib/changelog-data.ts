@@ -59,6 +59,12 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'nabidky',
           description: 'Email tvůrce nabídky v PDF místo firemního fallbacku',
           userDescription: 'Na poslední straně PDF nabídky („Stačí 3 kroky k vašemu bazénu") se v kontaktním boxu vedle jména a telefonu obchodníka zobrazuje nyní jeho osobní email z profilu místo obecného bazeny@rentmil.cz. Pokud obchodník nemá email v profilu, použije se firemní email jako fallback — doplňte prosím každému aktivnímu obchodníkovi email v /admin/uzivatele.'
+        },
+        {
+          type: 'improvement',
+          scope: 'konfigurator',
+          description: 'Výraznější odeslání poptávky v posledním kroku konfigurátoru',
+          userDescription: 'Poslední krok konfigurátoru (shrnutí) dostal výraznější výzvu k odeslání poptávky. Velké tlačítko „Získat kalkulaci zdarma" je nově přímo v obsahu shrnutí — nad přehledem konfigurace i pod ním — takže zákazník nemusí hledat tlačítko v horní liště, která při scrollování zmizí. Ověření už nevypadá jako potvrzení odeslání: zelená karta „Ověření dokončeno" byla nahrazena nenápadným řádkem, který výslovně směruje k tlačítku. Nadpis kroku se změnil na „Zkontrolujte a odešlete poptávku" a pod tlačítkem přibyl text „Nezávazně a zdarma · Odpověď do 24 hodin · Bez registrace". Cílem je zvýšit počet dokončených poptávek.'
         }
       ]
     },

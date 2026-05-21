@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Sparkles, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
-import { STEPS } from '@/lib/constants/configurator'
+import { STEPS, CTA_SUBMIT_LABEL } from '@/lib/constants/configurator'
 
 interface ConfiguratorNavigationProps {
   embedded?: boolean
@@ -150,7 +150,7 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
                 type="submit"
                 form="configurator-form"
                 disabled={!canGoNext || isSubmitting}
-                className="gap-2 h-10 px-5 bg-gradient-to-r from-[#FF8621] to-[#ED6663] hover:from-[#FF8621]/90 hover:to-[#ED6663]/90 shadow-lg shadow-[#FF8621]/20 text-white font-semibold"
+                className="gap-2 h-10 px-3 sm:px-5 bg-gradient-to-r from-[#FF8621] to-[#ED6663] hover:from-[#FF8621]/90 hover:to-[#ED6663]/90 shadow-lg shadow-[#FF8621]/20 text-white font-semibold"
               >
                 {isSubmitting ? (
                   <>
@@ -159,14 +159,12 @@ export function ConfiguratorNavigation({ embedded = false }: ConfiguratorNavigat
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                     />
-                    <span className="hidden sm:inline">Odesílám...</span>
-                    <span className="sm:hidden">...</span>
+                    <span>Odesílám...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
-                    <span className="hidden sm:inline">Získat kalkulaci</span>
-                    <span className="sm:hidden">Odeslat</span>
+                    <Sparkles className="w-4 h-4 hidden sm:inline-block" />
+                    <span>{CTA_SUBMIT_LABEL}</span>
                   </>
                 )}
               </Button>

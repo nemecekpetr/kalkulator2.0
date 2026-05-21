@@ -13,6 +13,9 @@ export const STEPS = [
   { number: 11, title: 'Shrnutí', description: 'Přehled konfigurace' }
 ] as const
 
+// Jednotný text odesílacího CTA tlačítka — používej VŠUDE, ať se text nerozejde
+export const CTA_SUBMIT_LABEL = 'Získat kalkulaci zdarma'
+
 // Pool shapes
 export const POOL_SHAPES = [
   {

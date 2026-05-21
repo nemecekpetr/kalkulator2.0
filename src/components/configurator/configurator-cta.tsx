@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
+import { CTA_SUBMIT_LABEL } from '@/lib/constants/configurator'
 
 interface ConfiguratorCTAProps {
   embedded?: boolean
@@ -70,7 +71,7 @@ export function ConfiguratorCTA({ embedded = false }: ConfiguratorCTAProps) {
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5" />
-                    <span>Získat kalkulaci zdarma</span>
+                    <span>{CTA_SUBMIT_LABEL}</span>
                   </>
                 )}
               </Button>

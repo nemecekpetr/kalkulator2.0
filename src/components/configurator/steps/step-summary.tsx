@@ -6,7 +6,7 @@ import {
   Circle, Droplets, Ruler, Palette, Footprints,
   Settings, Lightbulb as LightbulbIcon, Waves, Thermometer, Home,
   User, Mail, Phone, MapPin, Check, Clock,
-  Plus, Edit2, HelpCircle, ChevronRight, RefreshCw
+  Plus, Edit2, HelpCircle, ChevronRight, RefreshCw, Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useConfiguratorStore } from '@/stores/configurator-store'
@@ -21,7 +21,8 @@ import {
   getWaterTreatmentLabel,
   getHeatingLabel,
   getRoofingLabel,
-  formatDimensions
+  formatDimensions,
+  CTA_SUBMIT_LABEL
 } from '@/lib/constants/configurator'
 import { StepLayout } from '../step-layout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -54,6 +55,36 @@ function SummaryRow({ icon, label, value }: SummaryRowProps) {
   )
 }
 
+// Hlavní odesílací tlačítko - používá se v obsahu shrnutí vícekrát (nad i pod přehledem)
+// Na desktopu 2/3 šířky a vystředěné, na mobilu plná šířka (lepší cíl pro prst)
+function SubmitCtaButton({ isSubmitting }: { isSubmitting: boolean }) {
+  return (
+    <div className="flex justify-center">
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full sm:w-2/3 h-14 gap-2 text-base sm:text-lg font-bold bg-gradient-to-r from-[#FF8621] to-[#ED6663] hover:from-[#FF8621]/90 hover:to-[#ED6663]/90 shadow-lg shadow-[#FF8621]/30 text-white"
+      >
+        {isSubmitting ? (
+          <>
+            <motion.div
+              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+            />
+            <span>Odesílám...</span>
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-5 h-5" />
+            <span>{CTA_SUBMIT_LABEL}</span>
+          </>
+        )}
+      </Button>
+    </div>
+  )
+}
+
 export function StepSummary() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
 
@@ -70,6 +101,7 @@ export function StepSummary() {
     heating,
     roofing,
     contact,
+    isSubmitting,
     isSubmitted,
     isDuplicate,
     submitError,
@@ -381,8 +413,8 @@ export function StepSummary() {
 
   return (
     <StepLayout
-      title="Shrnutí Vaší konfigurace"
-      description="Zkontrolujte údaje před odesláním"
+      title="Zkontrolujte a odešlete poptávku"
+      description={`Vše souhlasí? Dole klikněte na „${CTA_SUBMIT_LABEL}" — cenovou nabídku na míru vám připravíme do 24 hodin.`}
     >
       <form id="configurator-form" onSubmit={handleSubmit}>
         <div className="space-y-6">
@@ -420,6 +452,9 @@ export function StepSummary() {
               {submitError}
             </div>
           )}
+
+          {/* Primary submit button - above the summary for already-decided users */}
+          <SubmitCtaButton isSubmitting={isSubmitting} />
 
           {/* Pool configuration */}
           <Card>
@@ -540,23 +575,6 @@ export function StepSummary() {
             </CardContent>
           </Card>
 
-          {/* Turnstile widget - security verification */}
-          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-            <Card className={`p-4 ${turnstileToken ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
-              <div className="flex flex-col items-center gap-3">
-                <p className="text-sm font-medium text-[#01384B]">
-                  {turnstileToken ? '✓ Ověření dokončeno' : 'Pro odeslání dokončete ověření:'}
-                </p>
-                {!turnstileToken && (
-                  <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                    onVerify={handleTurnstileVerify}
-                  />
-                )}
-              </div>
-            </Card>
-          )}
-
           {/* Price note */}
           <Card className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/50">
             <div className="flex items-start gap-3">
@@ -619,6 +637,50 @@ export function StepSummary() {
                 </div>
               </div>
             </CardContent>
+          </Card>
+
+          {/* Final CTA block - verification + submit button in content flow */}
+          <Card className="border-2 border-[#48A9A6]/40 bg-white shadow-lg shadow-[#01384B]/5 p-5 sm:p-6">
+            {/* Turnstile verification */}
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+              turnstileToken ? (
+                <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 border border-slate-200 px-3 py-2.5 mb-4">
+                  <div className="w-5 h-5 rounded-full bg-[#48A9A6] flex items-center justify-center flex-shrink-0">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-600">
+                    Ověření proběhlo v pořádku — <span className="font-semibold text-[#01384B]">poptávka ještě není odeslaná</span>.
+                    Dokončíte ji tlačítkem níže.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3 mb-4">
+                  <p className="text-sm font-medium text-[#01384B]">Pro odeslání dokončete ověření:</p>
+                  <Turnstile
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    onVerify={handleTurnstileVerify}
+                  />
+                </div>
+              )
+            )}
+
+            <p className="text-center text-sm text-slate-600 mb-3">
+              Vše zkontrolováno? <span className="font-semibold text-[#01384B]">Odešlete nezávaznou poptávku:</span>
+            </p>
+
+            <SubmitCtaButton isSubmitting={isSubmitting} />
+
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <Check className="w-3 h-3 text-[#48A9A6]" /> Nezávazně a zdarma
+              </span>
+              <span className="flex items-center gap-1">
+                <Check className="w-3 h-3 text-[#48A9A6]" /> Odpověď do 24 hodin
+              </span>
+              <span className="flex items-center gap-1">
+                <Check className="w-3 h-3 text-[#48A9A6]" /> Bez registrace
+              </span>
+            </div>
           </Card>
         </div>
 
