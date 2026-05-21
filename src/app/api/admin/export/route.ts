@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       .from('configurations')
       .select('*')
       .eq('is_deleted', false)
+      .eq('is_draft', false)
       .order('created_at', { ascending: false })
 
     if (status && status !== 'all') {

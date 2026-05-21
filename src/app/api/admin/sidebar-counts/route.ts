@@ -18,11 +18,12 @@ export async function GET() {
       ordersResult,
       productionResult,
     ] = await Promise.all([
-      // New configurations (not yet processed into quotes)
+      // New configurations (not yet processed into quotes) — rozpracované drafty se nepočítají
       supabase
         .from('configurations')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'new'),
+        .eq('status', 'new')
+        .eq('is_draft', false),
       // Draft quotes (waiting to be sent)
       supabase
         .from('quotes')

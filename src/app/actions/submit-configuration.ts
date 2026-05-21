@@ -28,9 +28,9 @@ import {
   getRoofingLabel,
   formatDimensions,
 } from '@/lib/constants/configurator'
+import { generateIdempotencyKey, buildConfigurationFields } from '@/lib/configuration-mapping'
 import type { Configuration } from '@/lib/supabase/types'
 import { z } from 'zod'
-import crypto from 'crypto'
 
 // Response type
 interface SubmitResult {
@@ -40,26 +40,26 @@ interface SubmitResult {
   isDuplicate?: boolean // True if this was a duplicate submission within idempotency window
 }
 
-// Length of idempotency key hash (SHA-256 truncated)
-const IDEMPOTENCY_KEY_LENGTH = 32
-
 // Idempotency window in minutes (prevent duplicate submits within this time)
 const IDEMPOTENCY_WINDOW_MINUTES = 5
 
-// Generate idempotency key from form data
-function generateIdempotencyKey(data: {
-  email: string
-  shape: string
-  type: string
-  dimensions: Record<string, number>
-}): string {
-  const payload = JSON.stringify({
-    email: data.email.toLowerCase(),
-    shape: data.shape,
-    type: data.type,
-    dimensions: data.dimensions,
-  })
-  return crypto.createHash('sha256').update(payload).digest('hex').slice(0, IDEMPOTENCY_KEY_LENGTH)
+// Povýší draft na odeslanou konfiguraci; vrací aktualizovaný řádek nebo null při chybě.
+async function promoteDraftToSubmitted(
+  supabase: Awaited<ReturnType<typeof createAdminClient>>,
+  id: string,
+  configFields: ReturnType<typeof buildConfigurationFields>
+): Promise<Configuration | null> {
+  const { data, error } = await supabase
+    .from('configurations')
+    .update({ ...configFields, is_draft: false, pipedrive_status: 'pending' })
+    .eq('id', id)
+    .select('*')
+    .single()
+  if (error || !data) {
+    console.error('Draft promote failed:', error)
+    return null
+  }
+  return data as Configuration
 }
 
 // Generate deal note with configuration summary
@@ -246,7 +246,8 @@ export async function processEmail(
 }
 
 export async function submitConfiguration(
-  formData: z.infer<typeof ConfigurationSchema>
+  formData: z.infer<typeof ConfigurationSchema>,
+  draftId?: string | null
 ): Promise<SubmitResult> {
   try {
     // 1. Rate limit check
@@ -325,9 +326,9 @@ export async function submitConfiguration(
       }
     }
 
-    const { name: sanitizedName, email: sanitizedEmail, phone: sanitizedPhone, address: sanitizedAddress } = sanitizedContactData
+    const sanitizedEmail = sanitizedContactData.email
 
-    // 6. Idempotency check - prevent duplicate submissions
+    // 6. Idempotency klíč
     const idempotencyKey = generateIdempotencyKey({
       email: sanitizedEmail,
       shape: validatedData.shape,
@@ -335,7 +336,29 @@ export async function submitConfiguration(
       dimensions: validatedData.dimensions,
     })
 
-    // Check for recent duplicate submission
+    // 7. Najít draft k povýšení — podle draftId, jinak podle idempotency klíče
+    let draftRow: Configuration | null = null
+    if (draftId) {
+      const { data } = await supabase
+        .from('configurations')
+        .select('*')
+        .eq('id', draftId)
+        .maybeSingle()
+      if (data && (data as Configuration).is_draft) {
+        draftRow = data as Configuration
+      }
+    }
+    if (!draftRow) {
+      const { data } = await supabase
+        .from('configurations')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .eq('is_draft', true)
+        .maybeSingle()
+      draftRow = (data as Configuration | null) ?? null
+    }
+
+    // 8. Kontrola duplicitního ODESLÁNÍ (jen odeslané konfigurace, ne drafty)
     const idempotencyWindow = new Date()
     idempotencyWindow.setMinutes(idempotencyWindow.getMinutes() - IDEMPOTENCY_WINDOW_MINUTES)
 
@@ -343,6 +366,7 @@ export async function submitConfiguration(
       .from('configurations')
       .select('id, created_at')
       .eq('idempotency_key', idempotencyKey)
+      .eq('is_draft', false)
       .gte('created_at', idempotencyWindow.toISOString())
       .maybeSingle()
 
@@ -356,48 +380,66 @@ export async function submitConfiguration(
       }
     }
 
-    // 7. Insert configuration into database
-    const { data: configuration, error: insertError } = await supabase
-      .from('configurations')
-      .insert({
-        contact_name: sanitizedName,
-        contact_email: sanitizedEmail,
-        contact_phone: sanitizedPhone,
-        contact_address: sanitizedAddress,
-        pool_shape: validatedData.shape,
-        pool_type: validatedData.type,
-        dimensions: validatedData.dimensions,
-        color: validatedData.color,
-        stairs: validatedData.stairs,
-        technology: validatedData.technology,
-        lighting: validatedData.lighting,
-        counterflow: validatedData.counterflow,
-        water_treatment: validatedData.waterTreatment,
-        heating: validatedData.heating,
-        roofing: validatedData.roofing,
-        pipedrive_status: 'pending',
-        source: 'web',
-        idempotency_key: idempotencyKey,
-      })
-      .select('*')
-      .single()
+    // 9. Povýšit draft na odeslanou konfiguraci, nebo vložit novou
+    const configFields = buildConfigurationFields(validatedData, sanitizedContactData)
+    let configuration: Configuration
 
-    if (insertError || !configuration) {
-      // Handle unique constraint violation (race condition fallback)
-      // PostgreSQL error code 23505 = unique_violation
-      if (insertError?.code === '23505') {
-        console.warn(`Race condition duplicate caught by DB constraint: ${idempotencyKey}`)
-        return {
-          success: true,
-          message: 'Tuto konfiguraci jste již odeslali. Zkontrolujte svůj e-mail.',
-          isDuplicate: true,
-        }
+    if (draftRow) {
+      const promoted = await promoteDraftToSubmitted(supabase, draftRow.id, configFields)
+      if (!promoted) {
+        return { success: false, message: 'Nepodařilo se uložit konfiguraci.' }
       }
+      configuration = promoted
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from('configurations')
+        .insert({
+          ...configFields,
+          is_draft: false,
+          pipedrive_status: 'pending',
+          source: 'web',
+          idempotency_key: idempotencyKey,
+        })
+        .select('*')
+        .single()
 
-      console.error('Database insert failed:', insertError)
-      return {
-        success: false,
-        message: `Nepodařilo se uložit konfiguraci: ${insertError?.message}`,
+      if (insertError || !inserted) {
+        // 23505 = unique_violation na idempotency_key
+        if (insertError?.code === '23505') {
+          // Klíč už existuje — buď nezachycený draft (povýšit), nebo odeslaná konfigurace (duplicita)
+          const { data: clashing } = await supabase
+            .from('configurations')
+            .select('*')
+            .eq('idempotency_key', idempotencyKey)
+            .maybeSingle()
+
+          if (clashing && (clashing as Configuration).is_draft) {
+            const promoted = await promoteDraftToSubmitted(
+              supabase,
+              (clashing as Configuration).id,
+              configFields
+            )
+            if (!promoted) {
+              return { success: false, message: 'Nepodařilo se uložit konfiguraci.' }
+            }
+            configuration = promoted
+          } else {
+            console.warn(`Race condition duplicate caught by DB constraint: ${idempotencyKey}`)
+            return {
+              success: true,
+              message: 'Tuto konfiguraci jste již odeslali. Zkontrolujte svůj e-mail.',
+              isDuplicate: true,
+            }
+          }
+        } else {
+          console.error('Database insert failed:', insertError)
+          return {
+            success: false,
+            message: `Nepodařilo se uložit konfiguraci: ${insertError?.message}`,
+          }
+        }
+      } else {
+        configuration = inserted as Configuration
       }
     }
 

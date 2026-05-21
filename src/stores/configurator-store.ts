@@ -68,6 +68,26 @@ export interface ConfiguratorState {
   isSubmitted: boolean
   isDuplicate: boolean // True if submission was a duplicate
   submitError: string | null
+
+  // Draft tracking — ID rozpracované konfigurace uložené v DB (krok 10→11)
+  draftId: string | null
+}
+
+// Data pro předvyplnění konfigurátoru z uloženého draftu (odkaz `?draft=<id>`)
+export interface DraftPrefillData {
+  shape: string
+  type: string
+  dimensions: Partial<PoolDimensions>
+  color: string
+  stairs: string
+  technology: string
+  lighting: string
+  counterflow: string
+  waterTreatment: string
+  heating: string
+  roofing: string
+  contact: Partial<ContactData>
+  draftId: string
 }
 
 export interface ConfiguratorActions {
@@ -95,6 +115,8 @@ export interface ConfiguratorActions {
   setSubmitted: (isSubmitted: boolean) => void
   setDuplicate: (isDuplicate: boolean) => void
   setSubmitError: (error: string | null) => void
+  setDraftId: (id: string | null) => void
+  prefillFromDraft: (data: DraftPrefillData) => void
 
   // Utils
   reset: () => void
@@ -129,7 +151,8 @@ const initialState: ConfiguratorState = {
   isSubmitting: false,
   isSubmitted: false,
   isDuplicate: false,
-  submitError: null
+  submitError: null,
+  draftId: null
 }
 
 export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActions>()(
@@ -224,6 +247,27 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
       setSubmitted: (isSubmitted) => set({ isSubmitted }),
       setDuplicate: (isDuplicate) => set({ isDuplicate }),
       setSubmitError: (submitError) => set({ submitError }),
+      setDraftId: (draftId) => set({ draftId }),
+
+      // Předvyplní konfigurátor z uloženého draftu a skočí na shrnutí (krok 11)
+      prefillFromDraft: (data) => set({
+        shape: data.shape as PoolShape,
+        type: data.type as PoolType,
+        dimensions: data.dimensions,
+        color: data.color as PoolColor,
+        stairs: data.stairs as StairsType,
+        technology: data.technology as TechnologyLocation,
+        lighting: data.lighting as LightingOption,
+        counterflow: data.counterflow as CounterflowOption,
+        waterTreatment: data.waterTreatment as WaterTreatment,
+        heating: data.heating as HeatingOption,
+        roofing: data.roofing as RoofingOption,
+        contact: data.contact,
+        draftId: data.draftId,
+        currentStep: 11,
+        visitedSteps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        confirmedSteps: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      }),
 
       // Utils
       reset: () => set(initialState),
@@ -390,6 +434,7 @@ export const useConfiguratorStore = create<ConfiguratorState & ConfiguratorActio
           currentStep: state.currentStep,
           visitedSteps: state.visitedSteps,
           confirmedSteps: state.confirmedSteps,
+          draftId: state.draftId, // UUID draftu, ne PII — přežije reload
           // contact: excluded - sensitive data should not persist
         }) as ConfiguratorState,
       // Skip SSR storage to avoid hydration mismatch

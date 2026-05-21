@@ -107,6 +107,12 @@ export interface Database {
           status: ConfigurationStatus
           // Idempotency
           idempotency_key: string | null
+          // Draft tracking (rozpracované konfigurace)
+          is_draft: boolean
+          was_draft: boolean
+          reminder_email_id: string | null
+          reminder_sent_at: string | null
+          anonymized_at: string | null
         }
         Insert: {
           id?: string
@@ -141,6 +147,11 @@ export interface Database {
           is_deleted?: boolean
           status?: ConfigurationStatus
           idempotency_key?: string | null
+          is_draft?: boolean
+          was_draft?: boolean
+          reminder_email_id?: string | null
+          reminder_sent_at?: string | null
+          anonymized_at?: string | null
         }
         Update: {
           id?: string
@@ -175,6 +186,11 @@ export interface Database {
           is_deleted?: boolean
           status?: ConfigurationStatus
           idempotency_key?: string | null
+          is_draft?: boolean
+          was_draft?: boolean
+          reminder_email_id?: string | null
+          reminder_sent_at?: string | null
+          anonymized_at?: string | null
         }
       }
       sync_log: {
@@ -356,6 +372,8 @@ export interface ReferencePhoto {
 }
 
 // User profile types
+export type SignatureTemplate = 'banner' | 'compact'
+
 export interface UserProfile {
   id: string
   created_at: string
@@ -365,6 +383,9 @@ export interface UserProfile {
   phone: string | null
   role: UserRole
   active: boolean
+  position: string | null
+  signature_template: SignatureTemplate
+  signature_banner_id: string | null
 }
 
 export interface UserProfileInsert {
@@ -374,6 +395,9 @@ export interface UserProfileInsert {
   phone?: string | null
   role?: UserRole
   active?: boolean
+  position?: string | null
+  signature_template?: SignatureTemplate
+  signature_banner_id?: string | null
 }
 
 export interface UserProfileUpdate {
@@ -382,6 +406,39 @@ export interface UserProfileUpdate {
   phone?: string | null
   role?: UserRole
   active?: boolean
+  position?: string | null
+  signature_template?: SignatureTemplate
+  signature_banner_id?: string | null
+}
+
+// Signature banner types (knihovna sezónních bannerů pro emailové podpisy)
+export interface SignatureBanner {
+  id: string
+  created_at: string
+  updated_at: string
+  name: string
+  image_url: string
+  link_url: string
+  is_evergreen: boolean
+  sort_order: number
+  created_by: string | null
+}
+
+export interface SignatureBannerInsert {
+  name: string
+  image_url: string
+  link_url: string
+  is_evergreen?: boolean
+  sort_order?: number
+  created_by?: string | null
+}
+
+export interface SignatureBannerUpdate {
+  name?: string
+  image_url?: string
+  link_url?: string
+  is_evergreen?: boolean
+  sort_order?: number
 }
 
 // Quote types

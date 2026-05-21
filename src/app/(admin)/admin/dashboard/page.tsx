@@ -21,6 +21,7 @@ async function getConfigurations(page: number = 1, perPage: number = 5) {
   const { data, count } = await supabase
     .from('configurations')
     .select('*', { count: 'exact' })
+    .eq('is_draft', false)
     .order('created_at', { ascending: false })
     .range(from, to)
 
@@ -39,6 +40,7 @@ async function getChartData() {
   const { data } = await supabase
     .from('configurations')
     .select('created_at, pool_shape, color')
+    .eq('is_draft', false)
     .gte('created_at', thirtyDaysAgo)
     .order('created_at', { ascending: false })
 
@@ -62,20 +64,23 @@ async function getKpiData() {
     ordersData,
     productionData,
   ] = await Promise.all([
-    // Total configurations
+    // Total configurations (jen odeslané, ne rozpracované drafty)
     supabase
       .from('configurations')
-      .select('id', { count: 'exact', head: true }),
+      .select('id', { count: 'exact', head: true })
+      .eq('is_draft', false),
     // This month configurations
     supabase
       .from('configurations')
       .select('id', { count: 'exact', head: true })
+      .eq('is_draft', false)
       .gte('created_at', thisMonthStart)
       .lte('created_at', thisMonthEnd),
     // Last month configurations
     supabase
       .from('configurations')
       .select('id', { count: 'exact', head: true })
+      .eq('is_draft', false)
       .gte('created_at', lastMonthStart)
       .lte('created_at', lastMonthEnd),
     // Quotes

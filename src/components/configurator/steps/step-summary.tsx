@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Turnstile } from '@/components/turnstile'
 import { submitConfiguration } from '@/app/actions/submit-configuration'
+import { saveDraftConfiguration } from '@/app/actions/draft-configuration'
 import { trackConfigurator } from '@/lib/analytics/track-configurator'
 
 // Constants
@@ -105,10 +106,12 @@ export function StepSummary() {
     isSubmitted,
     isDuplicate,
     submitError,
+    draftId,
     setSubmitting,
     setSubmitted,
     setDuplicate,
     setSubmitError,
+    setDraftId,
     setStep,
     reset
   } = useConfiguratorStore()
@@ -131,6 +134,61 @@ export function StepSummary() {
     }
   }, [isSubmitted])
 
+  // Sestaví data konfigurace ze store; vrací null, pokud chybí povinné údaje.
+  const buildFormData = useCallback(() => {
+    if (!shape || !type || !dimensions?.depth || !color || !technology ||
+        !waterTreatment || !heating || !roofing ||
+        !contact?.name || !contact?.email || !contact?.phone) {
+      return null
+    }
+    return {
+      shape,
+      type,
+      dimensions: {
+        diameter: dimensions.diameter,
+        width: dimensions.width,
+        length: dimensions.length,
+        depth: dimensions.depth
+      },
+      color,
+      stairs: stairs ?? 'none',
+      technology,
+      lighting: lighting ?? 'none',
+      counterflow: counterflow ?? 'none',
+      waterTreatment,
+      heating,
+      roofing,
+      contact: {
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        address: contact.address
+      }
+    }
+  }, [shape, type, dimensions, color, stairs, technology, lighting,
+      counterflow, waterTreatment, heating, roofing, contact])
+
+  // Uložení rozpracované konfigurace (draft) při vstupu na krok 11.
+  // Fire-and-forget — selhání nesmí ovlivnit průchod konfigurátorem.
+  useEffect(() => {
+    if (isSubmitted) return
+    const formData = buildFormData()
+    if (!formData) return
+
+    let cancelled = false
+    saveDraftConfiguration(formData, draftId)
+      .then((res) => {
+        if (!cancelled && res.success && res.draftId) {
+          setDraftId(res.draftId)
+        }
+      })
+      .catch(() => { /* draft je best-effort, chybu ignorujeme */ })
+
+    return () => { cancelled = true }
+    // Spustit jednou při mountu kroku 11 (vstup na shrnutí).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     trackConfigurator(11, 'Získať kalkuláciu')
@@ -139,42 +197,19 @@ export function StepSummary() {
 
     try {
       // Validate required fields before submission
-      if (!shape || !type || !dimensions?.depth || !color || !technology ||
-          !waterTreatment || !heating || !roofing ||
-          !contact?.name || !contact?.email || !contact?.phone) {
+      const baseData = buildFormData()
+      if (!baseData) {
         setSubmitError('Chybí povinné údaje. Vraťte se a zkontrolujte všechny kroky.')
         setSubmitting(false)
         return
       }
 
-      // Prepare form data with validated values
       const formData = {
-        shape,
-        type,
-        dimensions: {
-          diameter: dimensions.diameter,
-          width: dimensions.width,
-          length: dimensions.length,
-          depth: dimensions.depth
-        },
-        color,
-        stairs: stairs ?? 'none',
-        technology,
-        lighting: lighting ?? 'none',
-        counterflow: counterflow ?? 'none',
-        waterTreatment,
-        heating,
-        roofing,
-        contact: {
-          name: contact.name,
-          email: contact.email,
-          phone: contact.phone,
-          address: contact.address
-        },
+        ...baseData,
         turnstileToken: turnstileToken ?? undefined
       }
 
-      const result = await submitConfiguration(formData)
+      const result = await submitConfiguration(formData, draftId)
 
       if (result.success) {
         setSubmitted(true)

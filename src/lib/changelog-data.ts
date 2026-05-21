@@ -65,6 +65,12 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'konfigurator',
           description: 'Výraznější odeslání poptávky v posledním kroku konfigurátoru',
           userDescription: 'Poslední krok konfigurátoru (shrnutí) dostal výraznější výzvu k odeslání poptávky. Velké tlačítko „Získat kalkulaci zdarma" je nově přímo v obsahu shrnutí — nad přehledem konfigurace i pod ním — takže zákazník nemusí hledat tlačítko v horní liště, která při scrollování zmizí. Ověření už nevypadá jako potvrzení odeslání: zelená karta „Ověření dokončeno" byla nahrazena nenápadným řádkem, který výslovně směruje k tlačítku. Nadpis kroku se změnil na „Zkontrolujte a odešlete poptávku" a pod tlačítkem přibyl text „Nezávazně a zdarma · Odpověď do 24 hodin · Bez registrace". Cílem je zvýšit počet dokončených poptávek.'
+        },
+        {
+          type: 'feature',
+          scope: 'konfigurace',
+          description: 'Sledování rozpracovaných (neodeslaných) konfigurací',
+          userDescription: 'Konfigurátor nově zachytí i konfigurace, které zákazník nedokončil. Když vyplní kontaktní údaje, ale poptávku neodešle, uloží se jako „rozpracovaná". Na stránce Konfigurace přibyly záložky Odeslané / Rozpracované — u záložky Rozpracované svítí počet čekajících konfigurací. U každé rozpracované konfigurace lze ručně odeslat připomínkový e-mail (jednotlivě i hromadně), který zákazníkovi v odkazu předvyplní konfigurátor, nebo konfiguraci smazat. Nad seznamem jsou statistiky: počet odeslaných, rozpracovaných, oživených (rozpracovaná konfigurace odeslaná po připomínce) a konverzní poměr. Rozpracované konfigurace bez odeslání se po měsíci automaticky anonymizují kvůli ochraně osobních údajů — smažou se kontaktní údaje, statistika zůstává.'
         }
       ]
     },

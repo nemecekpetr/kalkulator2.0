@@ -42,3 +42,17 @@ export function generateSalutation(fullName: string): string {
 export function isFemaleFromSalutation(salutation: string): boolean {
   return salutation.startsWith('Vážená')
 }
+
+/**
+ * Declines a single first name to Czech vocative case.
+ * "Petr" → "Petře", "Jana" → "Jano". Returns the input unchanged on failure.
+ */
+export function vocativeFirstName(firstName: string): string {
+  const trimmed = firstName.trim()
+  if (!trimmed) return ''
+  try {
+    return vocalize(trimmed) || trimmed
+  } catch {
+    return trimmed
+  }
+}

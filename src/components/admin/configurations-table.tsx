@@ -54,11 +54,18 @@ import {
   ChevronRight,
   FileText,
   Loader2,
+  Mail,
 } from 'lucide-react'
 import type { Configuration, ConfigurationStatus } from '@/lib/supabase/types'
 import { CONFIGURATION_STATUS_LABELS } from '@/lib/supabase/types'
 import { getShapeLabel, formatDimensions } from '@/lib/constants/configurator'
 import { deleteConfiguration, retryPipedriveSync } from '@/app/actions/admin-actions'
+import {
+  sendConfigurationReminder,
+  sendConfigurationRemindersBulk,
+  deleteDraftConfiguration,
+  deleteDraftConfigurationsBulk,
+} from '@/app/actions/draft-admin-actions'
 import { toast } from 'sonner'
 import { useAdminRole } from '@/hooks/use-admin-role'
 
@@ -67,6 +74,7 @@ interface ConfigurationsTableProps {
   currentPage: number
   totalPages: number
   total: number
+  view: 'submitted' | 'draft'
 }
 
 export function ConfigurationsTable({
@@ -74,6 +82,7 @@ export function ConfigurationsTable({
   currentPage,
   totalPages,
   total,
+  view,
 }: ConfigurationsTableProps) {
   const router = useRouter()
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -81,10 +90,19 @@ export function ConfigurationsTable({
   const [retryingId, setRetryingId] = useState<string | null>(null)
   const userRole = useAdminRole()
 
+  const isDraftView = view === 'draft'
+  // V záložce Rozpracované smí připomínky posílat každý přihlášený uživatel
+  const canSelect = userRole === 'admin' || isDraftView
+
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkUpdating, setBulkUpdating] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
+
+  // Připomínky
+  const [reminderId, setReminderId] = useState<string | null>(null)
+  const [sendingReminder, setSendingReminder] = useState(false)
+  const [bulkReminderDialogOpen, setBulkReminderDialogOpen] = useState(false)
 
   const isAllSelected = configurations.length > 0 && selectedIds.size === configurations.length
 
@@ -138,7 +156,12 @@ export function ConfigurationsTable({
 
     setIsDeleting(true)
     try {
-      const result = await deleteConfiguration(deleteId)
+      // Drafty mažou všichni uživatelé (akce omezená na is_draft);
+      // odeslané konfigurace maže jen admin přes deleteConfiguration.
+      const cfg = configurations.find((c) => c.id === deleteId)
+      const result = cfg?.is_draft
+        ? await deleteDraftConfiguration(deleteId)
+        : await deleteConfiguration(deleteId)
       if (result.success) {
         toast.success('Konfigurace byla smazána')
         router.refresh()
@@ -174,6 +197,21 @@ export function ConfigurationsTable({
     if (selectedIds.size === 0) return
     setBulkUpdating(true)
     try {
+      // V záložce Rozpracované maže drafty každý uživatel (akce omezená na is_draft)
+      if (isDraftView) {
+        const result = await deleteDraftConfigurationsBulk(Array.from(selectedIds))
+        if (result.success) {
+          toast.success(`${result.deleted} konfigurací smazáno`)
+          setSelectedIds(new Set())
+          setBulkDeleteDialogOpen(false)
+          router.refresh()
+        } else {
+          toast.error(result.error || 'Chyba při mazání')
+        }
+        setBulkUpdating(false)
+        return
+      }
+
       const response = await fetch('/api/admin/configurations/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -219,6 +257,49 @@ export function ConfigurationsTable({
     }
   }
 
+  const handleSendReminder = async () => {
+    if (!reminderId) return
+    setSendingReminder(true)
+    try {
+      const result = await sendConfigurationReminder(reminderId)
+      if (result.success) {
+        toast.success('Připomínka byla odeslána')
+        router.refresh()
+      } else {
+        toast.error(result.error || 'Nepodařilo se odeslat připomínku')
+      }
+    } catch {
+      toast.error('Nepodařilo se odeslat připomínku')
+    } finally {
+      setSendingReminder(false)
+      setReminderId(null)
+    }
+  }
+
+  const handleBulkSendReminders = async () => {
+    if (selectedIds.size === 0) return
+    setBulkUpdating(true)
+    try {
+      const result = await sendConfigurationRemindersBulk(Array.from(selectedIds))
+      if (result.success) {
+        toast.success(
+          result.failed > 0
+            ? `Připomínka odeslána: ${result.sent}, selhalo: ${result.failed}`
+            : `Odesláno ${result.sent} připomínek`
+        )
+        setSelectedIds(new Set())
+        setBulkReminderDialogOpen(false)
+        router.refresh()
+      } else {
+        toast.error(result.error || 'Nepodařilo se odeslat připomínky')
+      }
+    } catch {
+      toast.error('Chyba připojení')
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(window.location.search)
     params.set('page', page.toString())
@@ -228,36 +309,60 @@ export function ConfigurationsTable({
   return (
     <div className="space-y-4">
       {/* Bulk actions bar */}
-      {userRole === 'admin' && selectedIds.size > 0 && (
+      {canSelect && selectedIds.size > 0 && (
         <div className="flex items-center gap-4 p-3 bg-muted rounded-lg">
           <span className="text-sm font-medium">
             Vybráno: {selectedIds.size}
           </span>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={bulkUpdating}
-              onClick={() => handleBulkStatusChange('processed')}
-            >
-              {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Označit jako zpracované
-            </Button>
+            {isDraftView ? (
+              <>
+                <Button
+                  size="sm"
+                  disabled={bulkUpdating}
+                  onClick={() => setBulkReminderDialogOpen(true)}
+                >
+                  {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                  Poslat připomínku
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={bulkUpdating}
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Smazat
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={bulkUpdating}
+                  onClick={() => handleBulkStatusChange('processed')}
+                >
+                  {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Označit jako zpracované
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={bulkUpdating}
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Smazat
+                </Button>
+              </>
+            )}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSelectedIds(new Set())}
             >
               Zrušit výběr
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={bulkUpdating}
-              onClick={() => setBulkDeleteDialogOpen(true)}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Smazat
             </Button>
           </div>
         </div>
@@ -268,7 +373,7 @@ export function ConfigurationsTable({
         <Table>
           <TableHeader>
             <TableRow>
-              {userRole === 'admin' && (
+              {canSelect && (
                 <TableHead className="w-12">
                   <Checkbox
                     checked={isAllSelected}
@@ -288,7 +393,7 @@ export function ConfigurationsTable({
             {configurations.length > 0 ? (
               configurations.map((config) => (
                 <ClickableTableRow key={config.id} href={`/admin/konfigurace/${config.id}`}>
-                  {userRole === 'admin' && (
+                  {canSelect && (
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedIds.has(config.id)}
@@ -322,24 +427,46 @@ export function ConfigurationsTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {(() => {
-                      const status = (config.status as ConfigurationStatus) || 'new'
-                      return (
+                    {config.is_draft ? (
+                      <div className="space-y-1">
                         <Badge
                           variant="outline"
-                          className={
-                            status === 'processed'
-                              ? 'bg-green-50 text-green-700 border-green-200'
-                              : 'bg-blue-50 text-blue-700 border-blue-200'
-                          }
+                          className="bg-amber-50 text-amber-700 border-amber-200"
                         >
-                          {CONFIGURATION_STATUS_LABELS[status]}
+                          Rozpracovaná
                         </Badge>
-                      )
-                    })()}
+                        {config.reminder_sent_at ? (
+                          <p className="text-xs text-[#48A9A6]">
+                            Připomínka odeslána {format(new Date(config.reminder_sent_at), 'd.M.', { locale: cs })}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">Bez připomínky</p>
+                        )}
+                      </div>
+                    ) : (
+                      (() => {
+                        const status = (config.status as ConfigurationStatus) || 'new'
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={
+                              status === 'processed'
+                                ? 'bg-green-50 text-green-700 border-green-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }
+                          >
+                            {CONFIGURATION_STATUS_LABELS[status]}
+                          </Badge>
+                        )
+                      })()
+                    )}
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(config.pipedrive_status)}
+                    {config.is_draft ? (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    ) : (
+                      getStatusBadge(config.pipedrive_status)
+                    )}
                   </TableCell>
                   <StopPropagationCell>
                     <TooltipProvider>
@@ -354,6 +481,40 @@ export function ConfigurationsTable({
                           </TooltipTrigger>
                           <TooltipContent>Zobrazit</TooltipContent>
                         </Tooltip>
+
+                        {config.is_draft && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setReminderId(config.id)}
+                                className={config.reminder_sent_at ? 'text-muted-foreground' : 'text-[#48A9A6]'}
+                              >
+                                <Mail className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {config.reminder_sent_at ? 'Poslat připomínku znovu' : 'Poslat připomínku'}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {config.is_draft && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteId(config.id)}
+                                className="text-red-500 hover:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Smazat</TooltipContent>
+                          </Tooltip>
+                        )}
 
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -377,7 +538,7 @@ export function ConfigurationsTable({
                           <TooltipContent>Vytvořit nabídku</TooltipContent>
                         </Tooltip>
 
-                        {userRole === 'admin' && (
+                        {userRole === 'admin' && !config.is_draft && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
@@ -385,7 +546,7 @@ export function ConfigurationsTable({
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {config.pipedrive_status !== 'success' && (
+                              {!config.is_draft && config.pipedrive_status !== 'success' && (
                                 <DropdownMenuItem
                                   onClick={() => handleRetry(config.id)}
                                   disabled={retryingId === config.id}
@@ -412,7 +573,7 @@ export function ConfigurationsTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={userRole === 'admin' ? 7 : 6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={canSelect ? 7 : 6} className="h-32 text-center text-muted-foreground">
                   Žádné konfigurace nenalezeny
                 </TableCell>
               </TableRow>
@@ -492,6 +653,54 @@ export function ConfigurationsTable({
             >
               {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               Smazat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Single reminder confirmation dialog */}
+      <AlertDialog open={!!reminderId} onOpenChange={() => setReminderId(null)}>
+        <AlertDialogContent>
+          {(() => {
+            const c = configurations.find((x) => x.id === reminderId)
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Poslat připomínku?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Zákazníkovi {c?.contact_name} ({c?.contact_email}) se odešle e-mail
+                    s odkazem na dokončení konfigurace.
+                    {c?.reminder_sent_at && ' Připomínka už jednou odeslána byla.'}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={sendingReminder}>Zrušit</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSendReminder} disabled={sendingReminder}>
+                    {sendingReminder ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Odeslat připomínku
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            )
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk reminder confirmation dialog */}
+      <AlertDialog open={bulkReminderDialogOpen} onOpenChange={setBulkReminderDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Poslat připomínku {selectedIds.size} zákazníkům</AlertDialogTitle>
+            <AlertDialogDescription>
+              Každému vybranému zákazníkovi se odešle e-mail s odkazem na dokončení
+              konfigurace. Odeslané konfigurace ve výběru se přeskočí.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkUpdating}>Zrušit</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkSendReminders} disabled={bulkUpdating}>
+              {bulkUpdating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Odeslat připomínky
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

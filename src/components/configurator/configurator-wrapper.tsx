@@ -20,6 +20,7 @@ import { StepContact } from './steps/step-contact'
 import { StepSummary } from './steps/step-summary'
 import { ConfiguratorErrorBoundary } from './configurator-error-boundary'
 import { trackConfigurator } from '@/lib/analytics/track-configurator'
+import { loadDraftConfiguration } from '@/app/actions/draft-configuration'
 
 const STEP_LABELS: Record<number, string> = {
   1: 'Tvar',
@@ -112,6 +113,28 @@ export function ConfiguratorWrapper({ embedded = false }: ConfiguratorWrapperPro
   useEffect(() => {
     setMounted(true) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
+
+  // Předvyplnění konfigurátoru z uloženého draftu (odkaz ?draft=<id> z připomínkového e-mailu)
+  useEffect(() => {
+    if (!mounted) return
+    const draftParam = new URLSearchParams(window.location.search).get('draft')
+    if (!draftParam) return
+
+    let cancelled = false
+    loadDraftConfiguration(draftParam)
+      .then((res) => {
+        if (cancelled || !res.success || !res.configuration) return
+        useConfiguratorStore.getState().prefillFromDraft({
+          ...res.configuration,
+          draftId: draftParam,
+        })
+        // Odstranit ?draft= z URL, aby reload prefill znovu nespustil
+        window.history.replaceState(null, '', window.location.pathname)
+      })
+      .catch(() => { /* prefill je best-effort */ })
+
+    return () => { cancelled = true }
+  }, [mounted])
 
   // Analytics: trackuj mount kroků 1–10. Krok 11 (klik na CTA) a 12 (klik na Upravit)
   // se trackují přímo z handlerů ve step-summary.tsx.
