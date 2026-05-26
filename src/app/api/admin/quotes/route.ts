@@ -55,22 +55,28 @@ async function generateQuoteNumber(supabase: SupabaseClient): Promise<string> {
   const yy = String(now.getFullYear()).slice(-2)
   const suffix = `${mm}${yy}` // e.g. "0326" for March 2026
 
-  // Find highest sequence number for this month
+  // Fetch all quote numbers for this month and compute max sequence numerically.
+  // A string sort would mis-order three-digit values (e.g. "NAB-99…" > "NAB-100…"
+  // lexicographically). The sequence is everything between the "NAB-" prefix and
+  // the trailing 4-char mmyy suffix — anchor on both ends so the greedy match
+  // doesn't swallow the suffix into the sequence (e.g. "NAB-1000526" → 100, not 1000526).
   const { data } = await supabase
     .from('quotes')
     .select('quote_number')
     .like('quote_number', `NAB-%${suffix}`)
-    .order('quote_number', { ascending: false })
-    .limit(1)
 
-  let nextNumber = 1
-  if (data && data.length > 0) {
-    const match = data[0].quote_number.match(/^NAB-(\d{2})/)
+  const sequencePattern = new RegExp(`^NAB-(\\d+)${suffix}$`)
+  let maxNumber = 0
+  for (const row of data || []) {
+    const match = row.quote_number.match(sequencePattern)
     if (match) {
-      nextNumber = parseInt(match[1], 10) + 1
+      const n = parseInt(match[1], 10)
+      if (n > maxNumber) maxNumber = n
     }
   }
 
+  const nextNumber = maxNumber + 1
+  // Pad to a minimum of 2 digits; longer sequences (100+) are emitted as-is.
   return `NAB-${String(nextNumber).padStart(2, '0')}${suffix}`
 }
 
@@ -165,40 +171,58 @@ export async function POST(request: Request) {
 
     const supabase = await createAdminClient()
 
-    // Generate quote number server-side if not provided (new quotes)
-    const quoteNumber = validatedData.quote_number || await generateQuoteNumber(supabase)
-
     // Calculate total subtotal (all unique items)
     const subtotal = validatedData.items.reduce((sum, item) => sum + item.total_price, 0)
 
-    // Create quote
-    const { data: quote, error: quoteError } = await supabase
-      .from('quotes')
-      .insert({
-        quote_number: quoteNumber,
-        configuration_id: validatedData.configuration_id,
-        customer_name: validatedData.customer_name,
-        customer_email: validatedData.customer_email || null,
-        customer_phone: validatedData.customer_phone || null,
-        customer_address: validatedData.customer_address || null,
-        customer_salutation: validatedData.customer_salutation || null,
-        pool_config: validatedData.pool_config,
-        valid_until: validatedData.valid_until || null,
-        delivery_term: validatedData.delivery_term || '4-8 týdnů',
-        notes: validatedData.notes || null,
-        order_deadline: validatedData.order_deadline || null,
-        delivery_deadline: validatedData.delivery_deadline || null,
-        capacity_month: validatedData.capacity_month || null,
-        available_installations: validatedData.available_installations ?? null,
-        vat_rate: validatedData.vat_rate ?? 0,
-        subtotal,
-        total_price: subtotal,
-        created_by: user?.id || null,
-      })
-      .select('id')
-      .single()
+    // Generate quote number server-side if not provided (new quotes) and retry
+    // on unique-constraint conflict — generateQuoteNumber + insert is not atomic,
+    // so two parallel saves can land on the same number.
+    let quoteNumber = validatedData.quote_number || await generateQuoteNumber(supabase)
+    let quote: { id: string } | null = null
 
-    if (quoteError) throw quoteError
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const { data, error } = await supabase
+        .from('quotes')
+        .insert({
+          quote_number: quoteNumber,
+          configuration_id: validatedData.configuration_id,
+          customer_name: validatedData.customer_name,
+          customer_email: validatedData.customer_email || null,
+          customer_phone: validatedData.customer_phone || null,
+          customer_address: validatedData.customer_address || null,
+          customer_salutation: validatedData.customer_salutation || null,
+          pool_config: validatedData.pool_config,
+          valid_until: validatedData.valid_until || null,
+          delivery_term: validatedData.delivery_term || '4-8 týdnů',
+          notes: validatedData.notes || null,
+          order_deadline: validatedData.order_deadline || null,
+          delivery_deadline: validatedData.delivery_deadline || null,
+          capacity_month: validatedData.capacity_month || null,
+          available_installations: validatedData.available_installations ?? null,
+          vat_rate: validatedData.vat_rate ?? 0,
+          subtotal,
+          total_price: subtotal,
+          created_by: user?.id || null,
+        })
+        .select('id')
+        .single()
+
+      if (!error) {
+        quote = data
+        break
+      }
+
+      // 23505 = unique_violation. Only retry when the caller didn't supply a
+      // specific quote_number — otherwise the conflict is the caller's problem.
+      const isUniqueViolation = (error as { code?: string }).code === '23505'
+      if (!isUniqueViolation || validatedData.quote_number) throw error
+
+      quoteNumber = await generateQuoteNumber(supabase)
+    }
+
+    if (!quote) {
+      throw new Error('Nepodařilo se vygenerovat unikátní číslo nabídky')
+    }
 
     // Create variants if provided
     const variantIdMap: Record<QuoteVariantKey, string> = {} as Record<QuoteVariantKey, string>

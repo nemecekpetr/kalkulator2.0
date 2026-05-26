@@ -34,6 +34,12 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'nabidky',
           description: 'Email tvůrce nabídky v PDF místo firemního fallbacku',
           userDescription: 'Na poslední straně PDF nabídky („Stačí 3 kroky k vašemu bazénu") se v kontaktním boxu vedle jména a telefonu obchodníka zobrazuje nyní jeho osobní email z profilu místo obecného bazeny@rentmil.cz. Pokud obchodník nemá email v profilu, použije se firemní email jako fallback — doplňte prosím každému aktivnímu obchodníkovi email v /admin/uzivatele.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Oprava generování čísla nabídky při překročení sta nabídek v měsíci',
+          userDescription: 'Po dosažení sté nabídky v jednom měsíci (NAB-1000526) přestávalo jít vytvořit další — systém hlásil „duplicate key value violates unique constraint". Generátor čísla nabídky špatně řadil třímístné sekvence (lexikograficky bylo „NAB-99" vyhodnoceno jako vyšší než „NAB-100") a počítal příští číslo z chybného základu, takže navrhl číslo, které už v databázi bylo. Nově se nejvyšší pořadí dohledává numericky a při kolizi se číslo automaticky přegeneruje až pětkrát po sobě, takže paralelní ukládání dvou nabídek najednou už nikomu nespadne. První nová nabídka v květnu po nasazení bude NAB-1010526.'
         }
       ]
     },
