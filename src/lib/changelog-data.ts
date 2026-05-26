@@ -4,9 +4,27 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.1.0'
+export const CURRENT_VERSION = '1.1.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.1.1',
+      date: '2026-05-26',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'profil',
+          description: 'Generátor emailových podpisů s knihovnou bannerů',
+          userDescription: 'Na stránce „Můj profil" (přístupná z pravého horního menu) najdete tři záložky — Osobní údaje, Změna hesla a novou záložku Emailový podpis. V profilu lze nově vyplnit pozici (např. „Obchodní manažer") a zobrazí se v podpisu. V záložce Emailový podpis si vyberete jednu ze dvou šablon (S bannerem nebo Kompaktní) a banner z knihovny, vidíte živý náhled a podpis si zkopírujete dvěma tlačítky podle cílového nástroje — „Zkopírovat pro Gmail / Outlook" (pro emailové klienty) nebo „Zkopírovat pro Pipedrive" (přizpůsobená verze pro WYSIWYG editor v CRM). Třetí tlačítko „Poslat testovací email" odešle podpis na váš email v profilu, abyste si ověřili, jak vypadá v reálném klientu. Volba šablony a banneru se ukládá automaticky. V sekci Nastavení → Email bannery můžete spravovat knihovnu bannerů — jeden „evergreen" jako výchozí a libovolný počet sezónních (Vánoce, Léto apod.). Banner se v emailu zobrazuje pod kontaktními údaji, je proklikávací a má automaticky UTM tagy pro sledování. Brand styling: vodový akcent vlevo, Rentmil logo vpravo, Nunito Sans písmo s fallbackem.'
+        },
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Oprava generování čísla nabídky při překročení sta nabídek v měsíci',
+          userDescription: 'Po dosažení sté nabídky v jednom měsíci (NAB-1000526) přestávalo jít vytvořit další — systém hlásil „duplicate key value violates unique constraint". Generátor čísla nabídky špatně řadil třímístné sekvence (lexikograficky bylo „NAB-99" vyhodnoceno jako vyšší než „NAB-100") a počítal příští číslo z chybného základu, takže navrhl číslo, které už v databázi bylo. Nově se nejvyšší pořadí dohledává numericky a při kolizi se číslo automaticky přegeneruje až pětkrát po sobě, takže paralelní ukládání dvou nabídek najednou už nikomu nespadne. První nová nabídka v květnu po nasazení bude NAB-1010526.'
+        }
+      ]
+    },
     {
       version: '1.1.0',
       date: '2026-05-21',
@@ -34,12 +52,6 @@ export const changelogVersions: ChangelogVersion[] = [
           scope: 'nabidky',
           description: 'Email tvůrce nabídky v PDF místo firemního fallbacku',
           userDescription: 'Na poslední straně PDF nabídky („Stačí 3 kroky k vašemu bazénu") se v kontaktním boxu vedle jména a telefonu obchodníka zobrazuje nyní jeho osobní email z profilu místo obecného bazeny@rentmil.cz. Pokud obchodník nemá email v profilu, použije se firemní email jako fallback — doplňte prosím každému aktivnímu obchodníkovi email v /admin/uzivatele.'
-        },
-        {
-          type: 'fix',
-          scope: 'nabidky',
-          description: 'Oprava generování čísla nabídky při překročení sta nabídek v měsíci',
-          userDescription: 'Po dosažení sté nabídky v jednom měsíci (NAB-1000526) přestávalo jít vytvořit další — systém hlásil „duplicate key value violates unique constraint". Generátor čísla nabídky špatně řadil třímístné sekvence (lexikograficky bylo „NAB-99" vyhodnoceno jako vyšší než „NAB-100") a počítal příští číslo z chybného základu, takže navrhl číslo, které už v databázi bylo. Nově se nejvyšší pořadí dohledává numericky a při kolizi se číslo automaticky přegeneruje až pětkrát po sobě, takže paralelní ukládání dvou nabídek najednou už nikomu nespadne. První nová nabídka v květnu po nasazení bude NAB-1010526.'
         }
       ]
     },
