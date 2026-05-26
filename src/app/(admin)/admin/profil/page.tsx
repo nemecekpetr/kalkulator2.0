@@ -1,16 +1,22 @@
 import { Suspense } from 'react'
 import { getMyProfile } from '@/app/actions/profile-actions'
+import { listSignatureBanners } from '@/app/actions/signature-banners-actions'
 
 export const dynamic = 'force-dynamic'
 import { ProfileForm } from '@/components/admin/profile-form'
 import { ChangePasswordForm } from '@/components/admin/change-password-form'
+import { EmailSignatureCard } from '@/components/admin/email-signature-card'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 async function ProfileContent() {
-  const { profile, error } = await getMyProfile()
+  const [{ profile, error }, { banners }] = await Promise.all([
+    getMyProfile(),
+    listSignatureBanners(),
+  ])
 
   if (error || !profile) {
     return (
@@ -23,40 +29,50 @@ async function ProfileContent() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Profile Info */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Osobní údaje</CardTitle>
-              <CardDescription>
-                Tyto údaje se zobrazují v nabídkách jako kontakt na bazénového specialistu
-              </CardDescription>
-            </div>
-            <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
-              {profile.role === 'admin' ? 'Administrátor' : 'Uživatel'}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ProfileForm profile={profile} />
-        </CardContent>
-      </Card>
+    <Tabs defaultValue="osobni" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
+        <TabsTrigger value="osobni">Osobní údaje</TabsTrigger>
+        <TabsTrigger value="heslo">Změna hesla</TabsTrigger>
+        <TabsTrigger value="podpis">Emailový podpis</TabsTrigger>
+      </TabsList>
 
-      {/* Change Password */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Změna hesla</CardTitle>
-          <CardDescription>
-            Změňte si přihlašovací heslo
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChangePasswordForm />
-        </CardContent>
-      </Card>
-    </div>
+      <TabsContent value="osobni">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Osobní údaje</CardTitle>
+                <CardDescription>
+                  Tyto údaje se zobrazují v nabídkách jako kontakt na bazénového specialistu
+                </CardDescription>
+              </div>
+              <Badge variant={profile.role === 'admin' ? 'default' : 'secondary'}>
+                {profile.role === 'admin' ? 'Administrátor' : 'Uživatel'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ProfileForm profile={profile} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="heslo">
+        <Card>
+          <CardHeader>
+            <CardTitle>Změna hesla</CardTitle>
+            <CardDescription>Změňte si přihlašovací heslo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChangePasswordForm />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="podpis">
+        <EmailSignatureCard profile={profile} banners={banners} />
+      </TabsContent>
+    </Tabs>
   )
 }
 

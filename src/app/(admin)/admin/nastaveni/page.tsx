@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ShoppingBag, UsersRound, ChevronRight } from 'lucide-react'
+import { ShoppingBag, UsersRound, ChevronRight, Image as ImageIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -44,6 +44,12 @@ const settingsLinks: SettingsLink[] = [
     href: '/admin/nastaveni/uzivatele',
     icon: UsersRound,
     adminOnly: true,
+  },
+  {
+    name: 'Email bannery',
+    description: 'Knihovna bannerů pro emailové podpisy',
+    href: '/admin/nastaveni/email-bannery',
+    icon: ImageIcon,
   },
 ]
 

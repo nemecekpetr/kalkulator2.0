@@ -17,6 +17,7 @@ const profileSchema = z.object({
   full_name: z.string().min(2, 'Jméno musí mít alespoň 2 znaky'),
   email: z.string().email('Neplatný email').optional().or(z.literal('')),
   phone: z.string().optional(),
+  position: z.string().optional(),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -39,6 +40,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       full_name: profile.full_name,
       email: profile.email || '',
       phone: profile.phone || '',
+      position: profile.position || '',
     },
   })
 
@@ -49,6 +51,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         full_name: data.full_name,
         email: data.email || null,
         phone: data.phone || null,
+        position: data.position || null,
       })
 
       if (result.success) {
@@ -104,6 +107,18 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           />
           <p className="text-xs text-muted-foreground">
             Zobrazuje se v nabídkách jako kontakt na specialistu.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="position">Pozice</Label>
+          <Input
+            id="position"
+            {...register('position')}
+            placeholder="Bazénový specialista"
+          />
+          <p className="text-xs text-muted-foreground">
+            Zobrazuje se v emailovém podpisu pod jménem.
           </p>
         </div>
       </div>
