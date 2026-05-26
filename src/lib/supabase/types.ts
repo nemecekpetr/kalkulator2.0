@@ -39,7 +39,7 @@ export type ConfigurationStatus = 'new' | 'processed'
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected'
 
 // Order status - lifecycle of an order (simplified)
-export type OrderStatus = 'created' | 'sent' | 'in_production'
+export type OrderStatus = 'created' | 'sent' | 'in_production' | 'cancelled'
 
 // Production order status - lifecycle of a production order (výrobák)
 export type ProductionStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled'
@@ -953,6 +953,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   created: 'Nová',
   sent: 'Odeslaná',
   in_production: 'Předána do výroby',
+  cancelled: 'Zrušeno',
 }
 
 export const PRODUCTION_STATUS_LABELS: Record<ProductionStatus, string> = {
