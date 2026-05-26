@@ -9,7 +9,9 @@ npm run dev              # Start development server
 npm run build            # Production build (also verifies TypeScript types)
 npm run lint             # Run ESLint
 npm run start            # Start production server
-npx supabase db push     # Apply database migrations
+npx supabase db push                    # Apply migrations to remote DB
+npx supabase migration new <name>       # Create a new migration file
+npx supabase db reset                   # Drop & recreate local DB from migrations
 ```
 
 No standalone typecheck script — types are only verified at `npm run build`.
@@ -52,43 +54,15 @@ This is a pool configurator application for Rentmil (Czech pool manufacturer) bu
 
 ## Brand Guidelines
 
-Brandboard: `/graphic/brandboard.pdf`
+Plný brandboard: `/graphic/brandboard.pdf` — čti, když píšeš copy nebo navrhuješ vizuály.
 
-### Brand Message
-- **Koncept**: "Bazénový Zen" - Rentmil prodává bezstarostný režim na zahradě, ne jen bazény
-- **Hlavní slogan**: "Vy zenujete, my bazénujeme." (slovní hříčka zen + bazén)
-- **Varianty**: "Vy zenujete, my servisujeme / zazimujeme / čistíme"
-- **Tagline**: "Rentmil - Bazénový mistr" nebo "Váš bazénový mistr"
-
-### USP (komunikovat)
-- Klidovost, relaxace
-- Recenze, spokojenost zákazníků
-
-### Nekomunikovat
-- Vodní sporty
-- Dětskost
-
-### Barvy
-- **Rentmil modrá**: `#01384B` (primární, tmavá)
-- **Rentmil vodová**: `#48A9A6` (sekundární, tyrkysová)
-- **Růžová snová**: `#ED6663` (akcent)
-- **Rentmil oranžová**: `#FF8621` (akcent)
-- **Snový gradient**: `#FF8621 → #ED6663` (CTA, důležité prvky)
-
-### Typografie
-- **Nadpisy**: Forma DJR Display
-- **Text**: Nunito Sans
-
-### Vizuální styl
-- **Pohyb**: Pomalá levitace, jakoby na vodě
-- **Kompozice**: Osová souměrnost, Wes Anderson style
-- **Efekty**: Glassmorphism, zasněné obličeje
-- **Maskot**: "Bazénový mistr" - postavička v oranžovém tričku
-
-### Assets
-- Logo: `/public/logo-transparent.svg`
-- Maskot: `/public/maskot-holding-hq.png`, `/public/maskot-hq.png`
-- Hero foto: `/public/pool-hero.jpg`
+**Klíčové body**
+- **Koncept**: "Bazénový Zen" — Rentmil prodává bezstarostný režim na zahradě, ne jen bazény. Slogan: *"Vy zenujete, my bazénujeme."* Tagline: *"Rentmil — Bazénový mistr."*
+- **Komunikuj**: klid, relaxace, recenze, spokojenost. **Nekomunikuj**: vodní sporty, dětskost.
+- **Barvy**: modrá `#01384B`, vodová `#48A9A6`, růžová `#ED6663`, oranžová `#FF8621`. CTA gradient: `#FF8621 → #ED6663`.
+- **Typografie**: nadpisy Forma DJR Display, text Nunito Sans.
+- **Vizuální styl**: pomalá levitace (jakoby na vodě), osová souměrnost (Wes Anderson), glassmorphism. Maskot "Bazénový mistr" v oranžovém tričku.
+- **Assets**: logo `/public/logo-transparent.svg`, maskot `/public/maskot-holding-hq.png` + `/public/maskot-hq.png`, hero `/public/pool-hero.jpg`.
 
 ## Data Flow (Lifecycle)
 
@@ -111,7 +85,7 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Step 5 (Stairs) is automatically skipped for circular pools
 - Configuration constants in `src/lib/constants/configurator.ts`
 - Storage: Uses localStorage with memory fallback for Safari ITP (`src/lib/storage.ts`)
-- Zustand selectors: Use `useShallow` for multiple state selections to prevent unnecessary re-renders
+- Zustand selectors that return an object (multiple fields) MUST be wrapped in `useShallow` — see `useConfiguratorActions` in `src/stores/configurator-store.ts:455`. Without it the store returns a fresh object on every state change and triggers re-renders across the whole tree.
 
 **Embedded Mode** (`/embed`)
 - Minimal UI version for iframe embedding in WordPress or other sites
@@ -119,6 +93,16 @@ Konfigurace → Nabídka → Objednávka → Výroba
 - Auto-resizes iframe via postMessage to parent window
 - Removes header, decorations, and background styling for seamless integration
 - Implementation: `ConfiguratorWrapper` component with `embedded` prop
+
+**Configuration Drafts** (rozpracované konfigurace)
+- Captures customers who fill in contact details (step 10) but never submit the quote request
+- On the step 10→11 transition, `StepSummary` fires `saveDraftConfiguration` (fire-and-forget) — inserts a `configurations` row with `is_draft = true`, `was_draft = true`
+- On submit, `submitConfiguration` *promotes* the matching draft in place (`is_draft → false`) instead of inserting a new row — the draft is found by `draftId` (held in the Zustand store, persisted) or by `idempotency_key`. `was_draft` stays `true` so revived drafts remain distinguishable
+- Shared mapping/key helpers in `src/lib/configuration-mapping.ts` (`generateIdempotencyKey`, `buildConfigurationFields`) — used by both the draft and submit actions so the keys always match
+- Reminder e-mail is **manual** — staff trigger it from the admin (`draft-admin-actions.ts`), never automatically. Template: `src/lib/email/templates/configuration-reminder.ts`; gender-neutral copy, vocative greeting via `vocativeFirstName`
+- Reminder link `?draft=<id>` → `ConfiguratorWrapper` calls `loadDraftConfiguration`, prefills the store via `prefillFromDraft`, jumps to step 11
+- Admin: `/admin/konfigurace` has Odeslané / Rozpracované tabs (`?draft=` param), per-row + bulk reminder/delete, conversion stats incl. "Oživené" (drafts submitted after a reminder)
+- GDPR: a `pg_cron` job (`anonymize-stale-drafts`, migration `20260521000004`) strips all contact data from unconverted drafts older than 1 month and sets `anonymized_at`; the row + stats flags survive. Anonymized drafts are excluded from the admin list and the "Rozpracované" count
 
 **Configurator Tracking** (`src/lib/analytics/track-configurator.ts`)
 - Sends `{ type: 'rentmil_configurator', step, label }` via `window.parent.postMessage` to `https://www.rentmil.cz`
@@ -140,13 +124,24 @@ Konfigurace → Nabídka → Objednávka → Výroba
   - `/admin/nastaveni/produkty/precenovani`: Bulk price updates
   - `/admin/nastaveni/produkty/mapovani`: Mapping rules (alternate path)
   - `/admin/nastaveni/uzivatele`: User management
+  - `/admin/nastaveni/email-bannery`: Email signature banner library
 - `/admin/novinky`: Changelog page showing version history with user-friendly Czech descriptions
+- `/admin/profil`: User profile + email signature configuration (template + banner picker)
+
+**Email Signature System**
+- Generates per-user HTML email signatures users copy into their mail client
+- Per-user settings stored on `user_profiles`: `position`, `signature_template`, `signature_banner_id`
+- Banner library in `signature_banners` table — exactly one banner may be `is_evergreen` (enforced by a partial unique index); the evergreen banner is the default fallback
+- Banner images live in the public `signature-banners` Supabase Storage bucket; upload/delete via `src/lib/supabase/storage.ts` (admin client, 1 MB max, PNG/JPEG only)
+- Rendering: `src/lib/email/signature-templates.ts` produces `{ html, plainText }`. Banner `image_url` may be a path (e.g. `/logo-email.png`) — resolved against `NEXT_PUBLIC_APP_URL`/`baseUrl` at render time so seeded rows stay environment-agnostic
+- Banner link URLs get UTM params appended via `src/lib/email/utm.ts` (`appendUtm` never overwrites pre-set UTM params; `sanitizeCampaignSlug` strips diacritics)
+- Server actions: `src/app/actions/signature-banners-actions.ts` (banner CRUD), `profile-actions.ts` `updateMyProfile` (partial update — only sends fields that are defined)
+- Components: `email-signature-card.tsx` (profile preview), `email-banner-list.tsx` + `email-banner-dialog.tsx` (library admin)
 
 **Quotes System**
 - Creates formal quotes from configurations with line items
 - Version tracking for quote history
-- PDF generation via Puppeteer (HTML-to-PDF) at `/api/admin/quotes/[id]/pdf`
-- PDF quality selection: `email` (optimized size) or `print` (full quality)
+- PDF generation via Puppeteer (HTML-to-PDF) at `/api/admin/quotes/[id]/pdf?quality=email|print`. The `quality` param is forwarded into each print-page URL as a query string (`/quotes/[id]/print?page=…&quality=…`) so the print templates can downscale images. Default is `email`.
 - Auto-generation of quote items from configuration via `src/lib/quote-generator.ts`
 - Quote variants: Support for multiple pricing tiers (`ekonomicka`, `optimalni`, `premiova`)
 - Quote statuses: `draft`, `sent`, `accepted`, `rejected`
@@ -212,10 +207,14 @@ Konfigurace → Nabídka → Objednávka → Výroba
 ### Server Actions
 
 Located in `src/app/actions/`:
-- `submit-configuration.ts`: Public form submission with rate limiting and Turnstile verification
+- `submit-configuration.ts`: Public form submission with rate limiting and Turnstile verification; promotes a matching draft instead of inserting when one exists
+- `draft-configuration.ts`: Public — `saveDraftConfiguration` (step 10→11), `loadDraftConfiguration` (`?draft=` prefill); rate-limited, no Turnstile/CSRF (mirrors `submit-configuration.ts`)
+- `draft-admin-actions.ts`: Authenticated — manual reminder send + draft delete (single & bulk); delete is restricted to `is_draft = true` rows
 - `admin-actions.ts`: Configuration CRUD, quote management
 - `user-actions.ts`: User management (admin only)
 - `profile-actions.ts`: User profile updates
+
+**Idempotency**: `submit-configuration.ts` generates an `idempotency_key` from the configuration payload (`src/lib/configuration-mapping.ts` → `generateIdempotencyKey`) and the `configurations` table has a unique constraint on it. Duplicate submits inside the idempotency window return the existing row with `isDuplicate: true`; a race that slips past the pre-check is caught by Postgres error `23505` and resolved by looking the row back up. Use the same helper if you add new submit paths.
 
 ### API Routes
 
@@ -284,7 +283,7 @@ Two patterns exist:
 When adding new types, follow whichever pattern the entity already uses. For new entities with JSONB or array columns, prefer standalone interfaces.
 
 Key types:
-- `Configuration`: Pool configurations from customers
+- `Configuration`: Pool configurations from customers. Draft-tracking columns: `is_draft` (currently a draft), `was_draft` (ever was a draft — survives promotion), `reminder_email_id`/`reminder_sent_at` (manual reminder), `anonymized_at` (GDPR cleanup)
 - `Quote`, `QuoteItem`, `QuoteVersion`, `QuoteVariant`: Quote management
 - `Order`: Customer orders (created from accepted quotes)
 - `ProductionOrder`, `ProductionOrderItem`: Manufacturing tracking with material checklist
@@ -296,6 +295,7 @@ Key types:
 - `GeneratedQuoteItem`: Generated items before saving to DB
 - `SetAddon`: Set addon definition (stored as JSONB on Product)
 - `ProductPriceHistory`: Historical tracking of product price changes
+- `SignatureBanner`, `SignatureTemplate`: Email signature banner library + template selection
 
 ### Product Categories
 
@@ -362,22 +362,11 @@ Zod schemas in `src/lib/validations/configuration.ts` define all pool configurat
 
 ### Czech Formatting Utilities
 
-`src/lib/utils/` contains helpers for Czech-language output — use these before rolling custom formatting:
-- `format.ts`: Number/currency formatting (Czech locale, CZK)
-- `czech-month.ts`: Month names in Czech (for dates in PDFs/UI)
-- `czech-salutation.ts`: Salutation declension for formal correspondence
+Before rolling custom formatting, check `src/lib/utils/` — has helpers for CZK/numbers (`format.ts`), Czech month names (`czech-month.ts`), and salutation declension (`czech-salutation.ts`).
 
 ### Database Migrations
 
-Located in `supabase/migrations/`:
-- Run `npx supabase db push` to apply migrations to local/remote database
-- Migrations are numbered by date (e.g., `20251225000001_product_mapping.sql`)
-
-### Git Workflow
-
-- Husky pre-commit hooks with commitlint
-- Commit format: `type(scope): description` (e.g., `feat(quotes): add PDF export`)
-- Standard-version for automatic versioning and CHANGELOG.md generation
+Located in `supabase/migrations/`, numbered by date (e.g., `20251225000001_product_mapping.sql`). Apply with `npx supabase db push`. Some features rely on **`pg_cron`** scheduled jobs defined inside migrations (e.g., `20260521000004_draft_anonymization_cron.sql` — GDPR cleanup of stale drafts). When debugging anonymization/cleanup behavior, check the cron job definitions, not just the application code.
 
 ### In-flight Plans
 
