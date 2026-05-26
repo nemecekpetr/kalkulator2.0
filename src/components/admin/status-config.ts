@@ -31,7 +31,11 @@ export const ORDER_STATUSES: StatusStep[] = [
   { value: 'created', label: 'Nová', color: 'gray' },
   { value: 'sent', label: 'Odeslaná', color: 'blue' },
   { value: 'in_production', label: 'Předána do výroby', color: 'yellow' },
+  { value: 'cancelled', label: 'Zrušeno', color: 'red' },
 ]
+
+/** Order statuses that are off the main flow (branches from `sent`). */
+export const ORDER_BRANCH_STATUSES: string[] = ['cancelled']
 
 export const PRODUCTION_STATUSES: StatusStep[] = [
   { value: 'pending', label: 'Čeká', color: 'gray' },

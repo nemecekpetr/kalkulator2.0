@@ -43,6 +43,7 @@ import { OrderStatusBadge } from '@/components/admin/order-status-badge'
 import { StatusChip } from '@/components/admin/status-steps'
 import { getStatusStep, ORDER_STATUSES } from '@/components/admin/status-config'
 import { CreateProductionButton } from '@/components/admin/create-production-button'
+import { CancelAndReturnButton } from '@/components/admin/cancel-and-return-button'
 import type { Order, OrderItem, PoolDimensions } from '@/lib/supabase/types'
 import {
   getShapeLabel,
@@ -207,6 +208,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
               Upravit
             </Link>
           </Button>
+          <CancelAndReturnButton orderId={order.id} orderStatus={order.status} />
         </div>
       </div>
 

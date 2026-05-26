@@ -59,6 +59,7 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   created: 'bg-gray-100 text-gray-800',
   sent: 'bg-blue-100 text-blue-800',
   in_production: 'bg-yellow-100 text-yellow-800',
+  cancelled: 'bg-gray-100 text-gray-500 line-through',
 }
 
 function formatPrice(price: number) {

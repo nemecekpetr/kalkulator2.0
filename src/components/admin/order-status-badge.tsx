@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import type { OrderStatus } from '@/lib/supabase/types'
 import { ORDER_STATUS_LABELS } from '@/lib/supabase/types'
 import { StatusSteps, ORDER_STATUSES } from './status-steps'
+import { ORDER_BRANCH_STATUSES } from './status-config'
 
 interface OrderStatusBadgeProps {
   orderId: string
@@ -43,6 +44,7 @@ export function OrderStatusBadge({ orderId, status }: OrderStatusBadgeProps) {
   return (
     <StatusSteps
       statuses={ORDER_STATUSES}
+      branchValues={ORDER_BRANCH_STATUSES}
       currentStatus={status}
       onStatusChange={updateStatus}
       disabled={isUpdating}
