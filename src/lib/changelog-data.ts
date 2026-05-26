@@ -4,9 +4,21 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.1.1'
+export const CURRENT_VERSION = '1.1.2'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.1.2',
+      date: '2026-05-26',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Vrátit objednávku k úpravě nabídky',
+          userDescription: 'Když klient po obdržení objednávky k podpisu žádá o změnu, můžete teď objednávku stornovat a vrátit se k editaci nabídky, ze které vznikla. V detailu objednávky (ve stavech Nová a Odeslaná) je nové tlačítko „Vrátit k úpravě nabídky" — po potvrzení se objednávka označí jako „Zrušeno" (zůstává v seznamu s šedým přeškrtnutým chipem pro historii) a budete přesměrováni na editaci nabídky. Po úpravách v editoru nabídky stávajícím tlačítkem „Vytvořit objednávku" vyrobíte novou objednávku s vyšším pořadovým číslem. Tlačítko není dostupné po předání do výroby — tam by změna ohrozila běžící zakázku. V timeline statusu objednávky se zrušení zobrazuje jako odbočka z hlavní cesty.'
+        }
+      ]
+    },
     {
       version: '1.1.1',
       date: '2026-05-26',
