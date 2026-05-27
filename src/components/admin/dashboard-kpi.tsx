@@ -13,11 +13,13 @@ interface KpiData {
   quotes: {
     total: number
     active: number
+    accepted: number
     conversionRate: number
   }
   orders: {
     total: number
     active: number
+    activeForFunnel: number
     totalValue: number
   }
   production: {

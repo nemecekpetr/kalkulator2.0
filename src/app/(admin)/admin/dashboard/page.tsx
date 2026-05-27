@@ -6,10 +6,46 @@ export const dynamic = 'force-dynamic'
 import { RecentConfigurations } from '@/components/admin/recent-configurations'
 import { DashboardCharts } from '@/components/admin/dashboard-charts'
 import { DashboardKpi } from '@/components/admin/dashboard-kpi'
+import { DashboardFunnel } from '@/components/admin/dashboard-funnel'
+import { PeriodSelector } from '@/components/admin/period-selector'
 import { Skeleton } from '@/components/ui/skeleton'
+import { parsePeriodParam, periodStartIso, type Period } from '@/lib/utils/period'
 
 interface PageProps {
-  searchParams: Promise<{ page?: string }>
+  searchParams: Promise<{ page?: string; period?: string }>
+}
+
+async function getFunnelData(period: Period) {
+  const supabase = await createAdminClient()
+  const startIso = periodStartIso(period)
+
+  const configsQuery = supabase
+    .from('configurations')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_draft', false)
+  const quotesQuery = supabase.from('quotes').select('id, status')
+  const ordersQuery = supabase.from('orders').select('id, status').neq('status', 'cancelled')
+
+  if (startIso) {
+    configsQuery.gte('created_at', startIso)
+    quotesQuery.gte('created_at', startIso)
+    ordersQuery.gte('created_at', startIso)
+  }
+
+  const [configsRes, quotesRes, ordersRes] = await Promise.all([
+    configsQuery,
+    quotesQuery,
+    ordersQuery,
+  ])
+
+  const quotes = quotesRes.data || []
+  const orders = ordersRes.data || []
+  return {
+    configurations: configsRes.count || 0,
+    quotes: quotes.length,
+    acceptedQuotes: quotes.filter((q) => q.status === 'accepted').length,
+    orders: orders.length,
+  }
 }
 
 async function getConfigurations(page: number = 1, perPage: number = 5) {
@@ -100,8 +136,10 @@ async function getKpiData() {
   // Process quotes
   const quotes = quotesData.data || []
   const activeQuotes = quotes.filter((q) => ['draft', 'sent'].includes(q.status)).length
-  const convertedQuotes = quotes.filter((q) => q.status === 'converted').length
-  const conversionRate = quotes.length > 0 ? (convertedQuotes / quotes.length) * 100 : 0
+  const acceptedQuotes = quotes.filter((q) => q.status === 'accepted').length
+  // Conversion rate = % nabídek, které byly akceptovány. Status 'converted' v enumu
+  // neexistuje (legacy překlep); skutečné značení akceptované nabídky je 'accepted'.
+  const conversionRate = quotes.length > 0 ? (acceptedQuotes / quotes.length) * 100 : 0
 
   // Process orders
   const orders = ordersData.data || []
@@ -115,6 +153,8 @@ async function getKpiData() {
   const inProgressProduction = production.filter((p) => p.status === 'in_progress').length
   const completedProduction = production.filter((p) => p.status === 'completed').length
 
+  const activeOrdersForFunnel = orders.filter((o) => o.status !== 'cancelled').length
+
   return {
     configurations: {
       total: configurationsTotal.count || 0,
@@ -124,11 +164,13 @@ async function getKpiData() {
     quotes: {
       total: quotes.length,
       active: activeQuotes,
+      accepted: acceptedQuotes,
       conversionRate,
     },
     orders: {
       total: orders.length,
       active: activeOrders,
+      activeForFunnel: activeOrdersForFunnel,
       totalValue,
     },
     production: {
@@ -142,10 +184,17 @@ async function getKpiData() {
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams
   const page = parseInt(params.page || '1', 10)
-  const [{ configurations, total, currentPage, totalPages }, chartData, kpiData] = await Promise.all([
+  const period = parsePeriodParam(params.period)
+  const [
+    { configurations, total, currentPage, totalPages },
+    chartData,
+    kpiData,
+    funnelData,
+  ] = await Promise.all([
     getConfigurations(page),
     getChartData(),
     getKpiData(),
+    getFunnelData(period),
   ])
 
   return (
@@ -154,6 +203,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <Suspense fallback={<KpiLoading />}>
         <DashboardKpi data={kpiData} />
       </Suspense>
+
+      {/* Conversion funnel s volbou období */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-end">
+          <PeriodSelector value={period} />
+        </div>
+        <DashboardFunnel data={funnelData} />
+      </div>
 
       {/* Recent configurations */}
       <Suspense fallback={<RecentLoading />}>
