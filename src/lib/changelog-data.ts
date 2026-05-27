@@ -4,9 +4,33 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.1.2'
+export const CURRENT_VERSION = '1.2.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.2.0',
+      date: '2026-05-27',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'dashboard',
+          description: 'Konverzní cesta a volba období na dashboardu',
+          userDescription: 'Na dashboardu pod kartami KPI najdete novou sekci „Konverzní cesta", která ukazuje, kolik poptávek prochází jednotlivými fázemi obchodního procesu — Poptávka → Nabídka → Akceptovaná → Objednávka. U každé fáze vidíte počet a procento, kolik se přelilo z předchozí fáze, takže okamžitě poznáte, kde lidi padají z lievky. Nad funnelem je rozbalovací volba období (Posledních 30 dní / 90 dní / Letos / Celá historie, default 30 dní) — můžete tak porovnávat krátkodobé a dlouhodobé trendy.'
+        },
+        {
+          type: 'fix',
+          scope: 'dashboard',
+          description: 'Oprava konverzního poměru nabídek (dříve vždy 0 %)',
+          userDescription: 'V kartě „Aktivní nabídky" na dashboardu se konverzní poměr počítal špatně — hledal nabídky s neexistujícím stavem „converted", takže ukazoval vždy 0 % konverze. Nově se počítá z akceptovaných nabídek (status „accepted") a ukazuje skutečný poměr. Pokud máte 50 nabídek a 20 z nich akceptovaných, vidíte „40 % konverze".'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Automatické storno výroby při storno objednávky',
+          userDescription: 'Když obchodník stornuje objednávku tlačítkem „Vrátit k úpravě nabídky" a na ni je navázaná výroba ve stavu „Čeká", výroba se nově automaticky také stornuje. Pokud je výroba už ve stavu „Ve výrobě" nebo „Hotovo", trigger výrobu nezruší — fyzický bazén se vyrábí nebo je hotový a změnu musíte řešit ručně s výrobou (mimo systém). Tím se eliminují osamělé výrobní záznamy v reportech.'
+        }
+      ]
+    },
     {
       version: '1.1.2',
       date: '2026-05-26',
