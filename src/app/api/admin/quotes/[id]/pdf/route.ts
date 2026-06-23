@@ -5,6 +5,7 @@ import { getBrowser, closeBrowser } from '@/lib/puppeteer-pool'
 import { PDFDocument } from 'pdf-lib'
 import { generatePrintToken, addTokenToUrl } from '@/lib/pdf/print-token'
 import { generatePdfFromPage, createContentPageOptions, setPdfMetadata, addPageNumbers, PdfMetrics } from '@/lib/pdf/generate-pdf'
+import { getPdfBaseUrl } from '@/lib/pdf/internal-url'
 import type { Browser, Page } from 'puppeteer'
 
 // Route segment config
@@ -56,8 +57,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     const hasVariants = variants && variants.length > 0
 
-    // Get the base URL from request or environment
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${url.protocol}//${url.host}`
+    // Render print pages over loopback — Puppeteer runs in the same container,
+    // so it must not route a self-request through the public domain/edge.
+    const baseUrl = getPdfBaseUrl()
 
     // Start metrics tracking
     const metrics = new PdfMetrics('Nabídka', `${quote.quote_number} (${quality})`)
