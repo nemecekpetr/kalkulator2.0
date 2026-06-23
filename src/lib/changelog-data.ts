@@ -4,9 +4,21 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.2.0'
+export const CURRENT_VERSION = '1.2.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.2.1',
+      date: '2026-06-23',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'nabidky',
+          description: 'Oprava stahování PDF (nabídky, objednávky, výroba)',
+          userDescription: 'Generování PDF v produkci přestalo fungovat — po kliknutí na „Stáhnout PDF" a výběru kvality (pro email / pro tisk) se nic nestalo. Příčina byla v tom, jak si aplikace sama u sebe vykreslovala tiskové stránky: chodila na ně přes veřejnou adresu, a ta po změně síťového nastavení serveru začala „viset", takže se generování po 30 sekundách vzdalo. Nově si aplikace tiskové stránky načítá interně (sama u sebe), což je rychlejší a odolné vůči budoucím změnám adresy nebo nastavení. Stahování PDF nabídek, objednávek i výrobních zadání opět funguje v obou kvalitách.'
+        }
+      ]
+    },
     {
       version: '1.2.0',
       date: '2026-05-27',
