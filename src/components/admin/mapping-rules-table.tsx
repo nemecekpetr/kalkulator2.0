@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { AlertCircle, Check, Loader2, Package, Plus, Wand2 } from 'lucide-react'
+import { AlertCircle, Check, Loader2, Package, Plus, Trash2, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/utils'
 import type { ProductMappingRule, Product, ProductCategory } from '@/lib/supabase/types'
@@ -109,15 +109,34 @@ const SECTION_ORDER = ['technology', 'lighting', 'counterflow', 'waterTreatment'
 export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
   const router = useRouter()
   const [selectedRule, setSelectedRule] = useState<ProductMappingRule | null>(null)
+  // Create mode: adding an extra product to an existing configurator choice
+  const [createField, setCreateField] = useState<string | null>(null)
+  const [createValue, setCreateValue] = useState<string>('')
   const [selectedProductId, setSelectedProductId] = useState<string>('')
   const [quantity, setQuantity] = useState<number>(1)
   const [active, setActive] = useState<boolean>(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [seeding, setSeeding] = useState(false)
 
   // Count rules without products
   const rulesWithoutProducts = rules.filter(r => !r.product_id).length
+
+  // Group rules by config_field (used by handlers + rendering)
+  const rulesByField = rules.reduce(
+    (acc, rule) => {
+      const field = rule.config_field
+      if (!acc[field]) acc[field] = []
+      acc[field].push(rule)
+      return acc
+    },
+    {} as Record<string, ProductMappingRule[]>
+  )
+
+  // Distinct configurator values present in a section (for the "add product" dialog)
+  const valuesForField = (field: string) =>
+    Array.from(new Set((rulesByField[field] ?? []).map((r) => r.config_value)))
 
   const handleSeedRules = async () => {
     setSeeding(true)
@@ -167,23 +186,80 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
 
   const openDialog = (rule: ProductMappingRule) => {
     setSelectedRule(rule)
+    setCreateField(null)
     setSelectedProductId(rule.product_id || '')
     setQuantity(rule.quantity || 1)
     setActive(rule.active)
   }
 
-  const closeDialog = () => {
+  const openCreateDialog = (field: string) => {
+    // Preselect the first configurator value present in this section
+    const firstValue = rulesByField[field]?.[0]?.config_value || ''
+    setCreateField(field)
+    setCreateValue(firstValue)
     setSelectedRule(null)
     setSelectedProductId('')
     setQuantity(1)
     setActive(true)
   }
 
-  const handleSave = async () => {
-    if (!selectedRule) return
+  const closeDialog = () => {
+    setSelectedRule(null)
+    setCreateField(null)
+    setCreateValue('')
+    setSelectedProductId('')
+    setQuantity(1)
+    setActive(true)
+  }
 
+  // A rule may only be deleted when its choice has more than one rule, so the
+  // baseline (seeded) row for a configurator value can never be removed by accident.
+  const canDeleteRule = (rule: ProductMappingRule) =>
+    rules.filter(
+      (r) => r.config_field === rule.config_field && r.config_value === rule.config_value
+    ).length > 1
+
+  const handleSave = async () => {
     setSaving(true)
     try {
+      // Create mode: add an extra product to an existing choice
+      if (createField) {
+        if (!createValue) {
+          toast.error('Vyberte volbu konfigurátoru')
+          setSaving(false)
+          return
+        }
+        const product = products.find((p) => p.id === selectedProductId)
+        const maxSort = Math.max(
+          0,
+          ...(rulesByField[createField]?.map((r) => r.sort_order) ?? [0])
+        )
+        const response = await fetch('/api/admin/mapping-rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: product?.name || `${createField} – ${createValue}`,
+            config_field: createField,
+            config_value: createValue,
+            product_id: selectedProductId || null,
+            quantity,
+            sort_order: maxSort + 1,
+          }),
+        })
+
+        if (response.ok) {
+          toast.success('Produkt byl přidán k volbě')
+          closeDialog()
+          router.refresh()
+        } else {
+          const error = await response.json()
+          toast.error(error.error || 'Chyba při ukládání')
+        }
+        return
+      }
+
+      // Edit mode
+      if (!selectedRule) return
       const response = await fetch('/api/admin/mapping-rules', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -211,16 +287,32 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
     }
   }
 
-  // Group rules by config_field
-  const rulesByField = rules.reduce(
-    (acc, rule) => {
-      const field = rule.config_field
-      if (!acc[field]) acc[field] = []
-      acc[field].push(rule)
-      return acc
-    },
-    {} as Record<string, ProductMappingRule[]>
-  )
+  const handleDelete = async () => {
+    if (!selectedRule) return
+
+    setDeleting(true)
+    try {
+      const response = await fetch('/api/admin/mapping-rules', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedRule.id }),
+      })
+
+      if (response.ok) {
+        toast.success('Pravidlo bylo smazáno')
+        closeDialog()
+        router.refresh()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Chyba při mazání')
+      }
+    } catch (err) {
+      console.error('Delete error:', err)
+      toast.error('Chyba připojení')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   // Group products by category for better UX
   const productsByCategory = products.reduce(
@@ -303,9 +395,20 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
           return (
             <div key={fieldKey} className={`rounded-lg border ${section.color}`}>
               {/* Section Header */}
-              <div className={`px-4 py-3 border-b ${section.color}`}>
-                <h3 className="font-semibold text-lg">{section.label}</h3>
-                <p className="text-sm text-muted-foreground">{section.description}</p>
+              <div className={`px-4 py-3 border-b ${section.color} flex items-start justify-between gap-4`}>
+                <div>
+                  <h3 className="font-semibold text-lg">{section.label}</h3>
+                  <p className="text-sm text-muted-foreground">{section.description}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/70"
+                  onClick={() => openCreateDialog(fieldKey)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Přidat produkt
+                </Button>
               </div>
 
               {/* Section Table */}
@@ -377,13 +480,15 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
         })}
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={!!selectedRule} onOpenChange={() => closeDialog()}>
+      {/* Edit / Create Dialog */}
+      <Dialog open={!!selectedRule || !!createField} onOpenChange={() => closeDialog()}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Upravit mapování</DialogTitle>
+            <DialogTitle>{createField ? 'Přidat produkt k volbě' : 'Upravit mapování'}</DialogTitle>
             <DialogDescription>
-              Propojení volby z konfigurátoru s produktem v nabídce
+              {createField
+                ? 'Přiřaďte k volbě konfigurátoru další produkt – do nabídky se doplní vedle ostatních.'
+                : 'Propojení volby z konfigurátoru s produktem v nabídce'}
             </DialogDescription>
           </DialogHeader>
 
@@ -393,9 +498,29 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
               <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">
                 Konfigurátor (volba zákazníka)
               </p>
-              <p className="font-semibold text-blue-900">
-                {CONFIG_FIELD_LABELS[selectedRule?.config_field || ''] || selectedRule?.config_field}: {CONFIG_VALUE_LABELS[selectedRule?.config_value || ''] || selectedRule?.config_value}
-              </p>
+              {createField ? (
+                <div className="space-y-2">
+                  <p className="font-semibold text-blue-900">
+                    {CONFIG_FIELD_LABELS[createField] || createField}
+                  </p>
+                  <Select value={createValue} onValueChange={setCreateValue}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Vyberte volbu..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {valuesForField(createField).map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {CONFIG_VALUE_LABELS[value] || value}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <p className="font-semibold text-blue-900">
+                  {CONFIG_FIELD_LABELS[selectedRule?.config_field || ''] || selectedRule?.config_field}: {CONFIG_VALUE_LABELS[selectedRule?.config_value || ''] || selectedRule?.config_value}
+                </p>
+              )}
             </div>
 
             {/* Arrow indicator */}
@@ -470,29 +595,50 @@ export function MappingRulesTable({ rules, products }: MappingRulesTableProps) {
               )}
             </div>
 
-            {/* Active toggle */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <Label htmlFor="active">Pravidlo aktivní</Label>
-              <Switch
-                id="active"
-                checked={active}
-                onCheckedChange={setActive}
-              />
-            </div>
+            {/* Active toggle (edit mode only) */}
+            {!createField && (
+              <div className="flex items-center justify-between pt-2 border-t">
+                <Label htmlFor="active">Pravidlo aktivní</Label>
+                <Switch
+                  id="active"
+                  checked={active}
+                  onCheckedChange={setActive}
+                />
+              </div>
+            )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Zrušit
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Check className="h-4 w-4 mr-2" />
-              )}
-              Uložit
-            </Button>
+          <DialogFooter className="sm:justify-between">
+            {selectedRule && canDeleteRule(selectedRule) ? (
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={handleDelete}
+                disabled={deleting || saving}
+              >
+                {deleting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Smazat
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={closeDialog}>
+                Zrušit
+              </Button>
+              <Button onClick={handleSave} disabled={saving || deleting}>
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4 mr-2" />
+                )}
+                {createField ? 'Přidat' : 'Uložit'}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
