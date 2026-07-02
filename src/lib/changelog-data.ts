@@ -4,9 +4,21 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.2.1'
+export const CURRENT_VERSION = '1.3.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.3.0',
+      date: '2026-07-02',
+      changes: [
+        {
+          type: 'feature',
+          scope: 'produkty',
+          description: 'Více produktů na jednu volbu konfigurátoru v mapování',
+          userDescription: 'V Nastavení → Produkty → Mapování jde nově k jedné volbě z konfigurátoru přiřadit více produktů najednou. Dosud platilo „jedna volba = jeden produkt", takže když si zákazník zvolil úpravu vody solí, do nabídky se doplnil jen solinátor. Teď má každá sekce (Úprava vody, Ohřev, Technologie…) v záhlaví tlačítko „Přidat produkt“: vyberete volbu (např. „Sůl“) a další produkt (třeba balík mořské soli) s množstvím, a ten se do nabídky doplní vedle stávajícího. U voleb, které mají víc než jedno pravidlo, přibylo v úpravě mapování i tlačítko „Smazat“ pro odebrání toho navíc — základní (výchozí) řádek volby smazat nejde, aby se mapování omylem nerozbilo. Typické využití: k úpravě vody solí se do nabídky automaticky přidá solinátor i balík soli.'
+        }
+      ]
+    },
     {
       version: '1.2.1',
       date: '2026-06-23',
