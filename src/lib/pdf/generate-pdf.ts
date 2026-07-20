@@ -9,6 +9,7 @@ import type { PDFDocument } from 'pdf-lib'
 import { rgb, StandardFonts } from 'pdf-lib'
 import { COMPANY } from '@/lib/constants/company'
 import { getLogoDataUri } from './logo-cache'
+import { forceCloseBrowser } from '@/lib/puppeteer-pool'
 
 export interface PdfPageOptions {
   displayHeaderFooter?: boolean
@@ -66,7 +67,12 @@ export async function generatePdfFromPage(
       return pdfBuffer
     } catch (error) {
       console.error(`[PDF] Generation attempt ${attempt} failed:`, error)
-      if (attempt === retries) {
+      // A timeout means the pooled Chromium is likely wedged — it stays "connected",
+      // so the pool would keep handing it out forever. Discard it so the next
+      // request launches a fresh instance; retrying on the same page is pointless.
+      const isTimeout = error instanceof Error && error.name === 'TimeoutError'
+      if (isTimeout || attempt === retries) {
+        await forceCloseBrowser()
         throw error
       }
       // Wait before retry
