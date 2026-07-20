@@ -4,9 +4,21 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.3.0'
+export const CURRENT_VERSION = '1.3.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.3.1',
+      date: '2026-07-20',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'pdf',
+          description: 'Automatické zotavení generování PDF po zaseknutí prohlížeče',
+          userDescription: 'Stahování PDF (nabídky, objednávky, výrobní zadání) mohlo přestat fungovat pro všechny uživatele najednou — stažení skončilo chybou „stránka není dostupná" a nepomohlo ani opakování. Aplikace si pro rychlost drží na pozadí jednu „zahřátou" instanci prohlížeče, kterým PDF vykresluje, a když se tato instance zasekla, systém ji dál používal a všechna další generování selhávala, dokud se server ručně nerestartoval. Nově se zaseknutý prohlížeč po první chybě automaticky zahodí a další pokus o stažení si spustí čerstvý — stačí tedy kliknout na stažení znovu a PDF se vygeneruje. Neúspěšný pokus také selže rychleji (do půl minuty) místo dřívějšího minutového čekání.'
+        }
+      ]
+    },
     {
       version: '1.3.0',
       date: '2026-07-02',
