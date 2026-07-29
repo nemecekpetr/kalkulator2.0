@@ -19,6 +19,7 @@ import {
 import { Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Order, OrderItem } from '@/lib/supabase/types'
+import { DIAGRAM_SHAPE_LABELS } from '@/components/pdf/pool-shape-outline'
 
 const formatCZK = (price: number) =>
   new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(price)
@@ -54,6 +55,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
     delivery_cost_free: order.delivery_cost_free ?? true,
     total_weight: order.total_weight ?? '',
     vat_rate: order.vat_rate ?? 0,
+    diagram_shape: order.diagram_shape || '',
   })
 
   const handleChange = (
@@ -103,6 +105,7 @@ export function OrderEditor({ order }: OrderEditorProps) {
           delivery_cost_free: formData.delivery_cost_free,
           total_weight: formData.total_weight ? parseFloat(String(formData.total_weight)) : null,
           vat_rate: vatRate,
+          diagram_shape: formData.diagram_shape || null,
         }),
       })
 
@@ -264,6 +267,28 @@ export function OrderEditor({ order }: OrderEditorProps) {
                 value={formData.delivery_address}
                 onChange={handleChange}
               />
+            </div>
+            <div>
+              <Label>Tvar bazénu (pro nákres)</Label>
+              <Select
+                value={formData.diagram_shape || 'auto'}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, diagram_shape: value === 'auto' ? '' : value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Podle konfigurace" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Podle konfigurace bazénu</SelectItem>
+                  {Object.entries(DIAGRAM_SHAPE_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Použije se v nákresu na podpisové straně objednávky a na výrobním listu. Ruční přepsání se hodí pro custom bazény mimo konfigurátor.
+              </p>
             </div>
           </CardContent>
         </Card>

@@ -132,6 +132,10 @@ function PrintBlock({ children, className = '' }: { children: React.ReactNode; c
 
 // Title page component - WOW effect with hero photo
 function TitlePage({ quote, images }: { quote: QuoteWithCreator; images: ImagePaths }) {
+  const creatorName = quote.creator?.full_name || COMPANY.representative.name
+  const creatorPhone = quote.creator?.phone || COMPANY.phone
+  const creatorEmail = quote.creator?.email || COMPANY.email
+
   return (
     <div className="w-[210mm] h-[297mm] mx-auto relative overflow-hidden">
       {/* Hero background photo */}
@@ -197,28 +201,40 @@ function TitlePage({ quote, images }: { quote: QuoteWithCreator; images: ImagePa
 
           {/* Customer details card + Slogan */}
           <div className="flex flex-col items-end gap-6">
-            {/* Customer info card */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs">
-              <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
-                Kontaktní údaje
-              </h3>
-              <div className="space-y-1.5">
-                <p className="text-lg font-bold text-[#01384B]">{quote.customer_name}</p>
-                {quote.customer_email && (
-                  <p className="text-gray-600 text-sm flex items-center gap-2">
-                    <span className="text-[#48A9A6]">email:</span> {quote.customer_email}
-                  </p>
-                )}
-                {quote.customer_phone && (
-                  <p className="text-gray-600 text-sm flex items-center gap-2">
-                    <span className="text-[#48A9A6]">tel:</span> {quote.customer_phone}
-                  </p>
-                )}
-                {quote.customer_address && (
-                  <p className="text-gray-600 text-sm flex items-center gap-2">
-                    <span className="text-[#48A9A6]">adresa:</span> {quote.customer_address}
-                  </p>
-                )}
+            {/* Objednatel / Bazénový specialista — one box, two sections */}
+            <div className="bg-white rounded-2xl shadow-2xl max-w-xs overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
+                  Objednatel
+                </h3>
+                <div className="space-y-1.5">
+                  <p className="text-lg font-bold text-[#01384B]">{quote.customer_name}</p>
+                  {quote.customer_email && (
+                    <p className="text-gray-600 text-sm flex items-center gap-2">
+                      <span className="text-[#48A9A6]">email:</span> {quote.customer_email}
+                    </p>
+                  )}
+                  {quote.customer_phone && (
+                    <p className="text-gray-600 text-sm flex items-center gap-2">
+                      <span className="text-[#48A9A6]">tel:</span> {quote.customer_phone}
+                    </p>
+                  )}
+                  {quote.customer_address && (
+                    <p className="text-gray-600 text-sm flex items-center gap-2">
+                      <span className="text-[#48A9A6]">adresa:</span> {quote.customer_address}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-100">
+                <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
+                  Bazénový specialista
+                </h3>
+                <div className="space-y-1.5">
+                  <p className="text-lg font-bold text-[#01384B]">{creatorName}</p>
+                  <p className="text-gray-600 text-sm">{creatorPhone}</p>
+                  <p className="text-gray-600 text-sm">{creatorEmail}</p>
+                </div>
               </div>
             </div>
 

@@ -1,22 +1,12 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { Order, OrderItem, QuoteItemCategory } from '@/lib/supabase/types'
+import type { Order, OrderItem, QuoteItemCategory, UserProfile } from '@/lib/supabase/types'
 import { COMPANY } from '@/lib/constants/company'
 import { verifyPrintToken } from '@/lib/pdf/print-token'
 import { formatPrice, formatDate } from '@/lib/utils/format'
 import { QUOTE_CATEGORY_LABELS, QUOTE_CATEGORY_ORDER } from '@/lib/constants/categories'
-import {
-  getShapeLabel,
-  getTypeLabel,
-  getColorLabel,
-  getStairsLabel,
-  getTechnologyLabel,
-  getLightingLabel,
-  getCounterflowLabel,
-  getWaterTreatmentLabel,
-  getHeatingLabel,
-  getRoofingLabel,
-} from '@/lib/constants/configurator'
+import { PoolShapeOutline } from '@/components/pdf/pool-shape-outline'
+import { generateSalutation, isFemaleFromSalutation } from '@/lib/utils/czech-salutation'
 
 type OrderItemWithProduct = OrderItem & { product_description?: string | null }
 
@@ -60,6 +50,8 @@ const IMAGE_PATHS: Record<'email' | 'print', ImagePaths> = {
   },
 }
 
+type OrderCreator = Pick<UserProfile, 'full_name' | 'email' | 'phone'>
+
 async function getOrder(id: string) {
   const supabase = await createAdminClient()
 
@@ -88,14 +80,37 @@ async function getOrder(id: string) {
     }
   })
 
+  let creator: OrderCreator | null = null
+  if (order.created_by) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('full_name, email, phone')
+      .eq('id', order.created_by)
+      .single()
+    if (profile) {
+      creator = profile
+    }
+  }
+
   return {
     ...order,
     items: itemsWithProduct,
-  } as Order & { items: OrderItemWithProduct[] }
+    creator,
+  } as Order & { items: OrderItemWithProduct[]; creator: OrderCreator | null }
 }
 
 // Title page component
-function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; images: ImagePaths }) {
+function TitlePage({
+  order,
+  images,
+}: {
+  order: Order & { items: OrderItem[]; creator: OrderCreator | null }
+  images: ImagePaths
+}) {
+  const creatorName = order.creator?.full_name || COMPANY.representative.name
+  const creatorPhone = order.creator?.phone || COMPANY.phone
+  const creatorEmail = order.creator?.email || COMPANY.email
+
   return (
     <div className="min-h-screen relative overflow-hidden">
       {/* Hero background photo */}
@@ -120,7 +135,7 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 text-right">
           <p className="text-[#48A9A6] text-sm font-medium uppercase tracking-wider mb-1">Objednávka č.</p>
           <p className="text-3xl font-bold text-white">{order.order_number}</p>
-          <p className="text-white/70 text-sm mt-1">{formatDate(order.created_at)}</p>
+          <p className="text-white/70 text-sm mt-1">{formatDate(order.contract_date || order.updated_at)}</p>
         </div>
       </div>
 
@@ -159,28 +174,40 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
 
           {/* Customer info card + Slogan */}
           <div className="flex flex-col items-end gap-6">
-            {/* Customer info card - no price */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-xs">
-              <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
-                Objednatel
-              </h3>
-              <div className="space-y-1.5">
-                <p className="text-lg font-bold text-[#01384B]">{order.customer_name}</p>
-                {order.customer_email && (
-                  <p className="text-gray-600 text-sm flex items-center gap-2">
-                    <span className="text-[#48A9A6]">email:</span> {order.customer_email}
-                  </p>
-                )}
-                {order.customer_phone && (
-                  <p className="text-gray-600 text-sm flex items-center gap-2">
-                    <span className="text-[#48A9A6]">tel:</span> {order.customer_phone}
-                  </p>
-                )}
-                {order.customer_address && (
-                  <p className="text-gray-600 text-sm flex items-center gap-2">
-                    <span className="text-[#48A9A6]">adresa:</span> {order.customer_address}
-                  </p>
-                )}
+            {/* Objednatel / Bazénový specialista — one box, two sections */}
+            <div className="bg-white rounded-2xl shadow-2xl max-w-xs overflow-hidden">
+              <div className="p-6">
+                <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
+                  Objednatel
+                </h3>
+                <div className="space-y-1.5">
+                  <p className="text-lg font-bold text-[#01384B]">{order.customer_name}</p>
+                  {order.customer_email && (
+                    <p className="text-gray-600 text-sm flex items-center gap-2">
+                      <span className="text-[#48A9A6]">email:</span> {order.customer_email}
+                    </p>
+                  )}
+                  {order.customer_phone && (
+                    <p className="text-gray-600 text-sm flex items-center gap-2">
+                      <span className="text-[#48A9A6]">tel:</span> {order.customer_phone}
+                    </p>
+                  )}
+                  {order.customer_address && (
+                    <p className="text-gray-600 text-sm flex items-center gap-2">
+                      <span className="text-[#48A9A6]">adresa:</span> {order.customer_address}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="p-6 border-t border-gray-100">
+                <h3 className="text-[#48A9A6] text-sm font-semibold uppercase tracking-wider mb-3">
+                  Bazénový specialista
+                </h3>
+                <div className="space-y-1.5">
+                  <p className="text-lg font-bold text-[#01384B]">{creatorName}</p>
+                  <p className="text-gray-600 text-sm">{creatorPhone}</p>
+                  <p className="text-gray-600 text-sm">{creatorEmail}</p>
+                </div>
               </div>
             </div>
 
@@ -195,6 +222,77 @@ function TitlePage({ order, images }: { order: Order & { items: OrderItem[] }; i
   )
 }
 
+// Letter page - personal thank-you note from the company director
+function LetterPage({ order }: { order: Order }) {
+  const salutation = generateSalutation(order.customer_name)
+  const isFemale = isFemaleFromSalutation(salutation)
+  const projevilaVerb = isFemale ? 'projevila' : 'projevil'
+
+  return (
+    <div className="w-[210mm] mx-auto bg-white relative flex flex-col py-12 px-10" style={{ minHeight: '245mm' }}>
+      {/* Letter content */}
+      <div className="flex-1 flex flex-col">
+        {/* Salutation */}
+        <div className="mt-4 mb-8">
+          <h2 className="text-2xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+            {salutation},
+          </h2>
+        </div>
+
+        {/* Letter body */}
+        <div className="space-y-5 text-[15px] leading-relaxed text-gray-700 max-w-[150mm]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+          <p>
+            děkuji Vám, že jste si za dodavatele svého bazénu vybrali právě Rentmil. Vážím si důvěry,
+            kterou jste nám touto objednávkou {projevilaVerb}.
+          </p>
+
+          <p>
+            Od tohoto okamžiku je naším jediným cílem to, abyste byli s celou dodávkou naprosto spokojeni:
+            se samotným bazénem, s technologiemi, s montáží i s péčí, kterou Vám budeme věnovat
+            až do dne, kdy si poprvé užijete svůj vlastní <strong className="text-[#01384B]">bazénový zen</strong>.
+          </p>
+
+          <p>
+            Osobně dohlédnu na to, aby vše proběhlo hladce a bez starostí. Bazén, který pro Vás vyrábíme,
+            ponese náš podpis. To je pro mě i celý tým Rentmil závazek udělat pro Vaši radost maximum.
+          </p>
+
+          <p className="text-lg font-semibold text-[#01384B] italic">
+            Přeji si, abyste na tuto objednávku jednou vzpomínali jako na nejlepší rozhodnutí letošního roku.
+          </p>
+
+          <p>
+            Vy zenujete, my bazénujeme.
+          </p>
+        </div>
+
+        {/* Signature */}
+        <div className="mt-10 flex items-end justify-between">
+          <div>
+            <p className="text-gray-500 text-sm mb-3">S přátelským pozdravem,</p>
+            <p className="text-xl font-bold text-[#01384B]" style={{ fontFamily: 'Nunito, sans-serif' }}>
+              {COMPANY.representative.name}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">{COMPANY.representative.role} Rentmil s.r.o.</p>
+          </div>
+
+          {/* Mascot */}
+          <img
+            src="/maskot-thinking.png"
+            alt="Bazénový mistr"
+            className="h-72 object-contain opacity-90"
+          />
+        </div>
+
+        {/* Decorative divider */}
+        <div className="mt-auto pb-10">
+          <div className="w-24 h-1 bg-gradient-to-r from-[#FF8621] to-[#ED6663] rounded-full" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const DELIVERY_METHOD_LABELS: Record<string, string> = {
   rentmil_dap: 'Rentmil s.r.o. (DAP)',
   self_pickup: 'Vlastní odběr',
@@ -203,77 +301,6 @@ const DELIVERY_METHOD_LABELS: Record<string, string> = {
 function getDeliveryMethodLabel(method: string | null): string {
   if (!method) return 'Dle dohody'
   return DELIVERY_METHOD_LABELS[method] || method
-}
-
-function formatDimensions(shape: string | undefined, dims: PoolConfig['dimensions']): string {
-  if (!dims) return ''
-  if (shape === 'circle' && dims.diameter != null) {
-    return `Ø${dims.diameter} × ${dims.depth ?? '?'} m`
-  }
-  return `${dims.length ?? '?'} × ${dims.width ?? '?'} × ${dims.depth ?? '?'} m`
-}
-
-function formatTechnology(tech: PoolConfig['technology']): string {
-  if (!tech) return ''
-  if (Array.isArray(tech)) {
-    return tech.filter((t) => t && t !== 'none').map((t) => getTechnologyLabel(t)).join(', ')
-  }
-  return tech === 'none' ? '' : getTechnologyLabel(tech)
-}
-
-// Pool configuration card — full specification from order.pool_config
-function PoolConfigCard({ pool_config }: { pool_config: PoolConfig | null }) {
-  if (!pool_config) return null
-
-  const rows: Array<{ label: string; value: string }> = []
-  if (pool_config.shape) rows.push({ label: 'Tvar', value: getShapeLabel(pool_config.shape) })
-  if (pool_config.type) rows.push({ label: 'Typ', value: getTypeLabel(pool_config.type) })
-  const dims = formatDimensions(pool_config.shape, pool_config.dimensions)
-  if (dims) rows.push({ label: 'Rozměry', value: dims })
-  if (pool_config.color) rows.push({ label: 'Barva', value: getColorLabel(pool_config.color) })
-  if (pool_config.stairs && pool_config.stairs !== 'none') {
-    rows.push({ label: 'Schodiště', value: getStairsLabel(pool_config.stairs) })
-  }
-  const tech = formatTechnology(pool_config.technology)
-  if (tech) rows.push({ label: 'Technologie', value: tech })
-  if (pool_config.lighting && pool_config.lighting !== 'none') {
-    rows.push({ label: 'Osvětlení', value: getLightingLabel(pool_config.lighting) })
-  }
-  if (pool_config.counterflow && pool_config.counterflow !== 'none') {
-    rows.push({ label: 'Protiproud', value: getCounterflowLabel(pool_config.counterflow) })
-  }
-  if (pool_config.waterTreatment && pool_config.waterTreatment !== 'none') {
-    rows.push({
-      label: 'Úprava vody',
-      value: getWaterTreatmentLabel(pool_config.waterTreatment, pool_config.waterTreatmentOther),
-    })
-  }
-  if (pool_config.heating && pool_config.heating !== 'none') {
-    rows.push({ label: 'Ohřev', value: getHeatingLabel(pool_config.heating) })
-  }
-  if (pool_config.roofing && pool_config.roofing !== 'none') {
-    rows.push({ label: 'Zastřešení', value: getRoofingLabel(pool_config.roofing) })
-  }
-
-  if (rows.length === 0) return null
-
-  return (
-    <div className="mb-8" style={{ pageBreakInside: 'avoid' }}>
-      <h2 className="text-xl font-bold mb-4 pb-2 border-b-2 border-[#48A9A6]">
-        Konfigurace bazénu
-      </h2>
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
-          {rows.map((row) => (
-            <div key={row.label} className="flex justify-between border-b border-gray-200 py-1">
-              <span className="text-gray-600">{row.label}</span>
-              <span className="font-medium text-[#01384B]">{row.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // Items grouped by category — replicates ItemsSection from quote print
@@ -415,9 +442,6 @@ function ContractPage({ order }: { order: Order & { items: OrderItemWithProduct[
           </div>
         </div>
       </div>
-
-      {/* Pool configuration */}
-      <PoolConfigCard pool_config={order.pool_config as PoolConfig | null} />
 
       {/* Items grouped by category */}
       <div className="mb-8">
@@ -819,6 +843,9 @@ function ContractClausesPage({ order }: { order: Order }) {
 
 // Signature page - stairs sketch + signatures with stamp + GDPR
 function SignaturePage({ order }: { order: Order }) {
+  const poolConfig = order.pool_config as PoolConfig | null
+  const diagramShape = order.diagram_shape || poolConfig?.shape || 'rectangle_rounded'
+
   return (
     <div className="bg-white px-10 py-6 text-[#01384B]">
       {/* Stairs placement sketch */}
@@ -834,8 +861,8 @@ function SignaturePage({ order }: { order: Order }) {
         {/* Pool sketch */}
         <div className="border-2 border-gray-300 rounded-lg p-6 flex items-center justify-center" style={{ minHeight: '200px' }}>
           <div className="relative" style={{ width: '400px', height: '160px' }}>
-            {/* Pool rectangle */}
-            <div className="absolute inset-0 border-2 border-[#01384B] rounded-lg" />
+            {/* Pool outline, matching the order's actual shape */}
+            <PoolShapeOutline shape={diagramShape} width={400} height={160} />
 
             {/* A label - top left corner */}
             <div className="absolute -top-6 -left-1 flex items-center gap-1">
@@ -847,11 +874,6 @@ function SignaturePage({ order }: { order: Order }) {
             <div className="absolute -bottom-6 -left-1 flex items-center gap-1">
               <span className="text-sm font-semibold text-[#01384B]">B</span>
               <div className="h-px w-12 bg-gray-400" />
-            </div>
-
-            {/* Center text */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm text-gray-400 italic">prostor pro nákres</span>
             </div>
           </div>
         </div>
@@ -884,7 +906,7 @@ function SignaturePage({ order }: { order: Order }) {
             </div>
 
             <p className="text-xs text-gray-600 mt-3">
-              V Plzni dne {order.contract_date ? formatDate(order.contract_date) : formatDate(order.created_at)}
+              V Plzni dne {formatDate(order.contract_date || order.updated_at)}
             </p>
           </div>
 
@@ -942,6 +964,10 @@ export default async function OrderPrintPage({ params, searchParams }: PageProps
   // Return specific page based on query param
   if (page === 'title') {
     return <TitlePage order={order} images={images} />
+  }
+
+  if (page === 'letter') {
+    return <LetterPage order={order} />
   }
 
   if (page === 'clauses') {

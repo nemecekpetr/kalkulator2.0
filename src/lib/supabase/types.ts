@@ -812,6 +812,12 @@ export interface Order {
   internal_notes: string | null
   // Audit
   created_by: string | null
+  // Which quote variant this order was created from (for correct re-sync).
+  // Stores the stable variant_key, not a row id — quote_variants rows are
+  // deleted/recreated on every quote save, so an id-based FK would not survive.
+  quote_variant_key: QuoteVariantKey | null
+  // Manual shape override for signature-page sketch / production shape icon
+  diagram_shape: string | null
 }
 
 export interface OrderInsert {
@@ -848,6 +854,8 @@ export interface OrderInsert {
   notes?: string | null
   internal_notes?: string | null
   created_by?: string | null
+  quote_variant_key?: QuoteVariantKey | null
+  diagram_shape?: string | null
 }
 
 export interface OrderUpdate {
@@ -882,6 +890,8 @@ export interface OrderUpdate {
   vat_rate?: number
   notes?: string | null
   internal_notes?: string | null
+  quote_variant_key?: QuoteVariantKey | null
+  diagram_shape?: string | null
 }
 
 // Order item types

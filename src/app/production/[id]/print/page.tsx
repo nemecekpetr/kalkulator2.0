@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ProductionOrder, ProductionOrderItem } from '@/lib/supabase/types'
-import { PoolSchematic } from '@/components/pool-schematic'
+import { PoolShapeOutline, DIAGRAM_SHAPE_LABELS } from '@/components/pdf/pool-shape-outline'
 import { verifyPrintToken } from '@/lib/pdf/print-token'
 import { formatDateShort } from '@/lib/utils/format'
 
@@ -33,12 +33,6 @@ interface PoolConfig {
   accessories?: string[]
 }
 
-const POOL_SHAPE_LABELS: Record<string, string> = {
-  circle: 'Kruhový',
-  rectangle_rounded: 'Obdélník zaoblený',
-  rectangle_sharp: 'Obdélník ostrý',
-}
-
 const POOL_TYPE_LABELS: Record<string, string> = {
   skimmer: 'Skimmer',
   overflow: 'Přelivový',
@@ -56,7 +50,7 @@ async function getProductionOrder(id: string) {
 
   const { data: productionOrder, error } = await supabase
     .from('production_orders')
-    .select('*, production_order_items(*), orders(order_number, customer_name, customer_phone, customer_address, delivery_address, delivery_date, pool_config)')
+    .select('*, production_order_items(*), orders(order_number, customer_name, customer_phone, customer_address, delivery_address, fulfillment_address, delivery_date, pool_config)')
     .eq('id', id)
     .single()
 
@@ -72,6 +66,7 @@ async function getProductionOrder(id: string) {
       customer_phone: string | null
       customer_address: string | null
       delivery_address: string | null
+      fulfillment_address: string | null
       delivery_date: string | null
       pool_config: PoolConfig | null
     } | null
@@ -113,10 +108,7 @@ export default async function ProductionPrintPage({ params, searchParams }: Page
   const totalCount = items.length
   const progress = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0
 
-  // Extract pool config from order for schematic
-  const poolConfig = production.orders?.pool_config
-  const hasLighting = !!(poolConfig?.lighting && poolConfig.lighting !== 'none')
-  const hasCounterflow = !!(poolConfig?.counterflow && poolConfig.counterflow !== 'none')
+  const diagramShape = production.pool_shape || 'rectangle_rounded'
 
   return (
     <html>
@@ -228,6 +220,12 @@ export default async function ProductionPrintPage({ params, searchParams }: Page
             font-size: 10px;
             font-weight: 700;
             color: #01384B;
+            min-height: 12px;
+          }
+
+          .date-value.empty {
+            border-bottom: 1px solid #999;
+            margin: 0 6px;
           }
 
           .two-column {
@@ -477,19 +475,25 @@ export default async function ProductionPrintPage({ params, searchParams }: Page
             </div>
           </div>
 
-          {/* Dates */}
+          {/* Dates — left blank (with a writable line) when not yet set, filled in by hand */}
           <div className="dates-grid">
             <div className="date-box">
               <div className="date-label">Zahájení výroby</div>
-              <div className="date-value">{formatDateShort(production.production_start_date)}</div>
+              <div className={`date-value${production.production_start_date ? '' : ' empty'}`}>
+                {production.production_start_date ? formatDateShort(production.production_start_date) : ''}
+              </div>
             </div>
             <div className="date-box">
               <div className="date-label">Dokončení výroby</div>
-              <div className="date-value">{formatDateShort(production.production_end_date)}</div>
+              <div className={`date-value${production.production_end_date ? '' : ' empty'}`}>
+                {production.production_end_date ? formatDateShort(production.production_end_date) : ''}
+              </div>
             </div>
             <div className="date-box">
               <div className="date-label">Datum montáže</div>
-              <div className="date-value">{formatDateShort(production.assembly_date)}</div>
+              <div className={`date-value${production.assembly_date ? '' : ' empty'}`}>
+                {production.assembly_date ? formatDateShort(production.assembly_date) : ''}
+              </div>
             </div>
             {production.orders?.delivery_date && (
               <div className="date-box">
@@ -499,28 +503,18 @@ export default async function ProductionPrintPage({ params, searchParams }: Page
             )}
           </div>
 
-          {/* Pool schematic + Order info */}
+          {/* Pool shape + Order info */}
           <div className="two-column">
-            {/* Pool schematic drawing */}
+            {/* Pool shape icon — simple outline, not a technical drawing */}
             <div className="column">
               <div className="schematic-box">
-                <div className="schematic-title">Nákres bazénu</div>
+                <div className="schematic-title">Tvar bazénu</div>
                 <div className="schematic-container">
-                  <PoolSchematic
-                    shape={production.pool_shape}
-                    type={production.pool_type}
-                    dimensions={production.pool_dimensions}
-                    depth={production.pool_depth}
-                    color={production.pool_color}
-                    stairs={poolConfig?.stairs}
-                    hasLighting={hasLighting}
-                    hasCounterflow={hasCounterflow}
-                    scale={0.75}
-                  />
+                  <PoolShapeOutline shape={diagramShape} width={140} height={110} />
                 </div>
-                {/* Pool specs summary below schematic */}
+                {/* Pool specs summary below icon */}
                 <div className="pool-specs-summary">
-                  <span><strong>Tvar:</strong> {POOL_SHAPE_LABELS[production.pool_shape || ''] || production.pool_shape || '-'}</span>
+                  <span><strong>Tvar:</strong> {DIAGRAM_SHAPE_LABELS[production.pool_shape || ''] || production.pool_shape || '-'}</span>
                   <span><strong>Typ:</strong> {POOL_TYPE_LABELS[production.pool_type || ''] || production.pool_type || '-'}</span>
                   <span><strong>Barva:</strong> {POOL_COLOR_LABELS[production.pool_color || ''] || production.pool_color || '-'}</span>
                 </div>
@@ -546,20 +540,16 @@ export default async function ProductionPrintPage({ params, searchParams }: Page
                       <div className="info-value">{production.orders.customer_phone}</div>
                     </div>
                   )}
-                  {(production.orders.delivery_address || production.orders.customer_address) && (
+                  {(production.orders.fulfillment_address || production.orders.delivery_address || production.orders.customer_address) && (
                     <div className="info-row">
                       <div className="info-label">Dodání</div>
                       <div className="info-value">
-                        {production.orders.delivery_address || production.orders.customer_address}
+                        {production.orders.fulfillment_address || production.orders.delivery_address || production.orders.customer_address}
                       </div>
                     </div>
                   )}
                 </>
               )}
-              <div className="info-row">
-                <div className="info-label">Přiřazeno</div>
-                <div className="info-value">{production.assigned_to || 'Nepřiřazeno'}</div>
-              </div>
             </div>
           </div>
 

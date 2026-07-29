@@ -38,6 +38,7 @@ export const OrderUpdateSchema = z.object({
   vat_rate: z.number().min(0).max(100).optional(),
   notes: z.string().max(5000).optional().nullable(),
   internal_notes: z.string().max(5000).optional().nullable(),
+  diagram_shape: z.enum(['circle', 'rectangle_rounded', 'rectangle_sharp', 'oval']).optional().nullable(),
 }).strict()
 
 // Order status schema
@@ -59,6 +60,22 @@ export const ProductionStatusSchema = z.object({
 export const ProductionOrderCreateSchema = z.object({
   order_id: z.string().uuid(),
 })
+
+// Production order update schema
+export const ProductionOrderUpdateSchema = z.object({
+  status: z.enum(['pending', 'in_progress', 'completed', 'on_hold']).optional(),
+  assigned_to: z.string().max(255).optional().nullable(),
+  production_start_date: dateString.optional().nullable(),
+  production_end_date: dateString.optional().nullable(),
+  assembly_date: dateString.optional().nullable(),
+  pool_shape: z.enum(['circle', 'rectangle_rounded', 'rectangle_sharp', 'oval']).optional().nullable(),
+  pool_type: z.string().max(50).optional().nullable(),
+  pool_dimensions: z.string().max(100).optional().nullable(),
+  pool_color: z.string().max(50).optional().nullable(),
+  pool_depth: z.string().max(50).optional().nullable(),
+  notes: z.string().max(5000).optional().nullable(),
+  internal_notes: z.string().max(5000).optional().nullable(),
+}).strict()
 
 // Mapping rule schema
 export const MappingRuleSchema = z.object({

@@ -28,6 +28,7 @@ const POOL_SHAPES = [
   { value: 'circle', label: 'Kruhový' },
   { value: 'rectangle_rounded', label: 'Obdélník zaoblený' },
   { value: 'rectangle_sharp', label: 'Obdélník ostrý' },
+  { value: 'oval', label: 'Ovál' },
 ]
 
 const POOL_TYPES = [

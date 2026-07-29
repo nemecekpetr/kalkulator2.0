@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   DndContext,
   closestCenter,
@@ -763,16 +764,6 @@ export function QuoteEditor({
       prev.map((v) => (v.key === key ? { ...v, name } : v))
     )
   }, [])
-
-  // Update variant discount
-  const updateVariantDiscount = useCallback(
-    (key: QuoteVariantKey, field: 'discount_percent' | 'discount_amount', value: number) => {
-      setVariants((prev) =>
-        prev.map((v) => (v.key === key ? { ...v, [field]: value } : v))
-      )
-    },
-    []
-  )
 
   // Get pool shape from configuration for prerequisite checking
   const poolShape = configuration?.pool_shape as PoolShape | undefined
@@ -1901,7 +1892,16 @@ export function QuoteEditor({
                     </AlertDialogTitle>
                     <AlertDialogDescription>
                       Položky a ceny objednávky budou přepsány aktuálními položkami z nabídky.
-                      Smluvní údaje (záloha, doprava, DPH, adresy) zůstanou beze změny.
+                      Smluvní údaje (záloha, doprava, DPH, adresy) zůstanou beze změny, upravíte je{' '}
+                      {existingOrder && (
+                        <Link
+                          href={`/admin/objednavky/${existingOrder.id}/upravit`}
+                          className="underline underline-offset-2 hover:text-foreground"
+                        >
+                          v detailu objednávky
+                        </Link>
+                      )}
+                      .
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -2222,29 +2222,6 @@ export function QuoteEditor({
                           <Pencil className="w-3 h-3" />
                         </button>
                       )}
-                    </div>
-                    <div className="w-32 space-y-2">
-                      <Label className="text-sm">Sleva %</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={variant.discount_percent}
-                        onChange={(e) =>
-                          updateVariantDiscount(variant.key, 'discount_percent', parseFloat(e.target.value) || 0)
-                        }
-                      />
-                    </div>
-                    <div className="w-32 space-y-2">
-                      <Label className="text-sm">Sleva Kč</Label>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={variant.discount_amount}
-                        onChange={(e) =>
-                          updateVariantDiscount(variant.key, 'discount_amount', parseFloat(e.target.value) || 0)
-                        }
-                      />
                     </div>
                   </div>
 

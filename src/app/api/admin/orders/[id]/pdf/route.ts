@@ -88,6 +88,19 @@ export async function GET(request: Request, { params }: RouteParams) {
     const [titlePage] = await mergedPdf.copyPages(titlePdf, [0])
     mergedPdf.addPage(titlePage)
 
+    // Step 1.5: Generate personal thank-you letter page (with header/footer)
+    const letterPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=letter&quality=${quality}`, printToken)
+
+    const letterPdfBuffer = await generatePdfFromPage(page, letterPageUrl, contentOptions)
+    metrics.step('letter-page')
+
+    const letterPdf = await PDFDocument.load(letterPdfBuffer)
+    const letterPageCount = letterPdf.getPageCount()
+    for (let i = 0; i < letterPageCount; i++) {
+      const [letterPageCopy] = await mergedPdf.copyPages(letterPdf, [i])
+      mergedPdf.addPage(letterPageCopy)
+    }
+
     // Step 2: Generate contract content page (with header/footer)
     const contentPageUrl = addTokenToUrl(`${baseUrl}/orders/${id}/print?page=content&quality=${quality}`, printToken)
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
-import type { QuoteStatus, OrderItemInsert } from '@/lib/supabase/types'
+import type { QuoteStatus, QuoteVariantKey, OrderItemInsert } from '@/lib/supabase/types'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -52,6 +52,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     let orderDiscountPercent = quote.discount_percent
     let orderDiscountAmount = quote.discount_amount
     let orderTotalPrice = quote.total_price
+    let orderVariantKey: QuoteVariantKey | null = null
 
     if (variantId) {
       // Fetch variant data for pricing
@@ -66,22 +67,33 @@ export async function POST(request: Request, { params }: RouteParams) {
         return new NextResponse('Varianta nenalezena', { status: 404 })
       }
 
+      // Store the stable variant_key (not the row id) — quote_variants rows
+      // are deleted/recreated on every quote save, so an id-based reference
+      // would not survive a later edit-and-resync.
+      orderVariantKey = variant.variant_key
+
       // Use variant pricing
       orderSubtotal = variant.subtotal
       orderDiscountPercent = variant.discount_percent
       orderDiscountAmount = variant.discount_amount
       orderTotalPrice = variant.total_price
 
-      // Filter items by variant via junction table
-      const { data: variantItemAssocs } = await supabase
+      // Filter items by variant via junction table — including down to zero
+      // items if the variant genuinely has none. Falling back to "all items"
+      // here would silently merge every variant's items while still pricing
+      // the order from this single variant's total.
+      const { data: variantItemAssocs, error: assocError } = await supabase
         .from('quote_item_variants')
         .select('quote_item_id')
         .eq('quote_variant_id', variantId)
 
-      if (variantItemAssocs && variantItemAssocs.length > 0) {
-        const variantItemIds = new Set(variantItemAssocs.map((a) => a.quote_item_id))
-        quoteItems = quoteItems.filter((item) => variantItemIds.has(item.id))
+      if (assocError) {
+        console.error('Error loading variant item associations:', assocError)
+        return new NextResponse('Nepodařilo se načíst položky varianty', { status: 500 })
       }
+
+      const variantItemIds = new Set((variantItemAssocs || []).map((a) => a.quote_item_id))
+      quoteItems = quoteItems.filter((item) => variantItemIds.has(item.id))
     }
 
     // Use database function to generate order number (atomic, no race condition)
@@ -100,6 +112,11 @@ export async function POST(request: Request, { params }: RouteParams) {
     // For now, we'll do our best with sequential operations and rollback on failure
 
     // Step 1: Create order
+    const poolConfigShape =
+      quote.pool_config && typeof quote.pool_config === 'object' && !Array.isArray(quote.pool_config)
+        ? (quote.pool_config as Record<string, unknown>).shape
+        : undefined
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -117,12 +134,14 @@ export async function POST(request: Request, { params }: RouteParams) {
         delivery_cost: 0,
         vat_rate: quote.vat_rate ?? 0,
         pool_config: quote.pool_config,
+        diagram_shape: typeof poolConfigShape === 'string' ? poolConfigShape : null,
         subtotal: orderSubtotal,
         discount_percent: orderDiscountPercent,
         discount_amount: orderDiscountAmount,
         total_price: orderTotalPrice,
         notes: quote.notes,
         created_by: quote.created_by,
+        quote_variant_key: orderVariantKey,
       })
       .select()
       .single()

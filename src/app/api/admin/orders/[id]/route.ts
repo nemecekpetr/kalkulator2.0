@@ -80,6 +80,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (body.delivery_cost_free !== undefined) updateData.delivery_cost_free = body.delivery_cost_free
     if (body.total_weight !== undefined) updateData.total_weight = body.total_weight
     if (body.vat_rate !== undefined) updateData.vat_rate = body.vat_rate
+    if (body.diagram_shape !== undefined) updateData.diagram_shape = body.diagram_shape
 
     // Notes (sanitized)
     if (body.notes !== undefined) updateData.notes = sanitizeText(body.notes)
@@ -96,6 +97,21 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (error) {
       console.error('Error updating order:', error)
       return new NextResponse('Nepodařilo se aktualizovat objednávku', { status: 500 })
+    }
+
+    // Keep an already-created production order's cached shape in sync —
+    // it's otherwise only ever set once, at production-order creation time.
+    if (body.diagram_shape !== undefined) {
+      const poolConfig = order.pool_config as Record<string, unknown> | null
+      const resolvedShape = order.diagram_shape || (typeof poolConfig?.shape === 'string' ? poolConfig.shape : null)
+      const { error: productionSyncError } = await supabase
+        .from('production_orders')
+        .update({ pool_shape: resolvedShape })
+        .eq('order_id', id)
+
+      if (productionSyncError) {
+        console.error('Error syncing production order pool_shape:', productionSyncError)
+      }
     }
 
     return NextResponse.json(order)

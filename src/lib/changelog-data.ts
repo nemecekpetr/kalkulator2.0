@@ -4,9 +4,69 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.3.1'
+export const CURRENT_VERSION = '1.4.0'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.4.0',
+      date: '2026-07-29',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Oprava sesouhlasení objednávky s variantou nabídky při opakovaných úpravách',
+          userDescription: 'Když se objednávka po vytvoření z nabídky ještě upravovala (přidání či odebrání položek) a pak se tlačítkem „Aktualizovat objednávku" znovu sesouhlasila s nabídkou, mohlo se při druhé a další takové úpravě stát, že se do objednávky nečekaně promítly položky ze všech cenových variant nabídky najednou (ekonomická, optimální i prémiová sloučené do jedné sumy) místo jen té jedné vybrané varianty. Příčinou bylo, že si systém interně pamatoval vybranou variantu podle technického identifikátoru, který se při každém uložení nabídky obnovil na nový, takže se po chvíli „ztratil". Nově se varianta pozná spolehlivě i po libovolném počtu úprav nabídky, takže se do objednávky vždy promítne jen ta správně vybraná varianta. Dialog „Aktualizovat objednávku" navíc nově odkazuje přímo do detailu objednávky, kde se dají upravit smluvní údaje (záloha, doprava, DPH, adresy) — ty se sesouhlasením položek nepřepisují a je potřeba je řešit zvlášť.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'PDF objednávky již nezobrazuje zastaralou konfiguraci bazénu',
+          userDescription: 'Titulní strana PDF objednávky dříve obsahovala celý blok s parametry konfigurace bazénu (tvar, rozměry, barva…) přesně tak, jak je zákazník zadal na webu. Pokud se ale objednávka později v adminu upravila, tento blok se automaticky neaktualizoval a v PDF tak mohly zůstat neplatné a matoucí údaje. Blok byl proto z PDF objednávky odstraněn — aktuální parametry bazénu jsou vždy vidět v seznamu položek.'
+        },
+        {
+          type: 'fix',
+          scope: 'objednavky',
+          description: 'Datum na PDF objednávky se řídí datem podpisu smlouvy',
+          userDescription: 'Datum na titulní a podpisové straně PDF objednávky, což je právně závazná kupní smlouva, se nyní přednostně řídí polem „Datum podpisu smlouvy" z detailu objednávky. Pokud toto pole není vyplněné, použije se datum poslední úpravy objednávky jako dosud. Díky tomu se datum podpisu na smlouvě samo neposouvá při každé další, s podpisem nesouvisející úpravě objednávky, například při doplnění poznámky.'
+        },
+        {
+          type: 'feature',
+          scope: 'nabidky',
+          description: 'Sjednocená karta Objednatel a Bazénový specialista na titulní straně PDF',
+          userDescription: 'Titulní strana PDF nabídky i objednávky nově zobrazuje kontaktní údaje v jednom přehledném bílém boxu rozděleném na dvě části: „Objednatel" (jméno, e-mail, telefon a adresa zákazníka) a „Bazénový specialista" (jméno, telefon a e-mail obchodníka, který zakázku vyřizuje). Zákazník tak má na první pohled jasné, na koho se v případě dotazů obrátit. U nabídky tato informace o obchodníkovi dosud vůbec nebyla, u objednávky byla rozdělená do dvou samostatných karet.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Osobní poděkování na druhé straně PDF objednávky',
+          userDescription: 'Hned za titulní stranou přibyla v PDF objednávky nová strana s osobním poděkováním od jednatele Rentmilu, Drahoslava Houšky. Zákazník si přečte, že si vážíme jeho důvěry, že uděláme maximum pro to, aby byl s celou dodávkou, tedy se samotným bazénem, s technologiemi i s montáží, naprosto spokojený, a že si přejeme, aby na tuto objednávku vzpomínal jako na nejlepší rozhodnutí roku. Podobný osobní text už dříve měla PDF nabídky.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Skica tvaru bazénu na podpisové straně odpovídá skutečnému bazénu, přibyl tvar ovál',
+          userDescription: 'Na podpisové straně PDF objednávky se dříve vždy kreslila stejná obecná skica bazénu bez ohledu na to, jaký tvar si zákazník doopravdy objednal. Nově se kreslí skutečný tvar bazénu: obdélník s ostrým rohem, obdélník s oblým rohem, kruh, nebo nově i ovál. Tvar jde v detailu objednávky i ručně přepsat, pokud má například u nestandardní zakázky jít mimo automatické odvození z konfigurace.'
+        },
+        {
+          type: 'feature',
+          scope: 'vyroba',
+          description: 'Zjednodušený výrobní list se základním tvarem bazénu a prázdnými kolonkami na data',
+          userDescription: 'Výrobní list pro dílnu byl zjednodušen. Místo podrobného technického výkresu bazénu se všemi doplňky (skimmerem, tryskami…) nyní zobrazuje jen základní obrys tvaru (obdélník, kruh nebo ovál), aby se dal na první pohled rychle poznat. Kolonky pro data zahájení výroby, dokončení výroby a montáže jsou nově prázdné s podtržítkem místo pomlčky, aby šly čitelně vyplnit ručně propiskou. „Místo dodání" nově zobrazuje skutečnou adresu, kam se má bazén dovézt, což se může lišit od fakturační adresy zákazníka. Pole „Přiřazeno" bylo z listu odstraněno, protože se v praxi nepoužívalo.'
+        },
+        {
+          type: 'feature',
+          scope: 'objednavky',
+          description: 'Popis příslušenství u setů v PDF objednávky',
+          userDescription: 'Pokud objednávka obsahuje bazénový set s přidaným příslušenstvím, například navíc schůdky nebo osvětlení, zobrazí se nově v PDF objednávky pod položkou setu i stručný popis, co všechno je v ceně zahrnuté — stejně jako to už funguje u nabídky.'
+        },
+        {
+          type: 'improvement',
+          scope: 'nabidky',
+          description: 'Odstraněna needitovatelná pole Sleva % a Sleva Kč u variant nabídky',
+          userDescription: 'V editoru nabídky byla u každé cenové varianty dvě pole pro procentní nebo korunovou slevu, která ale ve výsledku neovlivňovala nic viditelného pro zákazníka a jen matla obsluhu. Pole byla z editoru odstraněna. Sleva se do nabídky nově přidává jako běžná položka se zápornou cenou, stejně jako ostatní položky.'
+        }
+      ]
+    },
     {
       version: '1.3.1',
       date: '2026-07-20',

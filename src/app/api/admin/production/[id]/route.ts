@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAuth, isAuthError } from '@/lib/auth/api-auth'
+import { ProductionOrderUpdateSchema, validateBody } from '@/lib/validations/api'
 import type { ProductionOrderUpdate } from '@/lib/supabase/types'
 
 interface RouteParams {
@@ -40,6 +41,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const { id } = await params
     const body = await request.json()
 
+    const validation = validateBody(body, ProductionOrderUpdateSchema)
+    if (!validation.success) {
+      return NextResponse.json({ error: `Neplatná data: ${validation.error}` }, { status: 400 })
+    }
+
     const supabase = await createAdminClient()
 
     // Build update data
@@ -52,6 +58,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (body.assembly_date !== undefined) updateData.assembly_date = body.assembly_date
     if (body.notes !== undefined) updateData.notes = body.notes
     if (body.internal_notes !== undefined) updateData.internal_notes = body.internal_notes
+    if (body.pool_shape !== undefined) updateData.pool_shape = body.pool_shape
+    if (body.pool_type !== undefined) updateData.pool_type = body.pool_type
+    if (body.pool_dimensions !== undefined) updateData.pool_dimensions = body.pool_dimensions
+    if (body.pool_color !== undefined) updateData.pool_color = body.pool_color
+    if (body.pool_depth !== undefined) updateData.pool_depth = body.pool_depth
 
     // Update production order
     const { data: productionOrder, error } = await supabase

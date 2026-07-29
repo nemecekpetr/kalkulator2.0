@@ -109,7 +109,7 @@ export async function POST(request: Request) {
         production_number: productionNumber,
         order_id: order_id,
         status: 'pending',
-        pool_shape: typeof poolConfig?.shape === 'string' ? poolConfig.shape : null,
+        pool_shape: order.diagram_shape || (typeof poolConfig?.shape === 'string' ? poolConfig.shape : null),
         pool_type: typeof poolConfig?.type === 'string' ? poolConfig.type : null,
         pool_dimensions: formatPoolDimensions(poolConfig),
         pool_color: typeof poolConfig?.color === 'string' ? poolConfig.color : null,
