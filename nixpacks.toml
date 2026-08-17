@@ -1,6 +1,6 @@
-# Cache bust: 2026-01-27-v2
+# Cache bust: 2026-08-17-v3 (tini as PID 1 to reap zombie Chromium processes)
 [phases.setup]
-nixPkgs = ["nodejs_20", "chromium"]
+nixPkgs = ["nodejs_20", "chromium", "tini"]
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"

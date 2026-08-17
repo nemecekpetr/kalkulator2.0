@@ -4,9 +4,21 @@
 
 import type { ChangelogVersion } from './changelog'
 
-export const CURRENT_VERSION = '1.4.0'
+export const CURRENT_VERSION = '1.4.1'
 
 export const changelogVersions: ChangelogVersion[] = [
+    {
+      version: '1.4.1',
+      date: '2026-08-17',
+      changes: [
+        {
+          type: 'fix',
+          scope: 'pdf',
+          description: 'Trvalá oprava generování PDF — sklízení zaseknutých procesů Chromia',
+          userDescription: 'Stahování PDF nabídek a objednávek postupně přestávalo fungovat (tlačítko „Stáhnout PDF" stáhlo místo dokumentu textový soubor s chybou), protože se v pozadí hromadily nedokončené procesy prohlížeče použitého ke generování PDF, až server nedokázal spustit žádný nový. Kontejner nyní tyto procesy průběžně sám sklízí, takže se problém časem znovu nevrátí.'
+        },
+      ],
+    },
     {
       version: '1.4.0',
       date: '2026-07-29',

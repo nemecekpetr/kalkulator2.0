@@ -112,6 +112,38 @@ export async function getBrowser(): Promise<Browser> {
   }
 }
 
+// Grace period to let browser.close() shut down cleanly before we SIGKILL it.
+// A wedged Chromium won't respond to the CDP close command at all, so close()
+// can hang indefinitely and leave the process (and its children) as zombies.
+const CLOSE_GRACE_PERIOD = 5000
+
+/**
+ * Close a browser, falling back to SIGKILL on the underlying process if the
+ * graceful CDP close doesn't finish in time. Without this, a wedged instance
+ * just hangs forever in browser.close() and its process tree never dies -
+ * that's how the container ends up with hundreds of zombie Chromium processes.
+ */
+async function killBrowser(browser: Browser): Promise<void> {
+  const proc = browser.process()
+  let closed = false
+
+  try {
+    await Promise.race([
+      browser.close().then(() => {
+        closed = true
+      }),
+      new Promise((resolve) => setTimeout(resolve, CLOSE_GRACE_PERIOD)),
+    ])
+  } catch (error) {
+    console.error('[Puppeteer] Error closing browser:', error)
+  }
+
+  if (!closed && proc && proc.exitCode === null && !proc.killed) {
+    console.warn('[Puppeteer] Graceful close timed out, sending SIGKILL')
+    proc.kill('SIGKILL')
+  }
+}
+
 /**
  * Close the browser instance after use.
  * For the pooled browser, this just closes the page, not the browser.
@@ -122,11 +154,7 @@ export async function closeBrowser(browser: Browser): Promise<void> {
   if (browser && browser !== browserInstance) {
     // This is a non-pooled browser, close it
     console.log('[Puppeteer] Closing non-pooled browser instance...')
-    try {
-      await browser.close()
-    } catch (error) {
-      console.error('[Puppeteer] Error closing browser:', error)
-    }
+    await killBrowser(browser)
   }
   // For pooled browser, we just update lastUsedAt (already done in getBrowser)
 }
@@ -153,7 +181,7 @@ function scheduleCleanup(): void {
     if (now - lastUsedAt > MAX_IDLE_TIME) {
       console.log('[Puppeteer] Closing idle browser after 5 minutes')
       try {
-        await browserInstance.close()
+        await killBrowser(browserInstance)
       } catch (error) {
         console.error('[Puppeteer] Error closing idle browser:', error)
       } finally {
@@ -178,7 +206,7 @@ export async function forceCloseBrowser(): Promise<void> {
   if (browserInstance) {
     console.log('[Puppeteer] Force closing browser...')
     try {
-      await browserInstance.close()
+      await killBrowser(browserInstance)
     } catch (error) {
       console.error('[Puppeteer] Error force closing browser:', error)
     } finally {
